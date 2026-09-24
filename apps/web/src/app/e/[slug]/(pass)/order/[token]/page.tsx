@@ -8,6 +8,7 @@ import { verify } from '@/lib/order-tokens';
 import { ticketToken } from '@/lib/tokens';
 import { fullName } from '@/lib/format';
 import { BadgeCard } from '@/components/badge-card';
+import { logoUrlFor } from '@/lib/assets';
 import { PrintLink } from '../../print-link';
 
 export const metadata: Metadata = { title: 'Your order', robots: { index: false } };
@@ -15,6 +16,7 @@ export const metadata: Metadata = { title: 'Your order', robots: { index: false 
 export default async function OrderPage({ params }: { params: Promise<{ slug: string; token: string }> }) {
   const { slug, token } = await params;
   const event = await getPublicEvent(slug);
+  const logoUrl = await logoUrlFor(event);
   const TY = eventType(event.type);
   const id = verify('order', token);
   const order = id
@@ -40,7 +42,7 @@ export default async function OrderPage({ params }: { params: Promise<{ slug: st
       <div className="grid gap-8 sm:grid-cols-2">
         {order.registrations.map((r) => (
           <div key={r.id} className="break-inside-avoid">
-            <BadgeCard event={event} name={fullName(r)} line2={r.field2} ticket={r.ticketType?.name} gate={TY.gates ? r.ticketType?.gates[0]?.title : undefined} publicId={r.publicId} line1={TY.gates ? undefined : r.field1} />
+            <BadgeCard logoUrl={logoUrl} event={event} name={fullName(r)} line2={r.field2} ticket={r.ticketType?.name} gate={TY.gates ? r.ticketType?.gates[0]?.title : undefined} publicId={r.publicId} line1={TY.gates ? undefined : r.field1} />
             <p className="no-print mt-2 text-center text-[13px]"><Link href={`/e/${slug}/t/${ticketToken(r.id)}`}>Open this {TY.badge} on its own</Link></p>
           </div>
         ))}

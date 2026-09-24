@@ -12,6 +12,8 @@ import { Icon } from '@/components/icon';
 import { SimpleForm } from '@/components/simple-form';
 import { PageEditor } from './page-editor';
 import { ThemeForm } from './theme-form';
+import { Uploader } from '@/components/uploader';
+import { deleteAsset } from '../files/actions';
 import {
   addField, addPage, deleteField, deletePage, editField, moveField, saveGeneral, savePage, saveTheme, saveVenue, setBuiltInInNav, setFieldFlag, setPageInNav,
 } from './actions';
@@ -61,7 +63,12 @@ export default async function WebsitePage({ params, searchParams }: { params: Pr
         </SimpleForm>
       )}
       {tab === 'menu' && <Menu slug={slug} event={event} TY={TY} edit={edit} />}
-      {tab === 'theme' && <ThemeForm action={saveTheme.bind(null, slug)} initial={event.accentColour} canEdit={edit} />}
+      {tab === 'theme' && (
+        <>
+          <Logo slug={slug} event={event} edit={edit} />
+          <ThemeForm action={saveTheme.bind(null, slug)} initial={event.accentColour} canEdit={edit} />
+        </>
+      )}
     </>
   );
 }
@@ -262,6 +269,28 @@ async function Menu({ slug, event, TY, edit }: { slug: string; event: Event; TY:
             <ActionSwitch checked={p.inNav} action={setPageInNav.bind(null, slug, p.id)} label={`Show ${p.title} in the menu`} disabled={!edit} />
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+async function Logo({ slug, event, edit }: { slug: string; event: Event; edit: boolean }) {
+  const logo = event.logoAssetId ? await prisma.asset.findUnique({ where: { id: event.logoAssetId } }) : null;
+  return (
+    <section className="fsec max-w-[760px]">
+      <h2>Logo</h2>
+      <p className="hint">Shown in the website header and on {eventType(event.type).badge}s. PNG, JPG or WebP up to 5 MB; a transparent PNG works best.</p>
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="grid h-20 w-40 place-items-center overflow-hidden rounded-xl border border-line bg-white p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {logo ? <img src={`/files/${logo.key}`} alt="Current logo" className="max-h-full max-w-full object-contain" /> : <span className="text-[12.5px] text-muted">No logo yet</span>}
+        </div>
+        {edit && (
+          <div className="flex flex-wrap items-start gap-2">
+            <Uploader slug={slug} kind="LOGO" label={logo ? 'Replace logo' : 'Upload logo'} accept="image/png,image/jpeg,image/webp,image/gif" />
+            {logo && <ConfirmButton action={deleteAsset.bind(null, slug)} hidden={{ id: logo.id }} label="Remove" className="btn danger-ghost sm" title="Remove the logo?" body="The website header and badges go back to the event’s short name." confirmLabel="Remove logo" />}
+          </div>
+        )}
       </div>
     </section>
   );

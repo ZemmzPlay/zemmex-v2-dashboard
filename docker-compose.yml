@@ -31,6 +31,8 @@ services:
     env_file: [.env]
     environment:
       DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://zemmz:zemmz@db:5432/zemmz?schema=public}
+      UPLOAD_DIR: /data/uploads
+    volumes: [uploads:/data/uploads]
     depends_on:
       db: { condition: service_healthy }
 
@@ -58,5 +60,7 @@ services:
 
 volumes:
   db-data:
+  # Uploaded logos, photos and slides when STORAGE_PROVIDER=local.
+  uploads:
   caddy-data:
   caddy-config:

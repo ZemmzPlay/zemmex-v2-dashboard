@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function PeoplePage({ params }: { params: Promise<{ slug: string }> }) {
   const event = await getPublicEvent((await params).slug);
   const TY = eventType(event.type);
-  const people = await prisma.person.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' } });
+  const people = await prisma.person.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, include: { photo: { select: { key: true } } } });
   const highlight = new Map(TY.highlights);
   const groups: [string, typeof people][] = TY.cats.map((c): [string, typeof people] => [c, people.filter((p) => p.category === c)]).filter(([, l]) => l.length > 0);
   const other = people.filter((p) => !TY.cats.includes(p.category));
@@ -31,7 +31,8 @@ export default async function PeoplePage({ params }: { params: Promise<{ slug: s
             {list.map((p) => (
               <details className="person" key={p.id}>
                 <summary>
-                  <div className="av" aria-hidden="true">{initials(p.name)}</div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <div className="av" aria-hidden="true">{p.photo ? <img src={`/files/${p.photo.key}`} alt="" /> : initials(p.name)}</div>
                   <b>{p.name}</b>
                   <small>{p.setTime || highlight.get(p.highlight) || `${p.category}${TY.catSfx}`}</small>
                 </summary>

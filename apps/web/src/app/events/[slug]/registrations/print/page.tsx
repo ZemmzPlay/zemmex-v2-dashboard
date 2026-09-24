@@ -5,6 +5,7 @@ import { eventType } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { fullName } from '@/lib/format';
 import { BadgeCard } from '@/components/badge-card';
+import { logoUrlFor } from '@/lib/assets';
 import { Icon } from '@/components/icon';
 import { PrintButton } from '../[publicId]/badge/print-button';
 import { markPrintedMany } from '../actions';
@@ -17,6 +18,7 @@ export default async function PrintMany({ params, searchParams }: { params: Prom
   const raw = (await searchParams).id;
   const ids = [...new Set((Array.isArray(raw) ? raw : raw ? [raw] : []).map(Number).filter((n) => Number.isSafeInteger(n) && n > 0))].slice(0, 200);
   const { event } = await requirePermission(slug, can.checkIn);
+  const logoUrl = await logoUrlFor(event);
   const TY = eventType(event.type);
   const regs = ids.length
     ? await prisma.registration.findMany({ where: { eventId: event.id, publicId: { in: ids }, status: 'CONFIRMED' }, orderBy: { publicId: 'asc' }, include: { ticketType: { include: { gates: { select: { title: true } } } } } })
@@ -39,6 +41,7 @@ export default async function PrintMany({ params, searchParams }: { params: Prom
         {regs.map((reg) => (
           <div className="bp" key={reg.id}>
             <BadgeCard
+              logoUrl={logoUrl}
               event={event}
               name={fullName(reg)}
               line1={TY.gates ? undefined : reg.field1}

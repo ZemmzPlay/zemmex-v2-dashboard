@@ -8,6 +8,7 @@ import { ConfirmButton } from '@/components/confirm-button';
 import { FormDialog } from '@/components/form-dialog';
 import { Icon } from '@/components/icon';
 import { SearchBox } from '@/components/search-box';
+import { Uploader } from '@/components/uploader';
 import { deletePerson, savePerson } from './actions';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -23,7 +24,7 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
   const edit = can.editContent(user.role);
   const base = `/events/${slug}/people`;
 
-  const all = await prisma.person.findMany({ where: { eventId: event.id }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] });
+  const all = await prisma.person.findMany({ where: { eventId: event.id }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], include: { photo: { select: { id: true, key: true } } } });
   const rank = (c: string) => (TY.cats.includes(c) ? TY.cats.indexOf(c) : TY.cats.length);
   const needle = q.trim().toLowerCase();
   const rows = all
@@ -68,7 +69,7 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
                 <tr key={p.id}>
                   <td>
                     <div className="flex items-center gap-3">
-                      <Avatar name={p.name.replace(/^(Prof\.|Dr\.?)\s/, '')} size={40} shape={TY.shape} />
+                      <Avatar name={p.name.replace(/^(Prof\.|Dr\.?)\s/, '')} size={40} shape={TY.shape} src={p.photo ? `/files/${p.photo.key}` : undefined} />
                       <div className="min-w-0">
                         <b className="font-semibold">{p.name}</b>
                         <div className="muted max-w-[420px] truncate">{p.bio || 'No biography yet'}</div>
@@ -83,6 +84,13 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
                       <div className="inline-flex gap-2">
                         <FormDialog action={savePerson.bind(null, slug, p.id)} label="Edit" className="btn secondary sm" title={`Edit ${p.name}`} submitLabel="Save changes" wide>
                           <PersonFields TY={TY} person={p} />
+                          <div className="fld !mb-0 mt-4">
+                            <span className="lbl">Photo</span>
+                            <div className="flex flex-wrap items-center gap-4">
+                              <Avatar name={p.name.replace(/^(Prof\.|Dr\.?)\s/, '')} size={72} shape={TY.shape} src={p.photo ? `/files/${p.photo.key}` : undefined} />
+                              <Uploader slug={slug} kind="PERSON_PHOTO" target={p.id} label={p.photo ? 'Replace photo' : 'Upload photo'} accept="image/png,image/jpeg,image/webp" hint={TY.shape === 'hex' ? 'Shown in a hexagon; a square portrait works best.' : 'Square photos work best. Up to 5 MB.'} />
+                            </div>
+                          </div>
                         </FormDialog>
                         <ConfirmButton
                           action={deletePerson.bind(null, slug)}
@@ -105,7 +113,7 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
         <div className="card empty">
           <div className="ic"><Icon name={TY.gates ? 'music' : 'users'} size={24} /></div>
           <h3>{all.length ? 'Nobody matches' : `No ${TY.people.toLowerCase()} yet`}</h3>
-          <p>{all.length ? 'Try another name or category.' : `Add the first ${TY.person}. The website shows them as soon as they’re saved.`}</p>
+          <p>{all.length ? 'Try another name or category.' : `Add the first ${TY.person}. The website shows them as soon as they’re saved. Add a photo with Edit.`}</p>
         </div>
       )}
     </>

@@ -236,6 +236,10 @@ model Event {
   evalResponses  EvaluationResponse[]
   raffleDraws    RaffleDraw[]
   activity       ActivityLog[]
+  assets         Asset[]        @relation("EventAssets")
+  /// Shown in the website header, on badges and in emails.
+  logoAssetId    String?        @unique
+  logo           Asset?         @relation("EventLogo", fields: [logoAssetId], references: [id], onDelete: SetNull)
 
   @@index([organisationId])
 }
@@ -385,6 +389,10 @@ model Session {
   /// Kept current by the worker so lists and notifications don't recompute.
   status           SessionStatus @default(UPCOMING)
   sortOrder        Int           @default(0)
+  /// After the event: a link to the recording on the organiser's video host.
+  recordingUrl     String        @default("")
+  slidesAssetId    String?       @unique
+  slides           Asset?        @relation("SessionSlides", fields: [slidesAssetId], references: [id], onDelete: SetNull)
 
   event            Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
   gateTicketType   TicketType?   @relation(fields: [gateTicketTypeId], references: [id], onDelete: SetNull)
@@ -425,6 +433,8 @@ model Person {
   highlight String  @default("")
   bio       String  @default("")
   photoUrl  String?
+  photoAssetId String? @unique
+  photo     Asset?  @relation("PersonPhoto", fields: [photoAssetId], references: [id], onDelete: SetNull)
   setTime   String  @default("")
   sortOrder Int     @default(0)
   event     Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -674,4 +684,37 @@ model ActivityLog {
 
   @@index([organisationId, createdAt])
   @@index([eventId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Files: logos, photos, slides. Bytes live in storage (disk or S3), rows here.
+// ---------------------------------------------------------------------------
+
+enum AssetKind {
+  LOGO
+  PERSON_PHOTO
+  GALLERY_PHOTO
+  SLIDES
+}
+
+model Asset {
+  id             String    @id @default(cuid())
+  organisationId String
+  eventId        String?
+  kind           AssetKind
+  /// Storage key, also the path under /files/.
+  key            String    @unique
+  name           String
+  contentType    String
+  size           Int
+  /// After-event photos and slides can be limited to people who came.
+  attendeesOnly  Boolean   @default(false)
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  event          Event?    @relation("EventAssets", fields: [eventId], references: [id], onDelete: Cascade)
+  logoOf         Event?    @relation("EventLogo")
+  photoOf        Person?   @relation("PersonPhoto")
+  slidesOf       Session?  @relation("SessionSlides")
+
+  @@index([eventId, kind])
 }

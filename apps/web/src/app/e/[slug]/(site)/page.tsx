@@ -16,7 +16,7 @@ export default async function EventHome({ params }: { params: Promise<{ slug: st
 
   const [pages, people, sessions, tickets] = await Promise.all([
     getPublicPages(event.id),
-    prisma.person.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, take: 6 }),
+    prisma.person.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, take: 6, include: { photo: { select: { key: true } } } }),
     prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }] }),
     prisma.ticketType.findMany({ where: { eventId: event.id, onSale: true }, orderBy: { sortOrder: 'asc' }, include: { _count: { select: { registrations: { where: { status: 'CONFIRMED' } } } } } }),
   ]);
@@ -91,7 +91,8 @@ export default async function EventHome({ params }: { params: Promise<{ slug: st
                 <div className={`people shape-${TY.shape}`} style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
                   {people.slice(0, 6).map((p) => (
                     <div className="person" key={p.id}>
-                      <div className="av" aria-hidden="true">{initials(p.name)}</div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <div className="av" aria-hidden="true">{p.photo ? <img src={`/files/${p.photo.key}`} alt="" /> : initials(p.name)}</div>
                       <b>{p.name}</b>
                       <small>{p.setTime || `${p.category}${TY.catSfx}`}</small>
                     </div>

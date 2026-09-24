@@ -22,7 +22,7 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
   if (!reg) notFound();
   if (homeState(event) !== 'after') redirect(`/e/${slug}`);
 
-  const sessions = await prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }] });
+  const sessions = await prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }], include: { slides: { select: { key: true } } } });
   const attended = sessions.filter((s) => reg.attendance.some((a) => a.sessionId === s.id));
 
   /* ---------- after-event page (summit, concert, gala) ---------- */
@@ -30,6 +30,7 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
     const page = await prisma.afterEventPage.findUnique({ where: { eventId: event.id } });
     if (page?.attendeesOnly && !attended.length) redirect(`/e/${slug}`);
     await prisma.afterEventPage.update({ where: { eventId: event.id }, data: { views: { increment: 1 } } }).catch(() => undefined);
+    const photos = page?.showPhotos ? await prisma.asset.findMany({ where: { eventId: event.id, kind: 'GALLERY_PHOTO' }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], select: { id: true, key: true } }) : [];
     return (
       <div>
         <p className="kick">{TY.afterLbl.toUpperCase()}</p>
@@ -37,29 +38,38 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
         <p className="sec-p">{page?.message}</p>
         {(page?.showRecordings || page?.showSlides) && (
           <section className="mb-12" aria-labelledby="rec-h">
-            <h2 id="rec-h" className="mb-4 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>{page.showRecordings ? 'Recordings' : 'Slides'}</h2>
+            <h2 id="rec-h" className="mb-4 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>{page.showRecordings ? (page.showSlides ? 'Recordings and slides' : 'Recordings') : 'Slides'}</h2>
             <div className="tiles">
-              {sessions.filter((s) => s.kind === 'SESSION').map((s) => (
+              {sessions.filter((s) => s.kind === 'SESSION' && ((page.showRecordings && s.recordingUrl) || (page.showSlides && s.slides))).map((s) => (
                 <div className="tile" key={s.id}>
-                  <div className="th"><Icon name={page.showRecordings ? 'sparkle' : 'form'} size={28} /></div>
+                  <div className="th"><Icon name={page.showRecordings && s.recordingUrl ? 'sparkle' : 'form'} size={28} /></div>
                   <div className="tb">
                     <b>{s.title}</b>
                     <small>{s.chairs}</small>
-                    <div className="mt-2 flex gap-3 text-[13px] font-semibold">
-                      {page.showRecordings && <span className="text-[var(--muted)]">Recording: to be uploaded</span>}
-                      {page.showSlides && <span className="text-[var(--muted)]">Slides: to be uploaded</span>}
+                    <div className="mt-2 flex flex-wrap gap-3 text-[13px] font-semibold">
+                      {page.showRecordings && s.recordingUrl && <a href={s.recordingUrl} target="_blank" rel="noopener noreferrer">Watch the recording</a>}
+                      {page.showSlides && s.slides && <a href={`/files/${s.slides.key}?t=${encodeURIComponent(token)}&download`}>Download the slides (PDF)</a>}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-[13px] text-[var(--muted)]">Recordings and slides are uploaded by the organiser. File uploads are the next step for this page.</p>
+            {!sessions.some((s) => s.kind === 'SESSION' && ((page.showRecordings && s.recordingUrl) || (page.showSlides && s.slides))) && <p className="text-[var(--muted)]">The organiser hasn’t added them yet. Check back soon.</p>}
           </section>
         )}
         {page?.showPhotos && (
           <section className="mb-12" aria-labelledby="ph-h">
-            <h2 id="ph-h" className="mb-2 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>Photos</h2>
-            <p className="text-[var(--muted)]">The official photos are to be uploaded. Check back soon.</p>
+            <h2 id="ph-h" className="mb-4 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>Photos</h2>
+            {photos.length ? (
+              <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))]">
+                {photos.map((p) => (
+                  <a key={p.id} href={`/files/${p.key}?t=${encodeURIComponent(token)}`} target="_blank" rel="noopener" className="block overflow-hidden rounded-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/files/${p.key}?t=${encodeURIComponent(token)}`} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover transition hover:scale-[1.03]" />
+                  </a>
+                ))}
+              </div>
+            ) : <p className="text-[var(--muted)]">The official photos are on their way. Check back soon.</p>}
           </section>
         )}
         {page?.showSurvey && (

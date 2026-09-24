@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1139.0",
     "@zemmz/db": "*",
     "@zemmz/shared": "*",
     "next": "15.5.26",

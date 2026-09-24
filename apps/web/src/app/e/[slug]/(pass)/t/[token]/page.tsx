@@ -6,6 +6,7 @@ import { getPublicEvent } from '@/lib/public-event';
 import { readTicketToken } from '@/lib/tokens';
 import { fullName } from '@/lib/format';
 import { BadgeCard } from '@/components/badge-card';
+import { logoUrlFor } from '@/lib/assets';
 import { PrintLink } from '../../print-link';
 
 export const metadata: Metadata = { title: 'Your ticket', robots: { index: false } };
@@ -14,6 +15,7 @@ export default async function TicketPage({ params, searchParams }: { params: Pro
   const { slug, token } = await params;
   const { new: isNew } = await searchParams;
   const event = await getPublicEvent(slug);
+  const logoUrl = await logoUrlFor(event);
   const TY = eventType(event.type);
   const id = readTicketToken(token);
   const reg = id ? await prisma.registration.findFirst({ where: { id, eventId: event.id }, include: { ticketType: { include: { gates: { select: { title: true } } } } } }) : null;
@@ -34,6 +36,7 @@ export default async function TicketPage({ params, searchParams }: { params: Pro
           )}
           <div className="idbox no-print"><small>{TY.idName}</small><b>{reg.publicId}</b></div>
           <BadgeCard
+              logoUrl={logoUrl}
             event={event}
             name={fullName(reg)}
             line1={TY.gates ? undefined : reg.field1}

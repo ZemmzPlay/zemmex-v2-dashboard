@@ -46,7 +46,7 @@ export function AfterEditor({ action, initial, gates, unit, idName, eventName, d
                 </div>
               ))}
             </div>
-            {(v.showRecordings || v.showSlides || v.showPhotos) && <p className="mb-0 mt-2 text-[12.5px] text-muted">Until file uploads are added, these show as “to be uploaded”.</p>}
+            {(v.showRecordings || v.showSlides || v.showPhotos) && <p className="mb-0 mt-2 text-[12.5px] text-muted">Add the recordings, slides and photos further down this page.</p>}
           </section>
           <section className="fsec">
             <h2>Who can see it</h2>
