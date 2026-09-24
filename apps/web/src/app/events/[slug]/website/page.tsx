@@ -93,6 +93,18 @@ function General({ slug, event, TY, edit }: { slug: string; event: Event; TY: Ev
             <span className="help">One or two sentences under the event name. Up to 240 characters.</span>
           </div>
         </section>
+        <section className="fsec">
+          <h2>Website language</h2>
+          <p className="hint">The language of menus, forms, tickets, certificates and confirmation emails. Your own text (event name, pages, biographies) appears as you write it.</p>
+          <div className="opt-cards">
+            {([['EN', 'English', 'Left to right'], ['AR', 'Arabic', 'Right to left, Arabic typeface'], ['BOTH', 'English and Arabic', 'Visitors switch in the menu']] as const).map(([v, l, d]) => (
+              <label className="opt-card" key={v}>
+                <input type="radio" name="siteLanguage" value={v} className="sr-only" defaultChecked={event.siteLanguage === v} />
+                <b>{l}</b><small>{d}</small>
+              </label>
+            ))}
+          </div>
+        </section>
       </SimpleForm>
       <section className="fsec mt-4">
         <h2>What the homepage shows</h2>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useState, useTransition } from 'react';
-import { formatMoney, lowerFirst } from '@zemmz/shared';
+import { eventType, formatMoney, siteText, type Locale } from '@zemmz/shared';
 import { FieldInput, INPUT_NAME, type FieldDef } from '@/components/person-form';
 import type { CheckoutQuote, PublicFormState } from '../../actions';
 
@@ -13,7 +13,7 @@ interface Ticket { id: string; name: string; description: string; priceMinor: nu
  * not unmounted, so nothing typed is lost when going back.
  */
 export function CheckoutFlow({
-  slug, currency, tickets, initial, fields, quoteAction, orderAction, idName, gates,
+  slug, currency, tickets, initial, fields, quoteAction, orderAction, type, locale,
 }: {
   slug: string;
   currency: string;
@@ -22,9 +22,12 @@ export function CheckoutFlow({
   fields: FieldDef[];
   quoteAction: (wanted: Record<string, number>, promo: string) => Promise<CheckoutQuote>;
   orderAction: (p: PublicFormState, fd: FormData) => Promise<PublicFormState>;
-  idName: string;
-  gates: boolean;
+  type: string;
+  locale: Locale;
 }) {
+  const TY = eventType(type);
+  const tx = siteText(TY, locale);
+  const gates = TY.gates;
   const [step, setStep] = useState(0);
   const [qty, setQty] = useState<Record<string, number>>(initial);
   const [promo, setPromo] = useState('');
@@ -48,7 +51,7 @@ export function CheckoutFlow({
   let i = 0;
   for (const t of tickets) for (let k = 0; k < (qty[t.id] ?? 0); k++) holders.push({ i: i++, ticket: t.name });
 
-  const steps = ['Tickets', 'Your details', free ? 'Confirm' : 'Payment'];
+  const steps = tx.steps(free);
   const money = (n: number) => formatMoney(n, currency);
 
   return (
@@ -74,101 +77,101 @@ export function CheckoutFlow({
 
       {/* 1. Tickets */}
       <fieldset hidden={step !== 0} className="m-0 border-0 p-0">
-        <legend className="sr-only">Tickets</legend>
+        <legend className="sr-only">{steps[0]}</legend>
         {tickets.map((t) => {
           const max = Math.min(10, t.left ?? 10);
           const n = qty[t.id] ?? 0;
           return (
             <div className={`tk ${t.left === 0 ? 'off' : ''}`} key={t.id}>
               <div><b>{t.name}</b><small>{t.description}</small></div>
-              <div className="pr">{t.left === 0 ? 'Sold out' : formatMoney(t.priceMinor, currency, { freeLabel: true })}</div>
+              <div className="pr">{t.left === 0 ? tx.soldOut : formatMoney(t.priceMinor, currency, { freeLabel: true })}</div>
               {t.left !== 0 && (
-                <div className="qty" role="group" aria-label={`${t.name} tickets`}>
-                  <button type="button" onClick={() => setQty({ ...qty, [t.id]: Math.max(0, n - 1) })} disabled={n === 0} aria-label={`One fewer ${t.name}`}>−</button>
+                <div className="qty" role="group" aria-label={tx.ticketsOf(t.name)}>
+                  <button type="button" onClick={() => setQty({ ...qty, [t.id]: Math.max(0, n - 1) })} disabled={n === 0} aria-label={tx.oneFewer(t.name)}>−</button>
                   <output aria-live="polite">{n}</output>
-                  <button type="button" onClick={() => setQty({ ...qty, [t.id]: Math.min(max, n + 1) })} disabled={n >= max} aria-label={`One more ${t.name}`}>+</button>
+                  <button type="button" onClick={() => setQty({ ...qty, [t.id]: Math.min(max, n + 1) })} disabled={n >= max} aria-label={tx.oneMore(t.name)}>+</button>
                 </div>
               )}
             </div>
           );
         })}
         <div className="fld mt-4 max-w-[360px]">
-          <label htmlFor="promo">Promo code<span className="opt">optional</span></label>
+          <label htmlFor="promo">{tx.promo}<span className="opt">{tx.optional}</span></label>
           <div className="flex gap-2">
             <input id="promo" className="inp uppercase" value={promo} onChange={(e) => setPromo(e.target.value)} autoComplete="off" />
-            <button type="button" className="btn line sm !h-11" onClick={() => setAppliedPromo(promo.trim())}>Apply</button>
+            <button type="button" className="btn line sm !h-11" onClick={() => setAppliedPromo(promo.trim())}>{tx.apply}</button>
           </div>
           {q?.error && appliedPromo && <span className="err" role="alert">{q.error}</span>}
-          {q?.promo && <span className="text-[12.5px] font-semibold text-[var(--ok)]">{q.promo.code}: {q.promo.percentOff}% off</span>}
+          {q?.promo && <span className="text-[12.5px] font-semibold text-[var(--ok)]">{tx.percentOff(q.promo.code, q.promo.percentOff)}</span>}
         </div>
-        <Summary q={q} money={money} busy={quoting} />
-        <button type="button" className="btn accent mt-4" disabled={!count || quoting || !!(q?.error && appliedPromo)} onClick={() => setStep(1)}>Continue</button>
+        <Summary q={q} money={money} busy={quoting} tx={tx} />
+        <button type="button" className="btn accent mt-4" disabled={!count || quoting || !!(q?.error && appliedPromo)} onClick={() => setStep(1)}>{tx.continue}</button>
       </fieldset>
 
       {/* 2. Details */}
       <fieldset hidden={step !== 1} className="m-0 border-0 p-0">
-        <legend className="sr-only">Your details</legend>
-        <h2 className="mb-3 text-[18px] font-bold">Your details</h2>
+        <legend className="sr-only">{tx.yourDetails}</legend>
+        <h2 className="mb-3 text-[18px] font-bold">{tx.yourDetails}</h2>
         <div className="grid gap-x-3 sm:grid-cols-2">
           {fields.map((f) => (
-            <FieldInput key={f.key} f={f} namePrefix="b_" value={state.values?.[`b_${INPUT_NAME[f.key] ?? `a_${f.key}`}`] ?? ''} error={state.fieldErrors?.[f.key]} />
+            <FieldInput key={f.key} f={f} namePrefix="b_" value={state.values?.[`b_${INPUT_NAME[f.key] ?? `a_${f.key}`}`] ?? ''} error={state.fieldErrors?.[f.key]} text={tx} />
           ))}
         </div>
         {holders.length > 1 && (
           <>
-            <h2 className="mb-1 mt-4 text-[18px] font-bold">Name on each ticket</h2>
-            <p className="mt-0 text-[13.5px] text-[var(--muted)]">Each ticket gets its own {lowerFirst(idName)}{gates ? ' and barcode' : ''}. Leave blank to use your name.</p>
+            <h2 className="mb-1 mt-4 text-[18px] font-bold">{tx.nameOnEach}</h2>
+            <p className="mt-0 text-[13.5px] text-[var(--muted)]">{tx.nameOnEachSub(gates)}</p>
             {holders.map((h) => (
               <div className="grid items-end gap-x-3 sm:grid-cols-[140px_1fr_1fr]" key={h.i}>
                 <div className="pb-5 text-[13px] font-semibold">{h.i + 1}. {h.ticket}</div>
-                <div className="fld"><label htmlFor={`h${h.i}f`}>First name</label><input id={`h${h.i}f`} name={`h${h.i}_first`} className="inp" defaultValue={state.values?.[`h${h.i}_first`]} /></div>
-                <div className="fld"><label htmlFor={`h${h.i}l`}>Last name</label><input id={`h${h.i}l`} name={`h${h.i}_last`} className="inp" defaultValue={state.values?.[`h${h.i}_last`]} /></div>
+                <div className="fld"><label htmlFor={`h${h.i}f`}>{tx.firstName}</label><input id={`h${h.i}f`} name={`h${h.i}_first`} className="inp" defaultValue={state.values?.[`h${h.i}_first`]} /></div>
+                <div className="fld"><label htmlFor={`h${h.i}l`}>{tx.lastName}</label><input id={`h${h.i}l`} name={`h${h.i}_last`} className="inp" defaultValue={state.values?.[`h${h.i}_last`]} /></div>
               </div>
             ))}
           </>
         )}
-        <label className="mb-3 flex items-start gap-2 text-[13px] text-[var(--ink-2)]"><input type="checkbox" name="b_consent" className="mt-1" /> Send me news about future editions.</label>
+        <label className="mb-3 flex items-start gap-2 text-[13px] text-[var(--ink-2)]"><input type="checkbox" name="b_consent" className="mt-1" /> {tx.consentShort}</label>
         <div className="flex gap-2">
-          <button type="button" className="btn line" onClick={() => setStep(0)}>Back</button>
-          <button type="button" className="btn accent" onClick={() => setStep(2)}>Continue</button>
+          <button type="button" className="btn line" onClick={() => setStep(0)}>{tx.back}</button>
+          <button type="button" className="btn accent" onClick={() => setStep(2)}>{tx.continue}</button>
         </div>
       </fieldset>
 
       {/* 3. Payment */}
       <fieldset hidden={step !== 2} className="m-0 border-0 p-0">
-        <legend className="sr-only">{free ? 'Confirm' : 'Payment'}</legend>
-        <Summary q={q} money={money} busy={quoting} />
+        <legend className="sr-only">{steps[2]}</legend>
+        <Summary q={q} money={money} busy={quoting} tx={tx} />
         {free ? (
-          <button className="btn accent block mt-4" name="pay" value="approve" disabled={placing}>{placing ? 'Confirming…' : 'Confirm'}</button>
+          <button className="btn accent block mt-4" name="pay" value="approve" disabled={placing}>{placing ? tx.confirming : tx.confirm}</button>
         ) : (
           <>
             <div className="note warn mt-4">
-              <b>Test payments.</b> No payment provider is connected yet, so no card details are asked for and nothing is charged. A regional provider’s secure card form goes here.
+              <b>{tx.testPayments}</b> {tx.testPaymentsBody}
             </div>
             <div className="grid gap-2.5 sm:grid-cols-2">
-              <button className="btn accent" name="pay" value="approve" disabled={placing || !q}>{placing ? 'Paying…' : `Pay ${q ? money(q.totalMinor) : ''}`}</button>
-              <button className="btn line" name="pay" value="applepay" disabled={placing || !q} style={{ background: '#000', color: '#fff', borderColor: '#000' }}>Pay with Apple Pay</button>
+              <button className="btn accent" name="pay" value="approve" disabled={placing || !q}>{placing ? tx.paying : tx.pay(q ? money(q.totalMinor) : '')}</button>
+              <button className="btn line" name="pay" value="applepay" disabled={placing || !q} style={{ background: '#000', color: '#fff', borderColor: '#000' }}>{tx.applePay}</button>
             </div>
-            <button className="mt-3 border-0 bg-transparent p-0 text-[13px] font-semibold text-[var(--muted)] underline" name="pay" value="decline" disabled={placing}>Try a declined payment</button>
+            <button className="mt-3 border-0 bg-transparent p-0 text-[13px] font-semibold text-[var(--muted)] underline" name="pay" value="decline" disabled={placing}>{tx.tryDecline}</button>
           </>
         )}
-        <div className="mt-4"><button type="button" className="btn line sm" onClick={() => setStep(1)}>Back</button></div>
-        <p className="fine">Your tickets and {lowerFirst(idName)}s are emailed as soon as the order is confirmed.</p>
+        <div className="mt-4"><button type="button" className="btn line sm" onClick={() => setStep(1)}>{tx.back}</button></div>
+        <p className="fine">{tx.emailedFine}</p>
       </fieldset>
-      <p className="sr-only" aria-live="polite">{`Step ${step + 1} of 3: ${steps[step]}`}</p>
+      <p className="sr-only" aria-live="polite">{tx.stepOf(step + 1, steps[step])}</p>
       <input type="hidden" name="slug" value={slug} />
     </form>
   );
 }
 
-function Summary({ q, money, busy }: { q: CheckoutQuote | null; money: (n: number) => string; busy: boolean }) {
-  if (!q || !q.lines.length) return <p className="mt-4 text-[var(--muted)]">{busy ? 'Working out the total…' : 'Choose at least one ticket.'}</p>;
+function Summary({ q, money, busy, tx }: { q: CheckoutQuote | null; money: (n: number) => string; busy: boolean; tx: ReturnType<typeof siteText> }) {
+  if (!q || !q.lines.length) return <p className="mt-4 text-[var(--muted)]">{busy ? tx.workingOut : tx.chooseOneTicket}</p>;
   return (
     <div className="mt-4 rounded-xl border border-[var(--line)] p-4" aria-busy={busy}>
       {q.lines.map((l) => <div className="sumrow" key={l.ticketTypeId}><span>{l.qty} × {l.name}</span><span>{money(l.unitMinor * l.qty)}</span></div>)}
-      {q.discountMinor > 0 && <div className="sumrow"><span>Discount ({q.promo?.code})</span><span>−{money(q.discountMinor)}</span></div>}
-      {q.feeMinor > 0 && <div className="sumrow"><span>Booking fee</span><span>{money(q.feeMinor)}</span></div>}
-      <div className="sumrow tot"><span>Total</span><span>{money(q.totalMinor)}</span></div>
+      {q.discountMinor > 0 && <div className="sumrow"><span>{tx.discount(q.promo?.code ?? '')}</span><span>−{money(q.discountMinor)}</span></div>}
+      {q.feeMinor > 0 && <div className="sumrow"><span>{tx.bookingFee}</span><span>{money(q.feeMinor)}</span></div>}
+      <div className="sumrow tot"><span>{tx.total}</span><span>{money(q.totalMinor)}</span></div>
     </div>
   );
 }

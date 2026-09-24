@@ -4,22 +4,27 @@
  * timezone anywhere (docs/06, finding 2).
  */
 
-const parts = (d: Date, tz: string, opts: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat('en-GB', { timeZone: tz, ...opts }).format(d);
+/** Interface language of a public event site. */
+export type Locale = 'en' | 'ar';
+/** Arabic month and day names with Western digits, as usual on Gulf websites. */
+const TAG: Record<Locale, string> = { en: 'en-GB', ar: 'ar-u-nu-latn' };
+
+const parts = (d: Date, tz: string, opts: Intl.DateTimeFormatOptions, locale: Locale = 'en') =>
+  new Intl.DateTimeFormat(TAG[locale], { timeZone: tz, ...opts }).format(d);
 
 /** `13:40` */
-export function formatTime(d: Date, tz: string): string {
-  return parts(d, tz, { hour: '2-digit', minute: '2-digit', hour12: false });
+export function formatTime(d: Date, tz: string, locale: Locale = 'en'): string {
+  return parts(d, tz, { hour: '2-digit', minute: '2-digit', hour12: false }, locale);
 }
 
 /** `22 September 2026` */
-export function formatDate(d: Date, tz: string): string {
-  return parts(d, tz, { day: 'numeric', month: 'long', year: 'numeric' });
+export function formatDate(d: Date, tz: string, locale: Locale = 'en'): string {
+  return parts(d, tz, { day: 'numeric', month: 'long', year: 'numeric' }, locale);
 }
 
 /** `Tuesday 22 September` */
-export function formatDay(d: Date, tz: string): string {
-  return parts(d, tz, { weekday: 'long', day: 'numeric', month: 'long' });
+export function formatDay(d: Date, tz: string, locale: Locale = 'en'): string {
+  return parts(d, tz, { weekday: 'long', day: 'numeric', month: 'long' }, locale);
 }
 
 /** `22 Sep, 13:40` */
@@ -28,9 +33,10 @@ export function formatShortDateTime(d: Date, tz: string): string {
 }
 
 /** `22–23 September 2026`, `30 September – 1 October 2026`, `22 September 2026` */
-export function formatDateRange(start: Date, end: Date, tz: string): string {
-  const s = { d: parts(start, tz, { day: 'numeric' }), m: parts(start, tz, { month: 'long' }), y: parts(start, tz, { year: 'numeric' }) };
-  const e = { d: parts(end, tz, { day: 'numeric' }), m: parts(end, tz, { month: 'long' }), y: parts(end, tz, { year: 'numeric' }) };
+export function formatDateRange(start: Date, end: Date, tz: string, locale: Locale = 'en'): string {
+  const p = (d: Date, o: Intl.DateTimeFormatOptions) => parts(d, tz, o, locale);
+  const s = { d: p(start, { day: 'numeric' }), m: p(start, { month: 'long' }), y: p(start, { year: 'numeric' }) };
+  const e = { d: p(end, { day: 'numeric' }), m: p(end, { month: 'long' }), y: p(end, { year: 'numeric' }) };
   if (s.y !== e.y) return `${s.d} ${s.m} ${s.y} – ${e.d} ${e.m} ${e.y}`;
   if (s.m !== e.m) return `${s.d} ${s.m} – ${e.d} ${e.m} ${e.y}`;
   if (s.d !== e.d) return `${s.d}–${e.d} ${s.m} ${s.y}`;

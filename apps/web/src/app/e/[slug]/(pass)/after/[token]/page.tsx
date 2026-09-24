@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@zemmz/db';
-import { creditsEarned, eventType, formatDateRange, formatTime, shortTitle, lowerFirst } from '@zemmz/shared';
+import { creditsEarned, eventType, formatDateRange, formatTime, shortTitle, siteText, type Locale } from '@zemmz/shared';
+import { siteTextFor } from '@/lib/site-locale';
 import { getPublicEvent, homeState } from '@/lib/public-event';
 import { verify } from '@/lib/order-tokens';
 import { fullName } from '@/lib/format';
@@ -17,6 +18,7 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
   const { slug, token } = await params;
   const event = await getPublicEvent(slug);
   const TY = eventType(event.type);
+  const { t, locale } = await siteTextFor(event);
   const regId = verify('claim', token);
   const reg = regId ? await prisma.registration.findFirst({ where: { id: regId, eventId: event.id, status: 'CONFIRMED' }, include: { attendance: true, evaluation: { select: { id: true } } } }) : null;
   if (!reg) notFound();
@@ -33,12 +35,12 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
     const photos = page?.showPhotos ? await prisma.asset.findMany({ where: { eventId: event.id, kind: 'GALLERY_PHOTO' }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], select: { id: true, key: true } }) : [];
     return (
       <div>
-        <p className="kick">{TY.afterLbl.toUpperCase()}</p>
-        <h1 className="sec-t">Thank you, {reg.firstName}</h1>
+        <p className="kick">{t.afterKick}</p>
+        <h1 className="sec-t">{t.thankYou(reg.firstName)}</h1>
         <p className="sec-p">{page?.message}</p>
         {(page?.showRecordings || page?.showSlides) && (
           <section className="mb-12" aria-labelledby="rec-h">
-            <h2 id="rec-h" className="mb-4 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>{page.showRecordings ? (page.showSlides ? 'Recordings and slides' : 'Recordings') : 'Slides'}</h2>
+            <h2 id="rec-h" className="mb-4 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>{t.recordingsAndSlides(page.showRecordings, page.showSlides)}</h2>
             <div className="tiles">
               {sessions.filter((s) => s.kind === 'SESSION' && ((page.showRecordings && s.recordingUrl) || (page.showSlides && s.slides))).map((s) => (
                 <div className="tile" key={s.id}>
@@ -47,19 +49,19 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
                     <b>{s.title}</b>
                     <small>{s.chairs}</small>
                     <div className="mt-2 flex flex-wrap gap-3 text-[13px] font-semibold">
-                      {page.showRecordings && s.recordingUrl && <a href={s.recordingUrl} target="_blank" rel="noopener noreferrer">Watch the recording</a>}
-                      {page.showSlides && s.slides && <a href={`/files/${s.slides.key}?t=${encodeURIComponent(token)}&download`}>Download the slides (PDF)</a>}
+                      {page.showRecordings && s.recordingUrl && <a href={s.recordingUrl} target="_blank" rel="noopener noreferrer">{t.watch}</a>}
+                      {page.showSlides && s.slides && <a href={`/files/${s.slides.key}?t=${encodeURIComponent(token)}&download`}>{t.downloadSlides}</a>}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            {!sessions.some((s) => s.kind === 'SESSION' && ((page.showRecordings && s.recordingUrl) || (page.showSlides && s.slides))) && <p className="text-[var(--muted)]">The organiser hasn’t added them yet. Check back soon.</p>}
+            {!sessions.some((s) => s.kind === 'SESSION' && ((page.showRecordings && s.recordingUrl) || (page.showSlides && s.slides))) && <p className="text-[var(--muted)]">{t.notYet}</p>}
           </section>
         )}
         {page?.showPhotos && (
           <section className="mb-12" aria-labelledby="ph-h">
-            <h2 id="ph-h" className="mb-4 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>Photos</h2>
+            <h2 id="ph-h" className="mb-4 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>{t.photos}</h2>
             {photos.length ? (
               <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))]">
                 {photos.map((p) => (
@@ -69,13 +71,13 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
                   </a>
                 ))}
               </div>
-            ) : <p className="text-[var(--muted)]">The official photos are on their way. Check back soon.</p>}
+            ) : <p className="text-[var(--muted)]">{t.photosSoon}</p>}
           </section>
         )}
         {page?.showSurvey && (
           <section aria-labelledby="sv-h" className="max-w-[760px]">
-            <h2 id="sv-h" className="mb-2 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>Two-minute survey</h2>
-            {reg.evaluation ? <div className="note ok">Thanks, we’ve got your answers.</div> : <EvaluationSection eventId={event.id} action={submitEvaluation.bind(null, slug, token)} />}
+            <h2 id="sv-h" className="mb-2 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>{t.survey}</h2>
+            {reg.evaluation ? <div className="note ok">{t.surveyThanks}</div> : <EvaluationSection eventId={event.id} action={submitEvaluation.bind(null, slug, token)} type={event.type} locale={locale} />}
           </section>
         )}
       </div>
@@ -84,17 +86,17 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
 
   /* ---------- certificates (medical, conference, workshop) ---------- */
   const cert = await prisma.certificateTemplate.findUnique({ where: { eventId: event.id } });
-  if (!cert) return <div className="note warn">The certificate isn’t ready yet. Try again later.</div>;
+  if (!cert) return <div className="note warn">{t.certNotReady}</div>;
   if (attended.length < cert.minSessions) {
-    return <div className="note err">You attended {attended.length} {TY.units}; the certificate needs {cert.minSessions}. If you think this is wrong, contact the organiser with your {lowerFirst(TY.idName)} {reg.publicId}.</div>;
+    return <div className="note err">{t.tooFewSessions(attended.length, cert.minSessions, reg.publicId)}</div>;
   }
   if (event.requireEvaluation && !reg.evaluation) {
     return (
       <div className="max-w-[760px]">
-        <p className="kick">STEP 1 OF 2</p>
-        <h1 className="sec-t">Evaluation</h1>
-        <p className="sec-p">Your certificate is ready. {TY.credits ? 'Accreditation requires an evaluation first.' : 'Please tell us how it went first.'} It takes about three minutes.</p>
-        <EvaluationSection eventId={event.id} action={submitEvaluation.bind(null, slug, token)} />
+        <p className="kick">{t.step1of2}</p>
+        <h1 className="sec-t">{t.evaluation}</h1>
+        <p className="sec-p">{t.evaluationIntro}</p>
+        <EvaluationSection eventId={event.id} action={submitEvaluation.bind(null, slug, token)} type={event.type} locale={locale} />
       </div>
     );
   }
@@ -105,7 +107,7 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
   // Points for a session still running are not final; issuing now would lock in the wrong number.
   const counting = perSession.find((p) => p.earned === null);
   if (counting) {
-    return <div className="note warn">Your CME points are still being counted: you’re checked in to {shortTitle(counting.s.title)}, which ends at {formatTime(counting.s.endsAt, event.timezone)}. Come back after it ends to get your certificate.</div>;
+    return <div className="note warn">{t.stillCounting(shortTitle(counting.s.title), formatTime(counting.s.endsAt, event.timezone, locale))}</div>;
   }
   const credits = perSession.reduce((t, p) => t + (p.earned ?? 0), 0);
   await prisma.certificateIssue.upsert({
@@ -113,15 +115,15 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
     update: { credits, sessions: attended.length, downloads: { increment: 1 } },
     create: { registrationId: reg.id, credits, sessions: attended.length, downloads: 1 },
   });
-  const sessionsText = attended.length === 1 ? shortTitle(attended[0].title) : `${attended.length} ${TY.units}`;
+  const sessionsText = attended.length === 1 ? shortTitle(attended[0].title) : t.sessionsCount(attended.length);
 
   return (
     <div>
       <style>{`@media print { @page { size: A4 landscape; margin: 0; } .certificate { box-shadow: none !important; border-radius: 0 !important; width: 100% !important; min-height: 100vh; } }`}</style>
       <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="m-0 text-[26px] font-bold" style={{ fontFamily: 'var(--serif)' }}>Your certificate</h1>
-          <p className="m-0 text-[var(--ink-2)]">{TY.credits ? `${credits} CME points from ${attended.length} ${attended.length === 1 ? TY.unit.toLowerCase() : TY.units}.` : `For ${sessionsText}.`}</p>
+          <h1 className="m-0 text-[26px] font-bold" style={{ fontFamily: 'var(--serif)' }}>{t.yourCertificate}</h1>
+          <p className="m-0 text-[var(--ink-2)]">{TY.credits ? t.pointsLine(credits, attended.length) : t.forLine(sessionsText)}</p>
         </div>
         <PrintLink label="Print or save as PDF" />
       </div>
@@ -129,20 +131,22 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
         template={cert}
         accent={event.accentColour}
         organiserName={event.organiserName}
-        eventLine={[event.name, formatDateRange(event.startsOn, event.endsOn, 'UTC'), event.venueName].filter(Boolean).join(' · ')}
+        eventLine={[event.name, formatDateRange(event.startsOn, event.endsOn, 'UTC', locale), event.venueName].filter(Boolean).join(' · ')}
         name={fullName(reg)}
         profile={[reg.field1, reg.field2].filter(Boolean).join(' · ')}
         credits={credits}
         sessionsText={sessionsText}
-        idLabel={`${TY.idName} ${reg.publicId}`}
+        idLabel={`${t.v.idName} ${reg.publicId}`}
+        text={{ certifyThat: t.certifyThat, activityNumber: t.activityNumber }}
         showActivity
       />
     </div>
   );
 }
 
-async function EvaluationSection({ eventId, action }: { eventId: string; action: Parameters<typeof EvaluationForm>[0]['action'] }) {
+async function EvaluationSection({ eventId, action, type, locale }: { eventId: string; action: Parameters<typeof EvaluationForm>[0]['action']; type: string; locale: Locale }) {
+  const t = siteText(eventType(type), locale);
   const questions = await prisma.evaluationQuestion.findMany({ where: { eventId }, orderBy: { sortOrder: 'asc' } });
-  if (!questions.length) return <p className="text-[var(--muted)]">The survey isn’t ready yet.</p>;
-  return <EvaluationForm action={action} questions={questions.map((q) => ({ id: q.id, text: q.text, kind: q.kind, group: q.groupName, required: q.required }))} />;
+  if (!questions.length) return <p className="text-[var(--muted)]">{t.surveyNotReady}</p>;
+  return <EvaluationForm action={action} questions={questions.map((q) => ({ id: q.id, text: q.text, kind: q.kind, group: q.groupName, required: q.required }))} type={type} locale={locale} />;
 }

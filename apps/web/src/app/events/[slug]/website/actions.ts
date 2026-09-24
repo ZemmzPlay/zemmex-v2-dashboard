@@ -19,10 +19,10 @@ const refresh = (slug: string) => {
 
 export async function saveGeneral(slug: string, _p: ActionState, fd: FormData): Promise<ActionState> {
   const { user, event } = await requirePermission(slug, can.editContent);
-  const parsed = z.object({ heroText: z.string().trim().max(240, 'Keep the introduction under 240 characters') }).safeParse({ heroText: fd.get('heroText') ?? '' });
+  const parsed = z.object({ heroText: z.string().trim().max(240, 'Keep the introduction under 240 characters'), siteLanguage: z.enum(['EN', 'AR', 'BOTH']) }).safeParse({ heroText: fd.get('heroText') ?? '', siteLanguage: fd.get('siteLanguage') ?? event.siteLanguage });
   if (!parsed.success) return failed(parsed.error.issues[0].message);
   await prisma.event.update({ where: { id: event.id }, data: parsed.data });
-  await logActivity(user, event.id, 'edited the homepage introduction');
+  await logActivity(user, event.id, parsed.data.siteLanguage !== event.siteLanguage ? `set the website language to ${{ EN: 'English', AR: 'Arabic', BOTH: 'English and Arabic' }[parsed.data.siteLanguage]}` : 'edited the homepage introduction');
   refresh(slug);
   return done('Saved. The homepage shows it now.');
 }

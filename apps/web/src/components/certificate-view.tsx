@@ -25,6 +25,7 @@ export function CertificateView({
   sessionsText,
   idLabel,
   showActivity,
+  text = { certifyThat: 'This is to certify that', activityNumber: 'Activity number' },
 }: {
   template: CertificateTemplateText;
   accent: string;
@@ -36,6 +37,7 @@ export function CertificateView({
   sessionsText: string;
   idLabel: string;
   showActivity: boolean;
+  text?: { certifyThat: string; activityNumber: string };
 }) {
   const serif = { fontFamily: 'var(--serif, Georgia, "Times New Roman", serif)' };
   return (
@@ -43,18 +45,18 @@ export function CertificateView({
       <p className="m-0 text-[max(9px,1.4cqw)] font-bold tracking-[.14em]" style={{ color: accent }}>{organiserName.toUpperCase()}</p>
       <h2 className="mb-[1cqw] mt-[1.8cqw] text-[max(16px,4.4cqw)] font-bold leading-tight" style={serif}>{t.title}</h2>
       <p className="m-0 text-[max(9px,1.55cqw)] text-[#474B63]">{eventLine}</p>
-      <p className="mb-[.5cqw] mt-[3.4cqw] text-[max(9px,1.45cqw)] text-[#686D87]">This is to certify that</p>
+      <p className="mb-[.5cqw] mt-[3.4cqw] text-[max(9px,1.45cqw)] text-[#686D87]">{text.certifyThat}</p>
       <p className="m-0 text-[max(15px,3.8cqw)] font-bold leading-tight" style={serif}>{name}</p>
       {profile && <p className="m-0 text-[max(9px,1.45cqw)] text-[#474B63]">{profile}</p>}
       <p className="mx-auto mt-[2.4cqw] max-w-[62ch] text-[max(9px,1.5cqw)] leading-relaxed text-[#474B63]" dangerouslySetInnerHTML={{ __html: certificateBodyHtml(t, credits, sessionsText) }} />
-      {showActivity && t.activityNumber && <p className="mt-[.8cqw] text-[max(8px,1.3cqw)] text-[#686D87]">Activity number {t.activityNumber}</p>}
-      <div className="mt-[4cqw] flex items-end justify-between text-left text-[max(8px,1.35cqw)]">
+      {showActivity && t.activityNumber && <p className="mt-[.8cqw] text-[max(8px,1.3cqw)] text-[#686D87]">{text.activityNumber} <span className="ltr">{t.activityNumber}</span></p>}
+      <div className="mt-[4cqw] flex items-end justify-between text-start text-[max(8px,1.35cqw)]">
         <div>
           <div className="mb-1 w-[22cqw] border-b border-[#171A2B]" />
           <b>{t.signerName}</b>
           <div className="text-[#686D87]">{t.signerRole}</div>
         </div>
-        <div className="text-right text-[#686D87]">
+        <div className="text-end text-[#686D87]">
           {t.issueDateText && <div>{t.issueDateText}</div>}
           <div>{idLabel}</div>
         </div>

@@ -14,6 +14,8 @@ export interface PersonInput {
   field2: string;
   answers: Record<string, string>;
   consentMarketing?: boolean;
+  /** Website language they used: 'en' or 'ar'. */
+  locale?: string;
 }
 
 export class RegistrationError extends Error {
@@ -31,21 +33,31 @@ const BUILT_IN: Record<string, keyof PersonInput> = {
  * Checks a submission against the event's own form: required fields,
  * dropdown values. Returns errors keyed by form field key.
  */
-export function validateAgainstForm(fields: FormField[], p: PersonInput): Record<string, string> {
+/** Error wording for the form check; the public site passes its language's. */
+export interface FormMessages { enterYour: (l: string) => string; chooseYour: (l: string) => string; chooseOption: (l: string) => string; dateFormat: string; term?: (s: string) => string }
+const EN_MESSAGES: FormMessages = {
+  enterYour: (l) => `Enter your ${l.toLowerCase()}`,
+  chooseYour: (l) => `Choose your ${l.toLowerCase()}`,
+  chooseOption: (l) => `Choose one of the options for ${l.toLowerCase()}`,
+  dateFormat: 'Enter a date like 2000-01-31',
+};
+
+export function validateAgainstForm(fields: FormField[], p: PersonInput, msg: FormMessages = EN_MESSAGES): Record<string, string> {
   const errors: Record<string, string> = {};
   for (const f of fields) {
     if (!f.enabled || f.kind === 'TICKET') continue;
     const prop = BUILT_IN[f.key];
     const value = String(prop ? (p[prop] ?? '') : (p.answers[f.key] ?? '')).trim();
+    const label = msg.term ? msg.term(f.label) : f.label;
     if (f.required && !value) {
-      errors[f.key] = f.kind === 'DROPDOWN' ? `Choose your ${f.label.toLowerCase()}` : `Enter your ${f.label.toLowerCase()}`;
+      errors[f.key] = f.kind === 'DROPDOWN' ? msg.chooseYour(label) : msg.enterYour(label);
       continue;
     }
     if (value && f.kind === 'DROPDOWN' && f.options.length && !f.options.includes(value)) {
-      errors[f.key] = `Choose one of the options for ${f.label.toLowerCase()}`;
+      errors[f.key] = msg.chooseOption(label);
     }
     if (value && f.kind === 'DATE' && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      errors[f.key] = 'Enter a date like 2000-01-31';
+      errors[f.key] = msg.dateFormat;
     }
   }
   return errors;
@@ -81,29 +93,34 @@ export async function createRegistrations(opts: {
     if (org.planStatus !== 'ACTIVE') {
       const organiser = opts.source === 'DASHBOARD';
       if (org.planStatus === 'SUSPENDED') {
-        throw new RegistrationError(organiser ? 'This account is paused. Contact zemmz to reactivate it.' : 'Registration for this event is paused. Contact the organiser.');
+        throw new RegistrationError(organiser ? 'This account is paused. Contact zemmz to reactivate it.' : opts.people[0]?.locale === 'ar' ? 'التسجيل في هذه الفعالية متوقف مؤقتًا. تواصل مع المنظم.' : 'Registration for this event is paused. Contact the organiser.');
       }
       const used = await tx.registration.count({ where: { status: 'CONFIRMED', event: { organisationId: opts.event.organisationId } } });
       if (used + n > TRIAL_ATTENDEES) {
         throw new RegistrationError(organiser
           ? `Your free trial covers ${TRIAL_ATTENDEES} attendees and you have ${used}. Choose a plan under Organisation, Plan to add more.`
-          : 'Registration for this event is paused for now. Contact the organiser.');
+          : opts.people[0]?.locale === 'ar' ? 'التسجيل في هذه الفعالية متوقف مؤقتًا. تواصل مع المنظم.' : 'Registration for this event is paused for now. Contact the organiser.');
       }
     }
 
     const wanted = new Map<string, number>();
     for (const p of opts.people) if (p.ticketTypeId) wanted.set(p.ticketTypeId, (wanted.get(p.ticketTypeId) ?? 0) + 1);
     const types = await tx.ticketType.findMany({ where: { eventId: opts.event.id, id: { in: [...wanted.keys()] } } });
+    const ar = opts.people[0]?.locale === 'ar' && opts.source !== 'DASHBOARD';
     for (const [id, count] of wanted) {
       const t = types.find((x) => x.id === id);
-      if (!t) throw new RegistrationError('That ticket is no longer available. Choose another.', 'ticketTypeId');
+      if (!t) throw new RegistrationError(ar ? 'لم تعد هذه التذكرة متاحة. اختر غيرها.' : 'That ticket is no longer available. Choose another.', 'ticketTypeId');
       if (opts.bypassSales) continue;
-      if (!t.onSale) throw new RegistrationError(`${t.name} tickets are not on sale.`, 'ticketTypeId');
+      if (!t.onSale) throw new RegistrationError(ar ? `تذاكر ${t.name} غير معروضة للبيع.` : `${t.name} tickets are not on sale.`, 'ticketTypeId');
       if (t.capacity != null) {
         const sold = await tx.registration.count({ where: { ticketTypeId: id, status: 'CONFIRMED' } });
         if (sold + count > t.capacity) {
           const left = Math.max(0, t.capacity - sold);
-          throw new RegistrationError(left ? `Only ${left} ${t.name} ${left === 1 ? 'ticket is' : 'tickets are'} left.` : `${t.name} is sold out.`, 'ticketTypeId');
+          throw new RegistrationError(
+            ar ? (left ? `بقي ${left} فقط من تذاكر ${t.name}.` : `نفدت تذاكر ${t.name}.`)
+              : left ? `Only ${left} ${t.name} ${left === 1 ? 'ticket is' : 'tickets are'} left.` : `${t.name} is sold out.`,
+            'ticketTypeId',
+          );
         }
       }
     }
@@ -115,7 +132,7 @@ export async function createRegistrations(opts: {
         data: {
           eventId: opts.event.id, publicId: first + i, title: p.title, firstName: p.firstName, lastName: p.lastName,
           email: p.email.toLowerCase(), mobile: p.mobile, field1: p.field1, field2: p.field2, answers: p.answers,
-          ticketTypeId: p.ticketTypeId, orderId: opts.orderId ?? null, source: opts.source, consentMarketing: !!p.consentMarketing,
+          ticketTypeId: p.ticketTypeId, orderId: opts.orderId ?? null, source: opts.source, consentMarketing: !!p.consentMarketing, locale: p.locale === 'ar' ? 'ar' : 'en',
         },
       });
       if (template) {

@@ -176,6 +176,13 @@ enum EventType {
   gala
 }
 
+/// Language of the public website's interface. BOTH adds a switch for visitors.
+enum SiteLanguage {
+  EN
+  AR
+  BOTH
+}
+
 enum CreditRule {
   duration
   checkin
@@ -204,6 +211,7 @@ model Event {
   registrationOpen Boolean    @default(true)
   afterEventOn     Boolean    @default(false)
   maintenance      Boolean    @default(false)
+  siteLanguage     SiteLanguage @default(EN)
   /// Gates only: guests can scan out and back in with the same e-ticket.
   allowPassOut     Boolean    @default(true)
   /// Built-in website pages left out of the menu: people, programme, venue.
@@ -307,6 +315,8 @@ model Registration {
   status        RegistrationStatus @default(CONFIRMED)
   source        RegistrationSource @default(WEBSITE)
   consentMarketing Boolean         @default(false)
+  /// The website language they registered in; their emails use it too.
+  locale        String             @default("en")
   badgePrintedAt DateTime?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
