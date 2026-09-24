@@ -32,20 +32,36 @@ docs/             HANDOVER.md, and the prototype specs and HTML under prototype/
 
 Needs Node 22 and PostgreSQL 16 (native, or `docker compose up -d db`).
 
+macOS or Linux:
+
 ```bash
-cp .env.example .env          # then set DATABASE_URL
+cp .env.example .env          # then set DATABASE_URL and SESSION_SECRET
 npm install
 npm run db:migrate            # creates tables
 npm run db:seed               # four sample events, ~2,700 registrations
 npm run dev                   # web on http://localhost:3000 + worker
 ```
 
-On Windows right after installing Node, `scripts\dev-windows.cmd` does the last
-step without needing a new terminal.
+Windows (Command Prompt), in a folder you own such as `%USERPROFILE%`:
 
-Sign in at `/login` with `owner@zemmz.test`, `editor@zemmz.test` or
-`desk@zemmz.test` (check-in staff). The seed prints the password. Emails are not
-sent locally; read them at `/outbox`.
+```bat
+copy .env.example .env
+notepad .env
+npm install
+npm run db:migrate
+npm run db:seed
+npm run dev
+```
+
+In `.env`, put your PostgreSQL password in `DATABASE_URL` and any 32 or more
+random characters in `SESSION_SECRET`. Right after installing Node,
+`scripts\dev-windows.cmd` runs the last step without needing a new terminal.
+
+Open http://localhost:3000 for the marketing site. Sign in at `/login` with
+`owner@zemmz.test`, `editor@zemmz.test` or `desk@zemmz.test` (check-in staff);
+the seed prints the password. Or start from `/signup` to go through onboarding
+as a new organisation: the email code arrives in `/outbox`, like every email
+locally. Add your email to `PLATFORM_ADMIN_EMAILS` to open `/admin`.
 
 `SEED_CLOCK=demo npm run db:seed` shifts every event so the current moment is
 the one the prototype showed (medical session 3 running, concert doors open).
