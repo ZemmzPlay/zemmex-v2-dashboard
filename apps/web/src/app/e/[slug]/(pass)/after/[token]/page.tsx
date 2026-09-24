@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@zemmz/db';
-import { creditsEarned, eventType, escapeHtml, formatDateRange, formatTime, shortTitle, lowerFirst } from '@zemmz/shared';
+import { creditsEarned, eventType, formatDateRange, formatTime, shortTitle, lowerFirst } from '@zemmz/shared';
 import { getPublicEvent, homeState } from '@/lib/public-event';
 import { verify } from '@/lib/order-tokens';
 import { fullName } from '@/lib/format';
 import { Icon } from '@/components/icon';
+import { CertificateView } from '@/components/certificate-view';
 import { submitEvaluation } from '../../../actions';
 import { PrintLink } from '../../print-link';
 import { EvaluationForm } from './evaluation-form';
@@ -55,6 +56,12 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
             <p className="mt-3 text-[13px] text-[var(--muted)]">Recordings and slides are uploaded by the organiser. File uploads are the next step for this page.</p>
           </section>
         )}
+        {page?.showPhotos && (
+          <section className="mb-12" aria-labelledby="ph-h">
+            <h2 id="ph-h" className="mb-2 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>Photos</h2>
+            <p className="text-[var(--muted)]">The official photos are to be uploaded. Check back soon.</p>
+          </section>
+        )}
         {page?.showSurvey && (
           <section aria-labelledby="sv-h" className="max-w-[760px]">
             <h2 id="sv-h" className="mb-2 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>Two-minute survey</h2>
@@ -97,10 +104,6 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
     create: { registrationId: reg.id, credits, sessions: attended.length, downloads: 1 },
   });
   const sessionsText = attended.length === 1 ? shortTitle(attended[0].title) : `${attended.length} ${TY.units}`;
-  const body = escapeHtml(cert.bodyText)
-    .replace('{provider}', escapeHtml(cert.provider))
-    .replace('{credits}', `<b>${credits}</b>`)
-    .replace('{sessions}', escapeHtml(sessionsText));
 
   return (
     <div>
@@ -112,27 +115,18 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
         </div>
         <PrintLink label="Print or save as PDF" />
       </div>
-      <article className="certificate mx-auto aspect-[1.414] w-full max-w-[980px] rounded-lg bg-white p-[6%] text-center text-[#171A2B] shadow-[0_30px_60px_-30px_rgba(0,0,0,.35)]" style={{ borderTop: `10px solid ${event.accentColour}` }}>
-        <p className="m-0 text-[13px] font-bold tracking-[.14em]" style={{ color: event.accentColour }}>{event.organiserName.toUpperCase()}</p>
-        <h2 className="mb-2 mt-4 text-[clamp(26px,4vw,44px)] font-bold" style={{ fontFamily: 'var(--serif)' }}>{cert.title}</h2>
-        <p className="m-0 text-[15px] text-[#474B63]">{event.name} · {formatDateRange(event.startsOn, event.endsOn, 'UTC')} · {event.venueName}</p>
-        <p className="mb-1 mt-8 text-[14px] text-[#686D87]">This is to certify that</p>
-        <p className="m-0 text-[clamp(24px,3.6vw,38px)] font-bold" style={{ fontFamily: 'var(--serif)' }}>{fullName(reg)}</p>
-        {reg.field1 && <p className="m-0 text-[14px] text-[#474B63]">{[reg.field1, reg.field2].filter(Boolean).join(' · ')}</p>}
-        <p className="mx-auto mt-6 max-w-[62ch] text-[14.5px] leading-relaxed text-[#474B63]" dangerouslySetInnerHTML={{ __html: body }} />
-        {cert.activityNumber && <p className="mt-2 text-[12.5px] text-[#686D87]">Activity number {cert.activityNumber}</p>}
-        <div className="mt-10 flex items-end justify-between text-left text-[13px]">
-          <div>
-            <div className="mb-1 w-[220px] border-b border-[#171A2B]" />
-            <b>{cert.signerName}</b>
-            <div className="text-[#686D87]">{cert.signerRole}</div>
-          </div>
-          <div className="text-right text-[#686D87]">
-            {cert.issueDateText && <div>{cert.issueDateText}</div>}
-            <div>{TY.idName} {reg.publicId}</div>
-          </div>
-        </div>
-      </article>
+      <CertificateView
+        template={cert}
+        accent={event.accentColour}
+        organiserName={event.organiserName}
+        eventLine={[event.name, formatDateRange(event.startsOn, event.endsOn, 'UTC'), event.venueName].filter(Boolean).join(' · ')}
+        name={fullName(reg)}
+        profile={[reg.field1, reg.field2].filter(Boolean).join(' · ')}
+        credits={credits}
+        sessionsText={sessionsText}
+        idLabel={`${TY.idName} ${reg.publicId}`}
+        showActivity
+      />
     </div>
   );
 }

@@ -21,34 +21,37 @@ limitation.
 | **Registrations** | Search as you type across name, ID, email and mobile; filters; sort; pagination; CSV export (formula-injection safe); record page with attendance per session, minutes and CME points; edit; resend confirmation; cancel and restore with a confirm dialog; add someone; printable badge or e-ticket with a Code 39 barcode. |
 | **Check-in** | Sessions or gates by day with live counts. Console: a large scan field for keyboard-wedge scanners, in/out modes, colour-and-words feedback, capacity limits, wrong-gate refusals with directions, pass-outs, recent scans from the database, demo simulate buttons (hidden in production). |
 | **Messages** | Confirmation email editor with merge tags and live preview; send to an audience (everyone, checked in, not checked in, in a session now) by email or SMS; sent log with delivery status. |
-| **Settings** | Event details with a live contrast check on the brand colour, CME rule and threshold (medical), people with access, full activity log. |
+| **Tickets** | Ticket types with price, capacity, sold and a progress bar; on-sale switches; add, edit, and delete while unsold; capacity can't drop below what's sold. Promo codes with a percentage, optional use limit and an on/off switch. Payments tab shows the provider's real state and the ticket fee. |
+| **Certificates & CME / Certificates** | Issuing switch, eligible and not eligible counts, downloads. Medical: how points are earned (time in the room with a threshold, or checking in). Others: minimum sessions. Optional evaluation first. Points or sessions distribution. Certificate template editor with a live preview per eligible person, using the same component as the printed certificate. |
+| **After-event / After-show page** | Summit, concert, gala and exhibition: what to show (recordings, slides, photos, survey), who can open it, the message, and a live preview. |
+| **Evaluation / Feedback** | Report from real answers: responses, averages per rating, tick-box counts, latest comments, CSV export. Form builder: add, edit, reorder, delete questions; reset to the KIMS (medical) or standard template while nobody has answered. |
+| **Faculty / Speakers / Line-up** | Search, category filter, add, edit, delete; biography, display order (set times for concerts), homepage highlight. |
+| **Website** | General (homepage introduction), registration or checkout form builder (show, require, reorder, add custom fields including dropdowns, delete custom fields) with a live preview, page editor (rich text, add, publish, delete), venue, menu (hide built-in and custom pages), theme with a live contrast check. |
+| **Raffle / Giveaway draw** | Draw from everyone who checked in, everyone, or one session or gate; leave out past winners; the pick is made on the server with a cryptographic generator and logged; full-screen result for the stage; winners list. |
+| **Settings** | Event name, short name and organiser; people with access; full activity log. (Venue, colour and homepage text moved to Website; the CME rule to Certificates & CME.) |
 | **Public sites** | `/e/<slug>`: four site characters (medical, conference, summit, concert) themed from the event's own colour with automatic contrast; people, programme or set times, venue, custom pages; maintenance mode. |
 | **Registration** | Free: one form built from the event's own form fields; one registration per email (a repeat resends the confirmation instead of duplicating). Paid: three steps (tickets, details, payment), promo codes, the capped ticket fee from `docs/prototype/05`, one ID and e-ticket per ticket. |
 | **After the event** | Claim needs the ID **and** the registration email. People who never checked in are refused with an explanation. Medical: KIMS evaluation, then a printable certificate with CME points from time in the room. Conference: certificate of attendance. Summit: recordings and slides page. Concert: after-show page and survey. |
 | **Worker** | Every 20 s: moves sessions between upcoming, live and ended, and delivers the email outbox (SendGrid via `fetch`, or `log` locally) with retries and backoff. |
 | **Deploy** | Standalone Next build, two Dockerfiles, docker-compose, Caddyfile, GitHub Actions (test → ECR → SSH deploy with migrations first), `/api/health`. |
-| **Tests** | 65 vitest tests. Integration tests run on a real Postgres and cover the race conditions that matter at a door (see section 5). |
+| **Tests** | 70 vitest tests. Integration tests run on a real Postgres and cover the race conditions that matter at a door (see section 5). |
 
 ## 2. Designed in the prototype, not built yet
 
-These are in the navigation with an honest "Designed, not built yet" page that
-says what they will do.
+1. **Inviting people** to the organisation by email, and password reset.
+2. **File uploads**: photos (people, logos), recordings, slides and after-event photos. These show as "to be uploaded" on the public site, and people show initials.
+3. **Help centre and guided tours.**
+4. **The marketing site and onboarding** (`live-marketing.html`). It's a static marketing site and belongs on its own, or as a later route here.
+5. **Arabic on the Live event sites.** This was already an open question in the prototype.
+6. **zemmz Play**: all three prototypes.
 
-1. **Tickets module** (manage types, prices, capacity, promo codes). The data model and checkout already use them; there's no editing screen yet.
-2. **Certificates & CME settings screen** (template editor with live preview). Certificates are already issued; the template is edited in the database for now.
-3. **Evaluation report and form builder.** Questions and responses are stored; the report screen isn't built.
-4. **Faculty / Speakers / Line-up editor.** The public site shows them; the editor isn't built.
-5. **Website editor** (form builder, page editor, menu, theme).
-6. **Raffle / giveaway draw.**
-7. **Inviting people** to the organisation by email, and password reset.
-8. **Help centre and guided tours.**
-9. **File uploads**: photos, logos, recordings and slides. Recordings tiles show "to be uploaded".
-10. **The marketing site and onboarding** (`live-marketing.html`). It's a static marketing site and belongs on its own, or as a later route here.
-11. **Arabic on the Live event sites.** This was already an open question in the prototype.
-12. **zemmz Play**: all three prototypes.
+Also left out on purpose from the prototype's Tickets > Payments tab: the VAT,
+"pass the fee on" and refund-window switches. Nothing behind them exists yet
+(no payment provider, no refunds), so a switch would promise something the
+product doesn't do. Add them with the payment provider.
 
-Suggested order: 1, 2, 4, 5 (they unblock an organiser running an event alone),
-then 7 and 9, then 3 and 6, then Arabic, then Play.
+Suggested order: 1 and 2 (an organiser can then run an event alone), then
+Arabic, then Play.
 
 ## 3. Decisions made while building, and why
 
@@ -88,6 +91,21 @@ then 7 and 9, then 3 and 6, then Arabic, then Play.
   redirect to the provider's hosted page, confirm on its webhook.
 - **The prototype's demo "simulate" buttons are kept** on the check-in console
   in development only.
+- **Screens that edit the same thing live in one place.** The prototype had
+  venue, colour and homepage text in both Settings and Website, and the CME
+  rule in both Settings and Certificates. They're now only in Website and
+  Certificates & CME; Settings links to them.
+- **Hiding built-in website pages** (people, programme, venue) uses
+  `Event.navHidden`. Hidden pages stay reachable by their address.
+- **The page editor** uses `contenteditable` and offers only the formatting the
+  sanitiser keeps (headings, bold, italic, underline, lists, links, quotes). The
+  prototype's colour and alignment buttons are left out because the sanitiser
+  would remove what they did.
+- **Ticket types that someone holds, or that a gate accepts, can't be deleted**;
+  they can be taken off sale. Custom form fields can be deleted; built-in ones
+  can only be hidden.
+- **Evaluation questions** can be edited after people answer, but not change
+  type. Reset to the template only works while there are no responses.
 - **Organiser-written HTML is sanitised** with a small allowlist sanitiser
   (`packages/shared/src/sanitize.ts`) before it's shown or emailed. A later
   rich-text editor should keep using it.
@@ -154,6 +172,6 @@ ownership; the traced wordmark.
 - [ ] `SESSION_SECRET`, `APP_URL`, `DATABASE_URL` set in the host's `.env`
 - [ ] Postgres timezone UTC; automated backups on RDS
 - [ ] Remove or replace every fictional name and figure (docs/prototype/07)
-- [ ] Password reset and invitations (section 2, item 7), since today users are created by the seed
+- [ ] Password reset and invitations (section 2, item 1), since today users are created by the seed
 - [ ] Shared rate limiting if more than one web container runs
 - [ ] Patch the existing production Next.js (section 3)

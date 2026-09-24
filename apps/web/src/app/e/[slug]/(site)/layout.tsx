@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { eventType } from '@zemmz/shared';
 import { getPublicEvent, getPublicPages, homeState } from '@/lib/public-event';
+import { builtInPages } from '@/lib/site-pages';
 import { SiteNav } from './site-nav';
 
 export default async function SiteLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
@@ -24,9 +25,7 @@ export default async function SiteLayout({ children, params }: { children: React
   const pages = await getPublicPages(event.id);
   const links: [string, string][] = [
     [base, 'Home'],
-    [`${base}/people`, TY.people],
-    [`${base}/programme`, TY.gates ? 'Set times' : TY.credits ? 'Sessions' : 'Agenda'],
-    [`${base}/venue`, 'Venue'],
+    ...builtInPages(TY).filter(([k]) => !event.navHidden.includes(k)).map(([, label, path]) => [`${base}${path}`, label] as [string, string]),
     ...pages.filter((p) => p.inNav).map((p) => [`${base}/p/${p.key}`, p.title] as [string, string]),
   ];
 

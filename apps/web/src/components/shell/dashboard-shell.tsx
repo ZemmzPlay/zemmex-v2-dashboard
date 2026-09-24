@@ -19,18 +19,18 @@ function eventNav(e: Event, role: Role, counts: { regs: number; live: boolean })
     ['Event', [
       { href: base, icon: 'dash', label: 'Dashboard', exact: true },
       { href: `${base}/registrations`, icon: 'id', label: t.regs, count: kfmt(counts.regs) },
-      { href: `${base}/tickets`, icon: 'ticket', label: 'Tickets', soon: true },
+      { href: `${base}/tickets`, icon: 'ticket', label: 'Tickets' },
       { href: `${base}/check-in`, icon: 'scan', label: t.ckNav, count: counts.live ? 'Live' : undefined },
-      { href: `${base}/certificates`, icon: t.cert === 'none' ? 'star' : 'award', label: t.certNav, soon: true },
-      { href: `${base}/evaluation`, icon: 'form', label: t.evalNav, soon: true },
+      { href: `${base}/certificates`, icon: t.cert === 'none' ? 'star' : 'award', label: t.certNav },
+      { href: `${base}/evaluation`, icon: 'form', label: t.evalNav },
     ]],
     ['Content', [
-      { href: `${base}/people`, icon: t.gates ? 'music' : 'users', label: t.people, soon: true },
+      { href: `${base}/people`, icon: t.gates ? 'music' : 'users', label: t.people },
       { href: `${base}/messages`, icon: 'mail', label: 'Messages' },
-      { href: `${base}/website`, icon: 'globe', label: 'Website', soon: true },
+      { href: `${base}/website`, icon: 'globe', label: 'Website' },
     ]],
     ['Tools', [
-      { href: `${base}/raffle`, icon: 'gift', label: t.raffle, soon: true },
+      { href: `${base}/raffle`, icon: 'gift', label: t.raffle },
       { href: `${base}/settings`, icon: 'settings', label: 'Settings' },
     ]],
   ];

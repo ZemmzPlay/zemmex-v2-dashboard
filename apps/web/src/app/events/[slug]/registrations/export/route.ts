@@ -3,14 +3,8 @@ import { eventType } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { registrationWhere } from '@/lib/registration-query';
+import { cell } from '@/lib/csv';
 
-const cell = (v: unknown) => {
-  let s = String(v ?? '');
-  // Neutralise spreadsheet formulas (CSV injection). Plain numbers such as
-  // +971 50 123 4567 cannot carry a formula, so they stay readable.
-  if (/^[=+\-@\t\r]/.test(s) && !/^[+-]?\d[\d\s]*$/.test(s)) s = `'${s}`;
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
 
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

@@ -292,3 +292,26 @@
   .no-print { display: none !important; }
   body { background: #fff; }
 }
+
+/* ---------- raffle ---------- */
+.winner { background: var(--nav); color: #fff; border-radius: 14px; min-height: 280px; padding: 32px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.winner .lbl { font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; color: #B4B3D3; }
+.winner .nm { font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -.02em; margin: 10px 0 6px; line-height: 1.15; }
+.winner .nm.spin { opacity: .7; }
+.winner small { color: #B4B3D3; font-size: 13.5px; }
+.winner:fullscreen { border-radius: 0; }
+.winner:fullscreen .lbl { font-size: 2.2vw; }
+.winner:fullscreen .nm { font-size: 8vw; }
+.winner:fullscreen small { font-size: 2.4vw; }
+.winner:fullscreen .no-fs { display: none; }
+
+/* ---------- website page editor ---------- */
+.prose-page h2 { font-size: 20px; font-weight: 700; margin: 18px 0 8px; }
+.prose-page h3 { font-size: 16px; font-weight: 700; margin: 16px 0 6px; }
+.prose-page p { margin: 0 0 10px; }
+.prose-page ul, .prose-page ol { margin: 0 0 10px; padding-left: 22px; }
+.prose-page ul { list-style: disc; }
+.prose-page ol { list-style: decimal; }
+.prose-page blockquote { margin: 0 0 10px; padding-left: 14px; border-left: 3px solid var(--line-2); color: var(--ink-2); }
+.prose-page a { color: var(--brand); text-decoration: underline; }
+.prose-page > :first-child { margin-top: 0; }

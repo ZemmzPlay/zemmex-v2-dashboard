@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@zemmz/db';
-import { formatShortDateTime } from '@zemmz/shared';
+import { eventType, formatShortDateTime } from '@zemmz/shared';
 import { can, requirePermission, ROLE_LABEL } from '@/lib/auth';
 import { relativeTime } from '@/lib/format';
 import { Avatar } from '@/components/avatar';
@@ -28,8 +28,8 @@ export default async function SettingsPage({ params, searchParams }: { params: P
         <DetailsForm
           action={saveDetails.bind(null, slug)}
           canEdit={can.manageEvent(user.role)}
-          medical={event.type === 'medical'}
-          initial={{ name: event.name, shortName: event.shortName, organiserName: event.organiserName, heroText: event.heroText, venueName: event.venueName, venueAddress: event.venueAddress, venuePhone: event.venuePhone, accentColour: event.accentColour, creditRule: event.creditRule, creditThresholdPct: event.creditThresholdPct }}
+          initial={{ name: event.name, shortName: event.shortName, organiserName: event.organiserName }}
+          links={{ website: `/events/${slug}/website`, ...(eventType(event.type).credits ? { certificates: `/events/${slug}/certificates`, certNav: eventType(event.type).certNav } : {}) }}
         />
       )}
       {tab === 'team' && <Team organisationId={user.organisationId} />}
