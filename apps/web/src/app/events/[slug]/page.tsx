@@ -51,7 +51,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ slu
         </div>
       </div>
 
-      <section aria-label="Key figures" className="mb-4 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
+      <section data-tour="kpis" aria-label="Key figures" className="mb-4 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
         <div className="card kpi hero">
           <div className="l">{TY.openForm === 'Tickets' ? 'Tickets sold' : TY.regs}</div>
           <div className="v !text-[40px]">{fmt(stats.total)}</div>
@@ -80,7 +80,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ slu
       </section>
 
       <div className="grid gap-4 lg:grid-cols-12">
-        <section className="card lg:col-span-7" aria-labelledby="qs-h">
+        <section data-tour="quick" className="card lg:col-span-7" aria-labelledby="qs-h">
           <div className="card-h"><h2 id="qs-h">Quick settings</h2><span className="sub">What your homepage shows</span></div>
           <div className="card-b">
             <QuickSettings
@@ -93,7 +93,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ slu
           </div>
         </section>
 
-        <section className="card lg:col-span-5" aria-labelledby="today-h">
+        <section data-tour="today" className="card lg:col-span-5" aria-labelledby="today-h">
           <div className="card-h">
             <h2 id="today-h">{todays.length ? `Today’s ${TY.units}` : `Next ${TY.units}`}</h2>
             <span className="r"><Link href={`/events/${slug}/check-in`} className="text-[12.5px] font-semibold no-underline">See all</Link></span>
@@ -116,7 +116,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ slu
           </div>
         </section>
 
-        <section className="card lg:col-span-7" aria-labelledby="chart-h">
+        <section data-tour="chart" className="card lg:col-span-7" aria-labelledby="chart-h">
           <div className="card-h"><h2 id="chart-h">{TY.openForm === 'Tickets' ? 'Ticket sales' : TY.regs}, last 14 days</h2><span className="sub">Per day, {event.timezone.replace('_', ' ')}</span></div>
           <div className="card-b">
             <div className="flex h-[140px] items-end gap-1.5" role="img" aria-label={`Daily ${TY.regs.toLowerCase()}: ${byDay.map((d) => d.n).join(', ')}`}>

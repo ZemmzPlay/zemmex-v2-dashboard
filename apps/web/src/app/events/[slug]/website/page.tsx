@@ -114,7 +114,7 @@ async function FormBuilder({ slug, event, TY, edit, paid }: { slug: string; even
   return (
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
       <div className="min-w-0">
-        <div className="tbl-wrap">
+        <div data-tour="fields" className="tbl-wrap">
           <table className="tbl !min-w-[620px]">
             <thead><tr><th className="w-8"><span className="sr-only">Locked</span></th><th>Field</th><th>Type</th><th>Shown</th><th>Required</th><th className="text-right">Order</th></tr></thead>
             <tbody>
@@ -181,7 +181,7 @@ async function FormBuilder({ slug, event, TY, edit, paid }: { slug: string; even
       </div>
       <div>
         <div className="mb-2 text-[13px] font-medium">Preview</div>
-        <div className="card overflow-hidden" aria-hidden="true">
+        <div data-tour="preview" className="card overflow-hidden" aria-hidden="true">
           <div className="px-4 py-3 text-[14px] font-bold" style={{ background: event.accentColour, color: ink }}>{paid ? 'Get tickets' : TY.openForm === 'Tickets' ? 'Tickets' : 'Registration'}</div>
           <div className="flex flex-col gap-2.5 p-4">
             {fields.filter((f) => f.enabled).map((f) => (

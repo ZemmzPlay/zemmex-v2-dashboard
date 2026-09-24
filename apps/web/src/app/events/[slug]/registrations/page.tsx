@@ -61,7 +61,7 @@ export default async function RegistrationsPage({ params, searchParams }: { para
         </div>
       </div>
 
-      <div className="toolbar">
+      <div data-tour="search" className="toolbar">
         <SearchBox label={`Find ${an(TY.guest)}`} placeholder={`Find ${an(TY.guest)} by name, ID, email or mobile`} />
         <UrlSelect
           param="show"
@@ -74,7 +74,7 @@ export default async function RegistrationsPage({ params, searchParams }: { para
         <UrlSelect param="sort" label="Sort by" value={sort} options={[['newest', 'Newest first'], ['oldest', 'Oldest first'], ['name', 'Last name, A–Z']]} />
       </div>
 
-      <div className="tbl-wrap">
+      <div data-tour="table" className="tbl-wrap">
         {rows.length === 0 ? (
           <div className="empty">
             <div className="ic"><Icon name="search" size={24} /></div>

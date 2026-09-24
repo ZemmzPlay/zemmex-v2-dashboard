@@ -51,7 +51,7 @@ export function CertificateEditor({ action, initial, samples, cme, accent, organ
         </fieldset>
         {canEdit && <button className="btn primary" disabled={pending}>{pending ? 'Saving…' : 'Save certificate'}</button>}
       </form>
-      <div className="xl:sticky xl:top-[84px]">
+      <div data-tour="certpreview" className="xl:sticky xl:top-[84px]">
         {sample ? (
           <>
             <div className="mb-2 flex flex-wrap items-center gap-2.5">

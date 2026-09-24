@@ -68,7 +68,7 @@ export function Console({
       <section className="card card-b" aria-labelledby="scan-h">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <h2 id="scan-h" className="m-0 text-[15px] font-semibold">Scan</h2>
-          <div className="seg ml-auto" role="group" aria-label="Scan mode">
+          <div data-tour="mode" className="seg ml-auto" role="group" aria-label="Scan mode">
             <button type="button" aria-pressed={mode === 'in'} onClick={() => { setMode('in'); input.current?.focus(); }} disabled={ended}>{labels.inLbl}</button>
             <button type="button" aria-pressed={mode === 'out'} onClick={() => { setMode('out'); input.current?.focus(); }}>{labels.outLbl}</button>
           </div>
@@ -82,13 +82,13 @@ export function Console({
           }}
         >
           <label htmlFor="scan" className="sr-only">Scan a {labels.badge} or type an ID</label>
-          <div className="scanbox">
+          <div data-tour="scan" className="scanbox">
             <Icon name="scan" size={22} />
             <input id="scan" ref={input} autoFocus inputMode="numeric" autoComplete="off" spellCheck={false} placeholder="Scan or type an ID" aria-describedby="scan-fb" />
             <button className="btn primary" disabled={busy}>{mode === 'in' ? 'Check in' : 'Check out'}</button>
           </div>
         </form>
-        <div id="scan-fb" className={`feedback ${cls}`} role="status" aria-live="assertive" key={fb ? `${fb.title}${fb.at}` : 'idle'}>
+        <div data-tour="feedback" id="scan-fb" className={`feedback ${cls}`} role="status" aria-live="assertive" key={fb ? `${fb.title}${fb.at}` : 'idle'}>
           <span className="ic"><Icon name={fb ? ICON[fb.kind] : 'scan'} size={22} /></span>
           <span>
             <b>{fb ? fb.title : ended ? 'This has ended. You can still record people leaving.' : `Ready. ${mode === 'in' ? labels.inLbl : labels.outLbl}.`}</b>
@@ -105,7 +105,7 @@ export function Console({
         )}
       </section>
 
-      <section className="card card-b" aria-labelledby="live-h">
+      <section data-tour="counts" className="card card-b" aria-labelledby="live-h">
         <h2 id="live-h" className="sr-only">Live counts and recent scans</h2>
         <div className="mb-3 grid grid-cols-2 gap-3">
           <div className="rounded-xl bg-surface-2 p-3.5">

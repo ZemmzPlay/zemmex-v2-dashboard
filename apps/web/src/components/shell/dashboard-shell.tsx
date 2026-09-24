@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
+import { TourRunner } from '../tour';
 import type { Event, Role } from '@zemmz/db';
 import { eventType, formatDateRange } from '@zemmz/shared';
 import { prisma } from '@zemmz/db';
@@ -33,6 +35,7 @@ function eventNav(e: Event, role: Role, counts: { regs: number; live: boolean })
     ['Tools', [
       { href: `${base}/raffle`, icon: 'gift', label: t.raffle },
       { href: `${base}/settings`, icon: 'settings', label: 'Settings' },
+      { href: `${base}/help`, icon: 'help', label: 'Help centre' },
     ]],
   ];
 }
@@ -107,6 +110,7 @@ export async function DashboardShell({ user, event, children }: { user: CurrentU
           {org.planStatus === 'SUSPENDED' && <div className="notice err no-print mb-5" role="alert">This account is paused, so registrations are closed on your event websites. Email hello@zemmz.com to reactivate it.</div>}
           {children}
         </main>
+        <Suspense fallback={null}><TourRunner /></Suspense>
       </div>
     </div>
   );

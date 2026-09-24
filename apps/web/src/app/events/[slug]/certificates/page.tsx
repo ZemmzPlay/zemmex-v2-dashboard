@@ -93,7 +93,7 @@ async function Certificates({ slug, event, TY, issuing, canEdit, canManage }: { 
         </div>
       </div>
       <div className="mb-4 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
-        <div className="card kpi"><div className="l">{TY.afterLbl}</div>{issuing}<div className="d">{event.afterEventOn ? 'The homepage shows the claim form' : 'Turn on after the last session'}</div></div>
+        <div data-tour="issuing" className="card kpi"><div className="l">{TY.afterLbl}</div>{issuing}<div className="d">{event.afterEventOn ? 'The homepage shows the claim form' : 'Turn on after the last session'}</div></div>
         <div className="card kpi"><div className="l">Eligible</div><div className="v">{fmt(eligible.length)}</div><div className="d">Checked in to at least {min} {min === 1 ? TY.unit.toLowerCase() : TY.units}</div></div>
         <div className="card kpi"><div className="l">Not eligible</div><div className="v">{fmt(people.length - eligible.length)}</div><div className="d">{min > 1 ? `Fewer than ${min} ${TY.units}` : 'Registered but never checked in'}</div></div>
         <div className="card kpi"><div className="l">Downloaded</div><div className="v">{fmt(downloaded)}</div><div className="d">{event.afterEventOn ? 'Updating live' : 'So far'}</div></div>

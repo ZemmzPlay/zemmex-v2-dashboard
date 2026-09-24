@@ -21,7 +21,7 @@ export function RulesForm({ action, cme, initial, evalNav, unit, units, canEdit 
   const pcts = PCTS.includes(initial.creditThresholdPct) ? PCTS : [...PCTS, initial.creditThresholdPct].sort((a, b) => a - b);
 
   return (
-    <form action={formAction} onSubmit={keepValues(formAction)}>
+    <form data-tour="rules" action={formAction} onSubmit={keepValues(formAction)}>
       {state.error && <div className="notice err mb-4" role="alert">{state.error}</div>}
       {state.ok && !pending && <div className="notice ok mb-4" role="status">{state.ok}</div>}
       <fieldset disabled={!canEdit} className="m-0 border-0 p-0">
