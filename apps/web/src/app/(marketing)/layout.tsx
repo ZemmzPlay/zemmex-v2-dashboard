@@ -5,5 +5,5 @@ const schibsted = Schibsted_Grotesk({ subsets: ['latin'], weight: ['400', '500',
 
 /** The marketing site, sign-in and onboarding: the prototype's own styles, scoped under .mk. */
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
-  return <div className={`mk ${schibsted.variable}`}>{children}</div>;
+  return <div className={`mkt ${schibsted.variable}`}>{children}</div>;
 }
