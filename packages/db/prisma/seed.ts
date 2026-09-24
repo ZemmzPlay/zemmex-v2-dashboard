@@ -89,7 +89,7 @@ async function seedEvent(e: SeedEvent, orgId: string) {
   // Sessions or gates
   const sessionIds = new Map<string, string>();
   const sessions = e.sessions.map((s, i) => {
-    const id = randomUUID();
+    const id: string = randomUUID();
     sessionIds.set(s.id, id);
     const startsAt = at(s.day, s.start);
     const endsAt = at(s.day, s.end === 1439 ? 1439 : s.end);
@@ -220,7 +220,9 @@ async function seedEvent(e: SeedEvent, orgId: string) {
   for (let k = 0; k < att.length; k += 2000) await prisma.attendance.createMany({ data: att.slice(k, k + 2000) });
 
   // Evaluation responses from people who attended, around the prototype's averages
-  const responders = attendedIds.slice(0, Math.min(e.evalResponses, attendedIds.length));
+  // Only events that have finished have evaluations; a live event with responses would contradict itself.
+  const finished = sessions.every((x) => x.endsAt.getTime() <= nowMin);
+  const responders = finished ? attendedIds.slice(0, Math.min(e.evalResponses, attendedIds.length)) : [];
   const maxCheck = Math.max(1, ...e.evalQs.map((q) => q.n ?? 0));
   const erng = makeRnd(e.regs.seed + 1000);
   for (const [k, registrationId] of responders.entries()) {
@@ -255,7 +257,9 @@ async function seedEvent(e: SeedEvent, orgId: string) {
     });
   }
   await prisma.activityLog.createMany({
-    data: e.logs.map(([who, what, ago]) => ({ organisationId: orgId, eventId: event.id, actorLabel: who, action: what, createdAt: new Date(nowMin - ago * MIN) })),
+    // In calendar mode, recent lines would contradict the real clock ("checked in to
+    // Session 3" while Session 3 is upcoming), so keep only lines a day or more old.
+    data: e.logs.filter(([, , ago]) => MODE === 'demo' || ago >= 1440).map(([who, what, ago]) => ({ organisationId: orgId, eventId: event.id, actorLabel: who, action: what, createdAt: new Date(nowMin - ago * MIN) })),
   });
 
   return { name: e.name, slug: e.slug, regs: regs.length, attendance: att.length, orders: orders.length };
