@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { eventType } from '@zemmz/shared';
+import { eventType, lowerFirst } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { loadFormFields } from '@/lib/form-fields';
 import { Icon } from '@/components/icon';
@@ -22,7 +22,7 @@ export default async function NewRegistration({ params }: { params: Promise<{ sl
       <div className="ph">
         <div>
           <h1>{TY.register}</h1>
-          <p>They get the next {TY.idName.toLowerCase()} and the confirmation email. Tickets added here aren’t charged.</p>
+          <p>They get the next {lowerFirst(TY.idName)} and the confirmation email. Tickets added here aren’t charged.</p>
         </div>
       </div>
       <PersonForm action={addRegistration.bind(null, slug)} fields={form.fields} tickets={form.tickets} initial={{}} submitLabel={TY.register} cancelHref={`/events/${slug}/registrations`} />

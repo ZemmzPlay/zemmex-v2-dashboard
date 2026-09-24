@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@zemmz/db';
-import { creditsEarned, eventType, formatShortDateTime, formatTime, minutesInRoom, shortTitle } from '@zemmz/shared';
+import { creditsEarned, eventType, formatShortDateTime, formatTime, minutesInRoom, shortTitle, lowerFirst } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { initialValues, loadFormFields } from '@/lib/form-fields';
 import { fullName } from '@/lib/format';
@@ -75,7 +75,7 @@ export default async function RegistrationPage({ params, searchParams }: { param
         </div>
       </div>
 
-      {sp.added && <div className="notice ok mb-4" role="status">{name} was added with {TY.idName.toLowerCase()} {reg.publicId}. A confirmation email is on its way to {reg.email}.</div>}
+      {sp.added && <div className="notice ok mb-4" role="status">{name} was added with {lowerFirst(TY.idName)} {reg.publicId}. A confirmation email is on its way to {reg.email}.</div>}
       {sp.resent && <div className="notice ok mb-4" role="status">The confirmation email was queued for {reg.email}.</div>}
       {cancelled && <div className="notice err mb-4" role="status">This {TY.one} is cancelled. The ID is refused at check-in and can’t claim anything after the event.</div>}
 

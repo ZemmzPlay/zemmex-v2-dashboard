@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@zemmz/db';
-import { eventType, formatShortDateTime } from '@zemmz/shared';
+import { eventType, formatShortDateTime, lowerFirst } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { mergeValuesFor } from '@/lib/email';
 import { AUDIENCES, audienceWhere, type Audience } from '@/lib/audiences';
@@ -40,7 +40,7 @@ export default async function MessagesPage({ params, searchParams }: { params: P
 
       {tab === 'confirm' && (
         <>
-          <p className="mb-4 mt-0 max-w-[70ch] text-ink-2">Sent automatically to everyone who registers, with their {TY.idName.toLowerCase()} and a link to their {TY.badge}.</p>
+          <p className="mb-4 mt-0 max-w-[70ch] text-ink-2">Sent automatically to everyone who registers, with their {lowerFirst(TY.idName)} and a link to their {TY.badge}.</p>
           <TemplateEditor
             action={saveTemplate.bind(null, slug)}
             initial={{ subject: template?.subject ?? `Your ${TY.one} for ${event.name}`, bodyHtml: template?.bodyHtml ?? '<p>Hi <b>{first_name}</b>,</p><p>You’re registered.</p>', kicker: template?.kicker ?? 'CONFIRMATION' }}

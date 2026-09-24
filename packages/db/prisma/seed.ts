@@ -15,7 +15,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { Prisma, PrismaClient, type FieldKind, type QuestionKind } from '@prisma/client';
-import { dayKey, toMinor, zonedTime, type CurrencyCode } from '@zemmz/shared';
+import { dayKey, formatDate, toMinor, zonedTime, type CurrencyCode } from '@zemmz/shared';
 import { hashPassword } from '../src/password';
 import { EVENTS, FEM, FIRST, LAST, pick, type Rnd, type SeedEvent } from './seed-data';
 
@@ -118,7 +118,7 @@ async function seedEvent(e: SeedEvent, orgId: string) {
   await prisma.messageTemplate.create({ data: { eventId: event.id, kind: 'CONFIRMATION', subject: e.mail.subject, bodyHtml: e.mail.body, kicker: e.mail.kicker } });
   if (e.cert) {
     await prisma.certificateTemplate.create({
-      data: { eventId: event.id, title: e.cert.title, activityNumber: e.cert.activity, provider: e.cert.provider, bodyText: e.cert.text, signerName: e.cert.signer, signerRole: e.cert.role, issueDateText: e.cert.date, minSessions: e.cert.min },
+      data: { eventId: event.id, title: e.cert.title, activityNumber: e.cert.activity, provider: e.cert.provider, bodyText: e.cert.text, signerName: e.cert.signer, signerRole: e.cert.role, issueDateText: formatDate(endsOn, 'UTC'), minSessions: e.cert.min },
     });
   }
   if (e.after) {

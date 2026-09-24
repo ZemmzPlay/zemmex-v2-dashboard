@@ -178,3 +178,8 @@ export function eventType(key: string): EventTypeDef {
 export function isEventTypeKey(key: string): key is EventTypeKey {
   return (EVENT_TYPE_KEYS as readonly string[]).includes(key);
 }
+
+/** Lowercases the first letter only, so "Ticket ID" reads "ticket ID" mid-sentence. */
+export function lowerFirst(s: string): string {
+  return s.charAt(0).toLowerCase() + s.slice(1);
+}

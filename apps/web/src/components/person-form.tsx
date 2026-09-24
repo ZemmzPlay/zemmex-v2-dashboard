@@ -19,10 +19,10 @@ export const INPUT_NAME: Record<string, string> = {
 const AUTOCOMPLETE: Record<string, string> = { first: 'given-name', last: 'family-name', email: 'email', mob: 'tel', title: 'honorific-prefix' };
 const PLACEHOLDER: Record<string, string> = { email: 'name@example.com', mob: '+971 50 123 4567' };
 
-export function FieldInput({ f, value, error, tickets, showAll }: { f: FieldDef; value: string; error?: string; tickets?: { id: string; label: string }[]; showAll?: boolean }) {
+export function FieldInput({ f, value, error, tickets, showAll, namePrefix = '' }: { f: FieldDef; value: string; error?: string; tickets?: { id: string; label: string }[]; showAll?: boolean; namePrefix?: string }) {
   if (!f.enabled && !showAll) return null;
-  const name = INPUT_NAME[f.key] ?? `a_${f.key}`;
-  const id = `fld-${f.key}`;
+  const name = namePrefix + (INPUT_NAME[f.key] ?? `a_${f.key}`);
+  const id = `fld-${namePrefix}${f.key}`;
   const errId = `${id}-err`;
   const common = { id, name, 'aria-invalid': !!error || undefined, 'aria-describedby': error ? errId : undefined, required: f.required };
   let control: React.ReactNode;

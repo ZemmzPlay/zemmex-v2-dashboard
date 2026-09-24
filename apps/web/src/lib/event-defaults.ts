@@ -1,6 +1,6 @@
 import 'server-only';
 import type { FieldKind, Prisma } from '@zemmz/db';
-import { eventType, type EventTypeKey } from '@zemmz/shared';
+import { eventType, type EventTypeKey, lowerFirst } from '@zemmz/shared';
 
 /**
  * What a new event starts with, by type. The organiser can change all of it;
@@ -33,7 +33,7 @@ export function defaultsFor(type: EventTypeKey) {
       kind: 'CONFIRMATION' as const,
       kicker: t.gates ? 'YOUR E-TICKET' : t.openForm === 'Tickets' ? 'YOUR TICKET' : 'REGISTRATION',
       subject: `Your ${t.one === 'ticket' ? 'ticket' : t.one} for {event_name} ({registration_id})`,
-      bodyHtml: `<p>Hi <b>{first_name}</b>,</p><p>You’re confirmed for {event_name} on {event_dates} at {venue}.</p><p>Your ${t.idName.toLowerCase()} is <b>{registration_id}</b>. ${t.gates ? 'Show the e-ticket at your gate.' : 'Bring it to the registration desk to collect your badge.'}</p>`,
+      bodyHtml: `<p>Hi <b>{first_name}</b>,</p><p>You’re confirmed for {event_name} on {event_dates} at {venue}.</p><p>Your ${lowerFirst(t.idName)} is <b>{registration_id}</b>. ${t.gates ? 'Show the e-ticket at your gate.' : 'Bring it to the registration desk to collect your badge.'}</p>`,
     },
     certificate:
       t.cert === 'none'
