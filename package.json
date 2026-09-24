@@ -1,0 +1,40 @@
+{
+  "name": "zemmz-platform",
+  "private": true,
+  "version": "0.1.0",
+  "description": "zemmz Live and zemmz Play — event and tournament platform",
+  "workspaces": [
+    "apps/web",
+    "apps/worker",
+    "packages/shared",
+    "packages/db"
+  ],
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "dev": "concurrently -n web,worker -c blue,magenta \"npm:dev -w @zemmz/web\" \"npm:dev -w @zemmz/worker\"",
+    "build": "npm run db:generate && npm run build -w @zemmz/web",
+    "start": "npm run start -w @zemmz/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "npm run generate -w @zemmz/db",
+    "db:migrate": "npm run migrate:dev -w @zemmz/db",
+    "db:deploy": "npm run migrate:deploy -w @zemmz/db",
+    "db:seed": "npm run seed -w @zemmz/db",
+    "db:reset": "npm run reset -w @zemmz/db",
+    "db:studio": "npm run studio -w @zemmz/db"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "concurrently": "^9.2.1",
+    "tsx": "^4.20.5",
+    "typescript": "~5.6.3",
+    "vitest": "^3.2.4"
+  },
+  "overrides": {
+    "react": "~19.1.9",
+    "react-dom": "~19.1.9"
+  }
+}

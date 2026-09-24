@@ -1,0 +1,583 @@
+// zemmz Live — data model.
+// Extends the sketch in docs/08-build-to-production.md of the prototype handoff.
+// Money is integer minor units; times are UTC instants shown in Event.timezone.
+
+generator client {
+  provider = "prisma-client-js"
+  // native for local dev, musl for node:22-alpine images
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Organisations, people who log in, roles
+// ---------------------------------------------------------------------------
+
+model Organisation {
+  id          String         @id @default(cuid())
+  name        String
+  slug        String         @unique
+  createdAt   DateTime       @default(now())
+  memberships Membership[]
+  events      Event[]
+  activity    ActivityLog[]
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  lastSeenAt   DateTime?
+  memberships  Membership[]
+  sessions     AuthSession[]
+}
+
+/// Owner and Admin manage everything; Editor manages content and messages but
+/// not people with access; Check-in staff only see the check-in console.
+enum Role {
+  OWNER
+  ADMIN
+  EDITOR
+  CHECKIN
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organisationId String
+  role           Role
+  createdAt      DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organisationId])
+}
+
+/// Login sessions. The cookie holds a random token; only its SHA-256 is stored.
+model AuthSession {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+/// Mirrors EVENT_TYPE_KEYS in @zemmz/shared. The type sets vocabulary and modules.
+enum EventType {
+  conference
+  medical
+  summit
+  concert
+  workshop
+  exhibition
+  gala
+}
+
+enum CreditRule {
+  duration
+  checkin
+}
+
+model Event {
+  id             String       @id @default(cuid())
+  organisationId String
+  type           EventType
+  name           String
+  shortName      String
+  slug           String       @unique
+  timezone       String
+  startsOn       DateTime     @db.Date
+  endsOn         DateTime     @db.Date
+  currency       String       @default("AED")
+  accentColour   String       @default("#321EDC")
+  organiserName  String       @default("")
+  heroText       String       @default("")
+  venueName      String       @default("")
+  venueAddress   String       @default("")
+  venuePhone     String       @default("")
+
+  // Quick settings: the three switches from the client's original deck.
+  // They decide what the public homepage shows.
+  registrationOpen Boolean    @default(true)
+  afterEventOn     Boolean    @default(false)
+  maintenance      Boolean    @default(false)
+
+  // Medical only: how CME points are earned.
+  creditRule         CreditRule @default(duration)
+  creditThresholdPct Int        @default(75)
+  requireEvaluation  Boolean    @default(false)
+
+  /// Next public registration or ticket ID. IDs are never reused.
+  nextPublicId   Int          @default(1001)
+  archivedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  ticketTypes    TicketType[]
+  promoCodes     PromoCode[]
+  registrations  Registration[]
+  orders         Order[]
+  sessions       Session[]
+  people         Person[]
+  formFields     FormField[]
+  pages          SitePage[]
+  templates      MessageTemplate[]
+  broadcasts     Broadcast[]
+  outbox         OutboundMessage[]
+  certificate    CertificateTemplate?
+  afterPage      AfterEventPage?
+  evalQuestions  EvaluationQuestion[]
+  evalResponses  EvaluationResponse[]
+  raffleDraws    RaffleDraw[]
+  activity       ActivityLog[]
+
+  @@index([organisationId])
+}
+
+model TicketType {
+  id          String   @id @default(cuid())
+  eventId     String
+  name        String
+  description String   @default("")
+  priceMinor  Int      @default(0)
+  capacity    Int?
+  onSale      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+  gates       Session[]
+
+  @@index([eventId])
+}
+
+model PromoCode {
+  id         String   @id @default(cuid())
+  eventId    String
+  code       String
+  percentOff Int
+  maxUses    Int?
+  uses       Int      @default(0)
+  active     Boolean  @default(true)
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orders     Order[]
+
+  @@unique([eventId, code])
+}
+
+enum RegistrationStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+enum RegistrationSource {
+  WEBSITE
+  DASHBOARD
+  IMPORT
+}
+
+model Registration {
+  id            String             @id @default(cuid())
+  eventId       String
+  /// The number on the badge or e-ticket. Unique within the event, never reused.
+  publicId      Int
+  title         String             @default("")
+  firstName     String
+  lastName      String
+  email         String
+  mobile        String             @default("")
+  /// The type's two profile fields, e.g. Speciality + Hospital, Role + Company.
+  field1        String             @default("")
+  field2        String             @default("")
+  /// Answers to any extra form fields, keyed by FormField.key.
+  answers       Json               @default("{}")
+  ticketTypeId  String?
+  orderId       String?
+  status        RegistrationStatus @default(CONFIRMED)
+  source        RegistrationSource @default(WEBSITE)
+  consentMarketing Boolean         @default(false)
+  badgePrintedAt DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  event         Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketType    TicketType?        @relation(fields: [ticketTypeId], references: [id], onDelete: SetNull)
+  order         Order?             @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  attendance    Attendance[]
+  certificate   CertificateIssue?
+  evaluation    EvaluationResponse?
+  raffleWins    RaffleDraw[]
+  messages      OutboundMessage[]
+
+  @@unique([eventId, publicId])
+  @@index([eventId, email])
+  @@index([eventId, lastName])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  eventId       String
+  buyerName     String
+  buyerEmail    String
+  currency      String
+  subtotalMinor Int
+  discountMinor Int         @default(0)
+  /// Platform fee: 2.5% + fixed, capped per ticket (docs/05-pricing.md).
+  feeMinor      Int         @default(0)
+  /// Whether the buyer pays the fee on top, or the organiser absorbs it.
+  feePassedOn   Boolean     @default(true)
+  totalMinor    Int
+  promoCodeId   String?
+  status        OrderStatus @default(PENDING)
+  provider      String
+  providerRef   String?
+  createdAt     DateTime    @default(now())
+  paidAt        DateTime?
+
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  promoCode     PromoCode?  @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+  registrations Registration[]
+
+  @@index([eventId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Sessions, gates and attendance
+// ---------------------------------------------------------------------------
+
+enum SessionKind {
+  SESSION
+  GATE
+}
+
+enum SessionStatus {
+  UPCOMING
+  LIVE
+  ENDED
+}
+
+model Session {
+  id               String        @id @default(cuid())
+  eventId          String
+  kind             SessionKind   @default(SESSION)
+  title            String
+  chairs           String        @default("")
+  location         String        @default("")
+  startsAt         DateTime
+  endsAt           DateTime
+  capacity         Int?
+  /// CME points for attending (medical only).
+  credits          Float         @default(0)
+  /// For gates: which ticket type this entrance accepts.
+  gateTicketTypeId String?
+  /// Kept current by the worker so lists and notifications don't recompute.
+  status           SessionStatus @default(UPCOMING)
+  sortOrder        Int           @default(0)
+
+  event            Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  gateTicketType   TicketType?   @relation(fields: [gateTicketTypeId], references: [id], onDelete: SetNull)
+  attendance       Attendance[]
+
+  @@index([eventId, startsAt])
+  @@index([status, startsAt])
+}
+
+/// One interval in the room. Leaving and coming back creates a new row, so
+/// time in the room is the sum of intervals (for CME) and pass-outs are exact.
+model Attendance {
+  id             String       @id @default(cuid())
+  registrationId String
+  sessionId      String
+  inAt           DateTime
+  outAt          DateTime?
+  scannedInById  String?
+  scannedOutById String?
+
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  session        Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, outAt])
+  @@index([registrationId, sessionId])
+}
+
+// ---------------------------------------------------------------------------
+// People on the programme
+// ---------------------------------------------------------------------------
+
+model Person {
+  id        String  @id @default(cuid())
+  eventId   String
+  name      String
+  category  String
+  /// Key from the type's highlights, e.g. "dir" for Meeting director.
+  highlight String  @default("")
+  bio       String  @default("")
+  photoUrl  String?
+  setTime   String  @default("")
+  sortOrder Int     @default(0)
+  event     Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+// ---------------------------------------------------------------------------
+// Website
+// ---------------------------------------------------------------------------
+
+enum FieldKind {
+  TEXT
+  EMAIL
+  PHONE
+  DROPDOWN
+  DATE
+  TICKET
+}
+
+model FormField {
+  id        String    @id @default(cuid())
+  eventId   String
+  /// title, first, last, email, mob, spec (field1), hosp (field2), or a custom key.
+  key       String
+  label     String
+  kind      FieldKind
+  required  Boolean   @default(false)
+  enabled   Boolean   @default(true)
+  /// Locked fields cannot be removed: name, email, ticket.
+  locked    Boolean   @default(false)
+  options   String[]  @default([])
+  sortOrder Int       @default(0)
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, key])
+}
+
+model SitePage {
+  id        String  @id @default(cuid())
+  eventId   String
+  key       String
+  title     String
+  bodyHtml  String  @default("")
+  inNav     Boolean @default(true)
+  sortOrder Int     @default(0)
+  event     Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, key])
+}
+
+// ---------------------------------------------------------------------------
+// Messages
+// ---------------------------------------------------------------------------
+
+enum TemplateKind {
+  CONFIRMATION
+}
+
+model MessageTemplate {
+  id       String       @id @default(cuid())
+  eventId  String
+  kind     TemplateKind
+  subject  String
+  bodyHtml String
+  kicker   String       @default("")
+  event    Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, kind])
+}
+
+enum Channel {
+  EMAIL
+  SMS
+}
+
+model Broadcast {
+  id             String   @id @default(cuid())
+  eventId        String
+  audience       String
+  channel        Channel
+  subject        String
+  bodyHtml       String
+  recipientCount Int
+  sentById       String?
+  sentByLabel    String   @default("")
+  createdAt      DateTime @default(now())
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  messages       OutboundMessage[]
+
+  @@index([eventId, createdAt])
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+}
+
+/// Outbox: the web app only ever inserts rows here; the worker delivers them.
+model OutboundMessage {
+  id                String         @id @default(cuid())
+  eventId           String?
+  registrationId    String?
+  broadcastId       String?
+  channel           Channel        @default(EMAIL)
+  toAddress         String
+  toName            String         @default("")
+  subject           String
+  html              String
+  text              String
+  status            DeliveryStatus @default(QUEUED)
+  attempts          Int            @default(0)
+  lastError         String?
+  provider          String?
+  providerMessageId String?
+  sendAfter         DateTime       @default(now())
+  sentAt            DateTime?
+  createdAt         DateTime       @default(now())
+
+  event             Event?         @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  registration      Registration?  @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  broadcast         Broadcast?     @relation(fields: [broadcastId], references: [id], onDelete: SetNull)
+
+  @@index([status, sendAfter])
+  @@index([eventId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// After the event
+// ---------------------------------------------------------------------------
+
+model CertificateTemplate {
+  id             String  @id @default(cuid())
+  eventId        String  @unique
+  title          String
+  activityNumber String  @default("")
+  provider       String  @default("")
+  /// Merge fields: {provider}, {credits}, {sessions}.
+  bodyText       String
+  signerName     String
+  signerRole     String
+  issueDateText  String
+  minSessions    Int     @default(1)
+  event          Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model CertificateIssue {
+  id             String       @id @default(cuid())
+  registrationId String       @unique
+  credits        Float        @default(0)
+  sessions       Int          @default(0)
+  issuedAt       DateTime     @default(now())
+  downloads      Int          @default(0)
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+}
+
+model AfterEventPage {
+  id            String  @id @default(cuid())
+  eventId       String  @unique
+  showRecordings Boolean @default(false)
+  showSlides    Boolean @default(false)
+  showPhotos    Boolean @default(false)
+  showSurvey    Boolean @default(false)
+  /// Only people who checked in can open it.
+  attendeesOnly Boolean @default(true)
+  message       String  @default("")
+  views         Int     @default(0)
+  event         Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+enum QuestionKind {
+  RATING
+  CHECK
+  CHOICE
+  TEXT
+}
+
+model EvaluationQuestion {
+  id        String       @id @default(cuid())
+  eventId   String
+  text      String
+  kind      QuestionKind
+  groupName String       @default("")
+  required  Boolean      @default(false)
+  sortOrder Int          @default(0)
+  event     Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers   EvaluationAnswer[]
+
+  @@index([eventId])
+}
+
+model EvaluationResponse {
+  id             String       @id @default(cuid())
+  eventId        String
+  registrationId String       @unique
+  submittedAt    DateTime     @default(now())
+  event          Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  answers        EvaluationAnswer[]
+}
+
+model EvaluationAnswer {
+  id         String             @id @default(cuid())
+  responseId String
+  questionId String
+  rating     Int?
+  checked    Boolean?
+  text       String?
+  response   EvaluationResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question   EvaluationQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([responseId, questionId])
+}
+
+model RaffleDraw {
+  id             String       @id @default(cuid())
+  eventId        String
+  registrationId String
+  prize          String
+  drawnAt        DateTime     @default(now())
+  drawnByLabel   String       @default("")
+  event          Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+// ---------------------------------------------------------------------------
+// Audit trail — government buyers inspect this
+// ---------------------------------------------------------------------------
+
+model ActivityLog {
+  id             String       @id @default(cuid())
+  organisationId String
+  eventId        String?
+  actorId        String?
+  actorLabel     String
+  /// Past-tense sentence fragment: "checked in 38 delegates to Session 3".
+  action         String
+  createdAt      DateTime     @default(now())
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event          Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, createdAt])
+  @@index([eventId, createdAt])
+}

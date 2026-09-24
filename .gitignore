@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# local mail outbox and uploads
+.data/
+
+.DS_Store
+Thumbs.db
+desktop.ini
