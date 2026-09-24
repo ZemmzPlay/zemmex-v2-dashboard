@@ -17,14 +17,37 @@ datasource db {
 // Organisations, people who log in, roles
 // ---------------------------------------------------------------------------
 
+/// How the organisation pays (docs/prototype/05-pricing.md). Card billing isn't
+/// built: zemmz activates a plan after invoicing, from /admin.
+enum Plan {
+  EVENT
+  SEASON
+  ENTERPRISE
+}
+
+enum PlanStatus {
+  /// Free for the first TRIAL_ATTENDEES confirmed attendees across all events.
+  TRIAL
+  ACTIVE
+  /// Kept for records; public registration is paused.
+  SUSPENDED
+}
+
 model Organisation {
   id          String         @id @default(cuid())
   name        String
   slug        String         @unique
+  /// "Event company or agency", "Hospital or medical body"… from onboarding.
+  kind        String         @default("")
+  country     String         @default("")
+  plan        Plan           @default(EVENT)
+  planStatus  PlanStatus     @default(TRIAL)
+  activatedAt DateTime?
   createdAt   DateTime       @default(now())
   memberships Membership[]
   events      Event[]
   activity    ActivityLog[]
+  invitations Invitation[]
 }
 
 model User {
@@ -34,8 +57,75 @@ model User {
   passwordHash String
   createdAt    DateTime      @default(now())
   lastSeenAt   DateTime?
+  /// Set when the 6-digit code from signup is entered. Invited people are verified by accepting.
+  emailVerifiedAt DateTime?
   memberships  Membership[]
   sessions     AuthSession[]
+  resets       PasswordReset[]
+  emailCodes   EmailCode[]
+}
+
+/// Someone asked to join an organisation by email. Only the token's SHA-256 is stored.
+model Invitation {
+  id             String       @id @default(cuid())
+  organisationId String
+  email          String
+  role           Role
+  tokenHash      String       @unique
+  invitedById    String?
+  invitedByLabel String       @default("")
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, email])
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// The 6-digit code that proves a new account owns its email.
+model EmailCode {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+enum RequestKind {
+  DEMO
+  CONTACT
+  UPGRADE
+}
+
+/// "Book a demo", "Talk to us" and plan upgrade requests, for the zemmz team.
+model ContactRequest {
+  id           String      @id @default(cuid())
+  kind         RequestKind
+  name         String      @default("")
+  email        String
+  organisation String      @default("")
+  message      String      @default("")
+  plan         Plan?
+  handledAt    DateTime?
+  createdAt    DateTime    @default(now())
+
+  @@index([handledAt, createdAt])
 }
 
 /// Owner and Admin manage everything; Editor manages content and messages but

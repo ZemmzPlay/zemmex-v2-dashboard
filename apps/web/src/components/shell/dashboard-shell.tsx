@@ -7,7 +7,7 @@ import { kfmt } from '@/lib/format';
 import { Avatar } from '../avatar';
 import { Icon } from '../icon';
 import { DrawerToggle, Sidebar, type NavItem, type SwitcherEvent } from './sidebar';
-import { logout } from '@/app/login/actions';
+import { logout } from '@/app/(marketing)/login/actions';
 
 function eventNav(e: Event, role: Role, counts: { regs: number; live: boolean }): [string, NavItem[]][] {
   const t = eventType(e.type);
@@ -50,7 +50,14 @@ export async function DashboardShell({ user, event, children }: { user: CurrentU
     ]);
     groups = eventNav(event, user.role, { regs, live: live > 0 });
   } else {
-    groups = [['Organisation', [{ href: '/events', icon: 'folder', label: 'All events', exact: true }, ...(can.manageEvent(user.role) ? [{ href: '/events/new', icon: 'plus' as const, label: 'New event' }] : []), ...(process.env.MESSAGING_PROVIDER !== 'sendgrid' ? [{ href: '/outbox', icon: 'inbox' as const, label: 'Email outbox' }] : [])]]];
+    groups = [
+      ['Events', [{ href: '/events', icon: 'folder', label: 'All events', exact: true }, ...(can.manageEvent(user.role) ? [{ href: '/events/new', icon: 'plus' as const, label: 'New event' }] : [])]],
+      ['Organisation', [
+        ...(can.seeDashboard(user.role) ? [{ href: '/organisation', icon: 'users' as const, label: 'People and plan' }] : []),
+        { href: '/account', icon: 'user', label: 'Your account' },
+        ...(process.env.MESSAGING_PROVIDER !== 'sendgrid' ? [{ href: '/outbox', icon: 'inbox' as const, label: 'Email outbox' }] : []),
+      ]],
+    ];
   }
 
   return (
@@ -68,10 +75,10 @@ export async function DashboardShell({ user, event, children }: { user: CurrentU
             )}
             <div className="flex items-center gap-2.5">
               <Avatar name={user.name} size={36} />
-              <span className="max-sm:hidden">
+              <Link href="/account" className="text-ink no-underline max-sm:hidden" title="Your account">
                 <b className="block text-[13px] font-semibold">{user.name}</b>
                 <small className="block text-[11.5px] text-muted">{user.organisationName} · {ROLE_LABEL[user.role]}</small>
-              </span>
+              </Link>
               <form action={logout}>
                 <button className="btn ghost sm" aria-label="Sign out" title="Sign out">
                   <Icon name="logout" size={16} />

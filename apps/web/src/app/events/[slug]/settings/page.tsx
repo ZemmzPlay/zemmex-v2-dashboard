@@ -2,9 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma, type Event } from '@zemmz/db';
 import { eventType, formatShortDateTime } from '@zemmz/shared';
-import { can, requirePermission, ROLE_LABEL } from '@/lib/auth';
-import { relativeTime } from '@/lib/format';
-import { Avatar } from '@/components/avatar';
+import { can, requirePermission } from '@/lib/auth';
 import { archiveEvent, saveDetails, saveWhen } from './actions';
 import { SimpleForm } from '@/components/simple-form';
 import { ConfirmButton } from '@/components/confirm-button';
@@ -38,35 +36,19 @@ export default async function SettingsPage({ params, searchParams }: { params: P
         <When slug={slug} event={event} canEdit={can.manageEvent(user.role)} />
         </>
       )}
-      {tab === 'team' && <Team organisationId={user.organisationId} />}
+      {tab === 'team' && <Team />}
       {tab === 'log' && <Log eventId={event.id} tz={event.timezone} />}
     </>
   );
 }
 
-async function Team({ organisationId }: { organisationId: string }) {
-  const members = await prisma.membership.findMany({ where: { organisationId }, include: { user: true }, orderBy: { createdAt: 'asc' } });
+function Team() {
   return (
-    <>
-      <p className="mt-0 max-w-[70ch] text-ink-2">
-        Owners and admins manage everything. Content editors manage registrations, messages and the website, but not event settings or who has access. Check-in staff only see the check-in console.
-      </p>
-      <div className="tbl-wrap">
-        <table className="tbl">
-          <thead><tr><th>Name</th><th>Role</th><th>Last active</th></tr></thead>
-          <tbody>
-            {members.map((m) => (
-              <tr key={m.id}>
-                <td><div className="flex items-center gap-2.5"><Avatar name={m.user.name} size={30} /><div><b className="font-semibold">{m.user.name}</b><div className="muted">{m.user.email}</div></div></div></td>
-                <td><span className="tag">{ROLE_LABEL[m.role]}</span></td>
-                <td className="muted">{m.user.lastSeenAt ? relativeTime(m.user.lastSeenAt) : 'Not yet'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="mt-3 text-[12.5px] text-muted">Inviting people by email is the next step for this screen.</p>
-    </>
+    <div className="card empty">
+      <h3>People are managed for your whole organisation</h3>
+      <p>Invite people, change roles and remove access in one place.</p>
+      <Link href="/organisation" className="btn primary">Go to people with access</Link>
+    </div>
   );
 }
 

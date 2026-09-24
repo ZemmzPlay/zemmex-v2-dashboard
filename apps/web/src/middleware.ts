@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 // Cheap first gate: private areas need a session cookie. The real check
 // (valid, unexpired, right organisation) happens on the server in lib/auth.
-const PRIVATE = ['/events', '/outbox'];
+const PRIVATE = ['/events', '/outbox', '/organisation', '/account', '/admin', '/welcome'];
 
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
@@ -16,5 +16,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/events/:path*', '/outbox/:path*'],
+  matcher: ['/events/:path*', '/outbox/:path*', '/organisation/:path*', '/account/:path*', '/admin/:path*', '/welcome/:path*'],
 };
