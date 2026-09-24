@@ -1,0 +1,109 @@
+# Test on every push and pull request; on main, build images, push to ECR and
+# deploy to the host over SSH. Merge this with the existing deploy.yml rather
+# than replacing it: secret names below are placeholders to map onto yours.
+#
+# Secrets: AWS_ROLE_ARN, AWS_REGION, ECR_REGISTRY, DEPLOY_HOST, DEPLOY_USER,
+#          DEPLOY_SSH_KEY, DEPLOY_PATH
+
+name: test-and-deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write # OIDC to AWS
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: zemmz, POSTGRES_PASSWORD: zemmz, POSTGRES_DB: zemmz_test }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U zemmz" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://zemmz:zemmz@localhost:5432/zemmz_test?schema=public
+      TEST_DATABASE_URL: postgresql://zemmz:zemmz@localhost:5432/zemmz_test?schema=public
+      SESSION_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - run: npm run db:generate
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build -w @zemmz/web
+        env: { NEXT_TELEMETRY_DISABLED: 1 }
+
+  build-and-push:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: tag
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - uses: docker/setup-buildx-action@v3
+      - name: Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/web.Dockerfile
+          push: true
+          tags: ${{ secrets.ECR_REGISTRY }}/zemmz-web:${{ steps.tag.outputs.tag }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+      - name: Worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/worker.Dockerfile
+          push: true
+          tags: ${{ secrets.ECR_REGISTRY }}/zemmz-worker:${{ steps.tag.outputs.tag }}
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,mode=max,scope=worker
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          WEB_IMAGE: ${{ secrets.ECR_REGISTRY }}/zemmz-web:${{ needs.build-and-push.outputs.tag }}
+          WORKER_IMAGE: ${{ secrets.ECR_REGISTRY }}/zemmz-worker:${{ needs.build-and-push.outputs.tag }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: WEB_IMAGE,WORKER_IMAGE,ECR_REGISTRY,AWS_REGION
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+            aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+            export WEB_IMAGE WORKER_IMAGE
+            docker compose pull web worker
+            # Migrations first; the old containers keep serving until this succeeds.
+            docker compose run --rm worker npx prisma migrate deploy --schema packages/db/prisma/schema.prisma
+            docker compose up -d --no-deps web worker caddy
+            docker image prune -f

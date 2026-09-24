@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zemmz Live — example event websites</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Unbounded:wght@600;800&display=swap" rel="stylesheet">
+<style>
+/* base (from the medical site) */
+:root{--red:#B3122E;--red-d:#8C0D23;--red-soft:#FBE9EC;--navy:#101631;--ink:#171A2B;--ink-2:#474B63;--muted:#737891;--bg:#FFFFFF;--bg-2:#F6F5F3;--line:#E7E5E1;--ok:#0F7A52;--ok-soft:#E1F5EC;--warn:#8A5300;--warn-soft:#FFF2D9;
+ --serif:'Source Serif 4',Georgia,'Times New Roman',serif;--sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101219;--bg-2:#171A24;--line:#2A2E3D;--ink:#F1F1F5;--ink-2:#C6C8D6;--muted:#9296AD;--red-soft:#3A1219;--ok:#46D39C;--ok-soft:#0F3528;--warn:#F2B650;--warn-soft:#3A2A0C}}
+:root[data-theme="dark"]{--bg:#101219;--bg-2:#171A24;--line:#2A2E3D;--ink:#F1F1F5;--ink-2:#C6C8D6;--muted:#9296AD;--red-soft:#3A1219;--ok:#46D39C;--ok-soft:#0F3528;--warn:#F2B650;--warn-soft:#3A2A0C}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:calc(80px + env(safe-area-inset-top,0px))}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:400 15.5px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+a{color:var(--red)}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:4px}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.demo{background:#111;color:#eee;font-size:12.5px;padding:8px 16px;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+.demo .seg{display:inline-flex;background:#2a2a2a;border-radius:8px;padding:2px}
+.demo .seg button{border:0;background:transparent;color:#bbb;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600}
+.demo .seg button[aria-pressed="true"]{background:#fff;color:#111}
+header.top{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:stretch;gap:24px;height:76px}
+.brand{display:flex;align-items:center;gap:12px;border:0;background:none;padding:0;text-align:left}
+.mark{width:44px;height:44px;border-radius:50%;background:var(--red);display:grid;place-items:center;color:#fff}
+.brand .t{border-left:3px solid var(--red);padding-left:10px;line-height:1.15}
+.brand b{display:block;font:700 15px var(--sans);color:var(--red)}
+.brand small{font-size:12px;color:var(--ink-2);font-weight:600}
+nav.links{margin-left:auto;display:flex;align-items:stretch}
+nav.links button{border:0;background:none;padding:0 14px;font-size:13.5px;font-weight:600;color:var(--red);letter-spacing:.01em}
+nav.links button:hover{background:var(--red-soft)}
+nav.links button[aria-current="page"]{background:var(--red);color:#fff}
+.burger{display:none;margin-left:auto;border:0;background:none;width:44px;align-self:center;height:44px;color:var(--red)}
+.mnav{display:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 22px;border:1px solid transparent;border-radius:6px;font-weight:600;font-size:15px;text-decoration:none;white-space:nowrap}
+.btn.red{background:var(--red);color:#fff}.btn.red:hover{background:var(--red-d)}
+.btn.line{background:transparent;border-color:var(--line);color:var(--ink)}.btn.line:hover{border-color:var(--red);color:var(--red)}
+.btn.white{background:#fff;color:var(--red)}
+.btn.sm{height:38px;padding:0 14px;font-size:14px}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.linkbtn{border:0;background:none;padding:0;color:var(--red);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+
+/* hero */
+.hero{position:relative;background:var(--navy);color:#fff;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 500px at 15% 20%,rgba(179,18,46,.55),transparent 60%),radial-gradient(700px 400px at 90% 90%,rgba(179,18,46,.35),transparent 60%)}
+.hex-bg{position:absolute;inset:0;opacity:.08;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='98' viewBox='0 0 56 98'%3E%3Cpath d='M28 66 0 50V17L28 1l28 16v33L28 66zm0 32V66' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E")}
+.hero .wrap{position:relative;display:grid;grid-template-columns:1fr 470px;gap:48px;padding-top:56px;padding-bottom:64px;align-items:center}
+.hero .ed{font-size:13px;font-weight:600;letter-spacing:.04em;color:#F4B9C3;margin:0 0 14px}
+.hero h1{font:700 clamp(38px,5vw,62px)/1.04 var(--serif);margin:0 0 18px;letter-spacing:-.01em}
+.hero .when{display:flex;gap:22px;flex-wrap:wrap;font-size:15px;color:#D9DBE8;margin-bottom:26px}
+.hero .when span{display:inline-flex;gap:8px;align-items:center}
+.hero .facts{display:flex;gap:30px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.15);padding-top:22px}
+.hero .facts b{display:block;font:700 28px var(--serif)}.hero .facts small{color:#B8BBD0;font-size:13px}
+.panel{background:var(--bg);color:var(--ink);border-radius:10px;padding:26px;box-shadow:0 30px 60px -20px rgba(0,0,0,.5);border-top:5px solid var(--red)}
+.panel h2{font:700 24px var(--serif);margin:0 0 4px}
+.panel .sub{color:var(--muted);font-size:14px;margin:0 0 18px}
+.panel h3{font-size:12.5px;font-weight:700;color:var(--red);margin:16px 0 8px;letter-spacing:.02em}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:110px 1fr 1fr;gap:12px}
+.fld{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;min-width:0}
+.fld label{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.req{color:var(--red)}
+.inp{height:44px;border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:0 12px;width:100%}
+select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23737891' stroke-width='2.4'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+.inp:focus{outline:2px solid color-mix(in srgb,var(--red) 30%,transparent);border-color:var(--red)}
+.fld .err{display:none;color:var(--red);font-size:12px}
+.fld.bad .inp,.fld.bad .ph{border-color:var(--red)}.fld.bad .err{display:block}
+.ph{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.ph select{border:0;background:var(--bg-2);padding:0 8px;height:42px}
+.ph input{border:0;background:transparent;flex:1;height:42px;padding:0 12px;min-width:0}.ph input:focus{outline:none}
+.fine{font-size:12px;color:var(--muted);margin:10px 0 0;text-align:center}
+.done-ic{width:52px;height:52px;border-radius:50%;background:var(--ok-soft);color:var(--ok);display:grid;place-items:center;margin-bottom:14px}
+.idbox{border:1.5px dashed var(--line);border-radius:8px;padding:14px;text-align:center;margin:16px 0}
+.idbox small{display:block;color:var(--muted);font-size:12px}
+.idbox b{font:700 40px var(--serif);letter-spacing:.04em;color:var(--red)}
+.note{border-radius:8px;padding:12px 14px;font-size:14px;margin:12px 0;display:flex;gap:10px;align-items:flex-start}
+.note.warn{background:var(--warn-soft);color:var(--warn)}.note.ok{background:var(--ok-soft);color:var(--ok)}
+
+section{padding:72px 0}
+.sec-t{font:700 clamp(28px,3.2vw,38px)/1.15 var(--serif);margin:0 0 10px}
+.sec-p{color:var(--ink-2);margin:0 0 30px;max-width:640px}
+.kick{color:var(--red);font-weight:700;font-size:13px;letter-spacing:.04em;margin:0 0 8px}
+.welcome{display:grid;grid-template-columns:1.25fr 1fr;gap:56px}
+.letter{border-left:4px solid var(--red);padding-left:28px}
+.letter h2{font:700 34px var(--serif);color:var(--red);margin:0 0 16px;letter-spacing:.01em}
+.letter p{color:var(--ink-2)}
+.people h3{font:700 18px var(--serif);color:var(--red);margin:0 0 16px}
+.prow{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+.person{border:0;background:none;padding:0;text-align:center;width:130px}
+.hex{width:108px;height:124px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);overflow:hidden;display:grid;place-items:center;font:700 30px var(--serif);color:#fff;margin:0 auto 10px;transition:transform .2s}
+.person:hover .hex{transform:scale(1.04)}
+.person b{display:block;font-size:13.5px;line-height:1.3}
+.person small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.strip{background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.stats4 b{display:block;font:700 40px var(--serif);color:var(--red);line-height:1.1}
+.stats4 span{color:var(--ink-2);font-size:14px}
+.sponsors{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.sponsors div{height:76px;border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;font-weight:700;color:var(--muted);letter-spacing:.02em;font-size:14px;text-align:center;padding:6px}
+.page-h{background:var(--bg-2);border-bottom:1px solid var(--line);padding:44px 0 36px}
+.page-h h1{font:700 clamp(30px,4vw,44px) var(--serif);margin:0 0 6px}
+.page-h p{margin:0;color:var(--ink-2)}
+.fac-sec{margin-bottom:44px}
+.fac-sec h2{font:700 22px var(--serif);color:var(--red);margin:0 0 20px}
+.fac-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:24px}
+.days{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap}
+.days button{border:1px solid var(--line);background:var(--bg);padding:10px 18px;border-radius:6px;font-weight:600;font-size:14px;text-align:left}
+.days button small{display:block;color:var(--muted);font-weight:500;font-size:12px}
+.days button[aria-pressed="true"]{background:var(--red);color:#fff;border-color:var(--red)}.days button[aria-pressed="true"] small{color:#F4C7CF}
+.sess{border:1px solid var(--line);border-radius:10px;margin-bottom:18px;overflow:hidden}
+.sess-h{background:var(--bg-2);padding:16px 20px;display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.sess-h .tm{font-weight:700;color:var(--red);font-size:14px;min-width:110px}
+.sess-h h3{margin:0 0 4px;font:700 19px var(--serif)}
+.sess-h p{margin:0;color:var(--muted);font-size:13.5px}
+.cme{margin-left:auto;background:var(--red-soft);color:var(--red);font-weight:700;font-size:12.5px;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.lec{display:grid;grid-template-columns:110px 1fr;gap:16px;padding:12px 20px;border-top:1px solid var(--line);font-size:14.5px}
+.lec .tm{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13.5px}
+.lec small{display:block;color:var(--muted)}
+.lec.brk{background:repeating-linear-gradient(135deg,transparent 0 8px,var(--bg-2) 8px 16px);color:var(--muted)}
+.venue{display:grid;grid-template-columns:1.3fr 1fr;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.map{position:relative;min-height:380px;background:#CFE6F5}
+.map svg{position:absolute;inset:0;width:100%;height:100%}
+.map .where{position:absolute;left:24px;top:24px}
+.map .where b{display:block;font:700 44px var(--serif);color:var(--red);line-height:1;text-shadow:0 2px 0 #fff}
+.vinfo{padding:32px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.vinfo h2{font:700 26px var(--serif);color:var(--red);margin:0}
+.vinfo .crest{width:84px;height:84px;border-radius:50%;border:2px solid #B58B3A;color:#B58B3A;display:grid;place-items:center;font:700 26px var(--serif);margin:16px 0}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{border:1px solid var(--line);border-radius:10px;padding:22px}
+.card h3{margin:0 0 6px;font:700 19px var(--serif)}
+.card p{margin:0;color:var(--ink-2);font-size:14.5px}
+.steps{counter-reset:s;display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.steps div{border-top:3px solid var(--red);padding-top:14px}
+.steps div::before{counter-increment:s;content:counter(s);font:700 30px var(--serif);color:var(--red);display:block}
+.steps h4{margin:4px 0 4px;font-size:15.5px}.steps p{margin:0;color:var(--ink-2);font-size:14px}
+.past{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.past .card b{font:700 42px var(--serif);color:var(--red);display:block;line-height:1}
+footer{background:var(--navy);color:#B8BBD0;padding:44px 0 28px;font-size:14px}
+footer .cols{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:28px}
+footer h4{color:#fff;margin:0 0 10px;font-size:14px}
+footer button{display:block;border:0;background:none;color:#B8BBD0;padding:3px 0;font-size:14px}footer button:hover{color:#fff}
+footer .legal{border-top:1px solid rgba(255,255,255,.1);margin-top:28px;padding-top:16px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12.5px}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(10,12,25,.55);z-index:60;display:grid;place-items:center;padding:20px}
+.modal{background:var(--bg);border-radius:10px;width:min(680px,100%);max-height:calc(100dvh - 40px);overflow:auto;position:relative;border-top:5px solid var(--red)}
+.modal .x{position:absolute;top:10px;right:10px;width:38px;height:38px;border:0;background:var(--bg-2);border-radius:6px}
+.mbody{padding:28px}
+.bio{display:grid;grid-template-columns:140px 1fr;gap:22px}
+.bio h2{font:700 26px var(--serif);margin:0 0 2px}.bio .cat{color:var(--red);font-weight:600;font-size:13.5px;margin:0 0 12px}
+.bio p{color:var(--ink-2);margin:0 0 10px}
+.mail{background:#F2F3F7;padding:24px;border-radius:8px;color:#222}
+.mail .card2{background:#fff;border-radius:6px;padding:28px;max-width:520px;margin:0 auto;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#333}
+.mail h3{margin:18px 0 2px;font-size:12px;color:#777;letter-spacing:.1em}
+.mail h2{margin:0 0 8px;color:var(--red);font-size:22px;letter-spacing:.02em}
+.mail hr{border:0;border-top:3px solid var(--red);width:40px;margin:0 0 20px}
+.mail table{width:100%;border-collapse:collapse;margin-top:10px}.mail td{padding:8px 0;border-bottom:1px solid #eee}.mail td:first-child{color:#777;width:40%}
+/* evaluation */
+.eval{max-width:820px;margin:0 auto}
+.q{border-bottom:1px solid var(--line);padding:16px 0}
+.q p{margin:0 0 10px;font-weight:500}
+.rate{display:flex;gap:6px;flex-wrap:wrap}
+.rate button{min-width:44px;height:40px;border:1px solid var(--line);background:var(--bg);border-radius:6px;font-weight:700}
+.rate button[aria-pressed="true"]{background:var(--red);color:#fff;border-color:var(--red)}
+.rate .lab{font-size:12px;color:var(--muted);align-self:center;margin:0 6px}
+.checks label{display:flex;gap:10px;align-items:center;padding:8px 0;cursor:pointer}
+.checks input,.agree input{width:18px;height:18px;accent-color:var(--red)}
+textarea.inp{height:110px;padding:10px 12px;resize:vertical}
+/* certificate */
+.cert-wrap{background:var(--bg-2);padding:40px 16px}
+.cert{background:#fff;color:#1a1a1a;max-width:900px;margin:0 auto;aspect-ratio:1.414/1;padding:5% 7%;box-shadow:0 30px 60px -30px rgba(0,0,0,.35);position:relative;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;border:10px solid #fff;outline:1px solid #E7D7C0;outline-offset:-20px;font-family:'Source Serif 4',Georgia,serif}
+.cert .lg{display:flex;gap:14px;align-items:center;margin-bottom:4%}
+.cert .lg .mark{width:48px;height:48px}
+.cert .lg .t{border-left:3px solid var(--red);padding-left:10px;text-align:left;font-family:Inter,sans-serif;line-height:1.2}
+.cert .lg b{color:var(--red);font-size:15px;display:block}.cert .lg small{font-size:12px;font-weight:600}
+.cert h2{font-size:clamp(18px,3vw,30px);margin:0 0 1%;letter-spacing:.02em}
+.cert .nm{font-size:clamp(22px,4vw,40px);border-bottom:1px solid #999;padding:0 40px 4px;margin:2% 0}
+.cert p{margin:.6% 0;font-size:clamp(10px,1.5vw,15px);font-family:Inter,sans-serif;color:#333}
+.cert .small{font-size:clamp(9px,1.25vw,12.5px);max-width:720px;line-height:1.5}
+.cert .sig{margin-top:4%;font-size:clamp(9px,1.3vw,13px);font-family:Inter,sans-serif}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:8px;font-size:14px;z-index:90}
+.maint{min-height:70vh;display:grid;place-items:center;text-align:center;padding:40px 20px}
+.maint h1{font:700 36px var(--serif);margin:16px 0 8px}
+@media print{body *{visibility:hidden}.cert,.cert *{visibility:visible}.cert{position:fixed;left:0;top:0;width:100%;box-shadow:none;margin:0}}
+@media (max-width:980px){
+ .hero .wrap,.welcome,.venue{grid-template-columns:1fr}.stats4,.steps{grid-template-columns:1fr 1fr}.info-grid{grid-template-columns:1fr}.sponsors{grid-template-columns:repeat(3,1fr)}
+ nav.links{display:none}.burger{display:grid;place-items:center}
+ .mnav.open{display:flex;flex-direction:column;border-top:1px solid var(--line);padding:6px 16px 12px;background:var(--bg)}
+ .mnav button{border:0;background:none;text-align:left;padding:12px 6px;font-weight:600;color:var(--red)}
+ footer .cols{grid-template-columns:1fr}
+}
+@media (max-width:560px){.wrap{padding:0 16px}.grid2,.grid3{grid-template-columns:1fr}.bio{grid-template-columns:1fr}.lec{grid-template-columns:1fr;gap:2px}section{padding:52px 0}.panel{padding:20px}.brand .t small{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style><style>
+/* ===== shared additions ===== */
+.demo{gap:8px 14px}
+.demo .lbl{color:#999}
+.demo select{background:#2a2a2a;color:#fff;border:0;border-radius:8px;height:30px;padding:0 10px;font-size:12.5px;font-weight:600}
+.hex.sq{clip-path:none;border-radius:16px;height:108px}
+.hex.ci{clip-path:none;border-radius:50%;height:108px}
+.hex.rd{clip-path:none;border-radius:14px;height:108px}
+.person .role{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.tk-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.tk{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg)}
+.tk b{font-size:15px}.tk small{color:var(--muted);font-size:12.5px;display:block}
+.tk .pr{font-weight:700;font-size:15px;text-align:right}
+.tk.off{opacity:.55}
+.qty{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden;justify-self:end;grid-column:2}
+.qty button{width:34px;height:34px;border:0;background:var(--bg-2);font-size:18px;font-weight:700;color:var(--ink)}
+.qty button[disabled]{opacity:.35}
+.qty span{min-width:34px;text-align:center;font-weight:700}
+.sumrow{display:flex;justify-content:space-between;font-size:14px;padding:6px 0;color:var(--ink-2)}
+.sumrow.tot{border-top:1px solid var(--line);margin-top:6px;padding-top:10px;font-weight:700;color:var(--ink);font-size:16px}
+.steps3{display:flex;gap:6px;margin:0 0 14px;font-size:12px;font-weight:600;color:var(--muted)}
+.steps3 span{flex:1;border-top:3px solid var(--line);padding-top:6px}.steps3 span.on{border-color:var(--red);color:var(--ink)}
+.paybtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.paybtns .btn{height:44px}
+.apple{background:#000;color:#fff}
+.or2{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:4px 0 12px}.or2::before,.or2::after{content:"";flex:1;height:1px;background:var(--line)}
+.etk{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:12px 0;background:#fff;color:#171A2B}
+.etk .hd{background:var(--red);color:#fff;padding:10px 14px;font-size:13px;font-weight:700;display:flex;justify-content:space-between}
+.etk .bd{padding:14px;text-align:center}
+.etk .bd b{display:block;font-size:17px}.etk .bd small{color:#666;font-size:12px}
+.etk svg{display:block;margin:10px auto 4px;max-width:100%}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.tile{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg);text-align:left;padding:0}
+.tile .th{aspect-ratio:16/9;display:grid;place-items:center;color:#fff}
+.tile .tb{padding:14px 16px}.tile .tb b{display:block;font-size:15px}.tile .tb small{color:var(--muted);font-size:12.5px}
+.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.gallery i{aspect-ratio:1;border-radius:10px;display:block}
+.gallery i:nth-child(1){grid-column:span 2;grid-row:span 2}
+.lineup{display:flex;flex-direction:column;gap:14px}
+.act{display:grid;grid-template-columns:160px 1fr auto;gap:22px;align-items:center;border:1px solid var(--line);border-radius:16px;padding:16px;background:var(--bg-2);text-align:left;width:100%}
+.act .hex{margin:0;width:160px;height:120px}
+.act h3{margin:0 0 4px;font:700 clamp(22px,3vw,34px)/1.05 var(--serif)}
+.act p{margin:0;color:var(--ink-2);font-size:14px}
+.act .when{font:700 20px var(--serif);color:var(--red);white-space:nowrap}
+.act.head{background:linear-gradient(120deg,color-mix(in srgb,var(--red) 30%,var(--bg-2)),var(--bg-2))}
+.act.head h3{font-size:clamp(28px,4.4vw,52px)}
+.tag2{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--red);margin-bottom:6px}
+.seat{margin-left:auto;font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--ok-soft);color:var(--ok);white-space:nowrap}
+.seat.low{background:var(--warn-soft);color:var(--warn)}
+.faq details{border-bottom:1px solid var(--line);padding:16px 0}.faq summary{font-weight:600;cursor:pointer;font-size:16px}.faq p{color:var(--ink-2);margin:10px 0 0}
+.intro{display:grid;grid-template-columns:1.2fr 1fr;gap:56px;align-items:start}
+.intro h2{font:700 clamp(28px,3.4vw,42px)/1.1 var(--serif);margin:0 0 16px}
+.intro p{color:var(--ink-2)}
+
+/* ===== theme: design conference ===== */
+body.t-form{--red:#C2410C;--red-d:#9A3412;--red-soft:#FFEDE3;--navy:#141414;--bg-2:#F4F0E8;--line:#E4DED3;--serif:'Space Grotesk','Helvetica Neue',Arial,sans-serif}
+body.t-form .hero{background:#F4F0E8;color:#141414}
+body.t-form .hero::before{background:none}
+body.t-form .hex-bg{opacity:.5;background-image:linear-gradient(#E4DED3 1px,transparent 1px),linear-gradient(90deg,#E4DED3 1px,transparent 1px);background-size:48px 48px}
+body.t-form .hero h1{font-weight:700;letter-spacing:-.035em;text-transform:none}
+body.t-form .hero .ed{color:var(--red)}
+body.t-form .hero .when{color:#333}
+body.t-form .hero .facts{border-color:#D6CFC2}.body.t-form .hero .facts small,body.t-form .hero .facts small{color:#555}
+body.t-form .panel{box-shadow:0 30px 60px -30px rgba(0,0,0,.25);border-top-color:#141414;border-radius:14px}
+body.t-form nav.links button{color:#141414}
+body.t-form nav.links button[aria-current="page"]{background:#141414;color:#fff}
+body.t-form .mark{border-radius:10px;background:#141414}
+body.t-form .brand .t{border-color:#141414}.body.t-form .brand b,body.t-form .brand b{color:#141414}
+body.t-form .btn{border-radius:999px}
+body.t-form .letter,body.t-form .steps div{border-color:#141414}
+body.t-form .sec-t,body.t-form .page-h h1{letter-spacing:-.03em}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body.t-form{--bg-2:#1A1916;--line:#2E2B26}:root:not([data-theme="light"]) body.t-form .hero{background:#1A1916;color:#F4F0E8}:root:not([data-theme="light"]) body.t-form .hero .when,:root:not([data-theme="light"]) body.t-form .hero .facts small{color:#C9C3B8}:root:not([data-theme="light"]) body.t-form .hex-bg{background-image:linear-gradient(#2E2B26 1px,transparent 1px),linear-gradient(90deg,#2E2B26 1px,transparent 1px)}:root:not([data-theme="light"]) body.t-form nav.links button,:root:not([data-theme="light"]) body.t-form .brand b{color:#F4F0E8}}
+
+/* ===== theme: founders summit ===== */
+body.t-mfs{--red:#0E5E4E;--red-d:#0A4539;--red-soft:#E3F1EC;--navy:#0B2620;--serif:'Fraunces',Georgia,serif;--gold:#C9A227}
+body.t-mfs .hero::before{background:radial-gradient(800px 500px at 85% 10%,rgba(201,162,39,.28),transparent 60%),radial-gradient(700px 400px at 10% 90%,rgba(14,94,78,.7),transparent 60%)}
+body.t-mfs .hex-bg{opacity:.07;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cpath d='M30 4 L56 30 L30 56 L4 30 Z' fill='none' stroke='%23fff' stroke-width='1.2'/%3E%3C/svg%3E")}
+body.t-mfs .hero .ed{color:var(--gold)}
+body.t-mfs .panel{border-top-color:var(--gold);border-radius:14px}
+body.t-mfs nav.links button{color:var(--ink)}
+body.t-mfs nav.links button[aria-current="page"]{background:var(--red);color:#fff}
+body.t-mfs .mark{background:var(--red);border-radius:14px}
+body.t-mfs .stats4 b,body.t-mfs .kick{color:var(--red)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body.t-mfs{--red:#3FB896;--red-d:#2E9A7B;--red-soft:#123A30}}
+
+/* ===== theme: concert ===== */
+body.t-noct{--red:#7C3AED;--red-d:#6D28D9;--red-soft:#2A1B4A;--navy:#07040E;--bg:#0B0714;--bg-2:#150E24;--line:#2A2140;--ink:#F3EEFF;--ink-2:#CFC6E6;--muted:#9D93B8;--ok:#4ADE9A;--ok-soft:#10301F;--warn:#F5C451;--warn-soft:#33270B;--serif:'Unbounded','Arial Black',Impact,sans-serif;--pink:#F472B6}
+body.t-noct .hero{background:#07040E}
+body.t-noct .hero::before{background:radial-gradient(700px 480px at 80% 20%,rgba(124,58,237,.55),transparent 60%),radial-gradient(600px 420px at 15% 85%,rgba(244,114,182,.35),transparent 60%)}
+body.t-noct .hex-bg{opacity:.5;background-image:radial-gradient(1.2px 1.2px at 20% 30%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 70% 60%,#fff 50%,transparent 51%),radial-gradient(1.4px 1.4px at 40% 80%,#fff 50%,transparent 51%);background-size:180px 160px}
+body.t-noct .hero h1{font-weight:800;text-transform:uppercase;letter-spacing:-.01em;font-size:clamp(34px,5vw,64px)}
+body.t-noct .hero .ed{color:var(--pink)}
+body.t-noct .panel{background:#140D24;border-top-color:var(--pink);border-radius:16px;box-shadow:0 30px 80px -20px rgba(124,58,237,.5)}
+body.t-noct header.top{background:rgba(11,7,20,.92);backdrop-filter:blur(8px)}
+body.t-noct nav.links button{color:var(--ink-2)}
+body.t-noct nav.links button:hover{background:var(--red-soft)}
+body.t-noct nav.links button[aria-current="page"]{background:var(--red);color:#fff}
+body.t-noct .brand b{color:var(--ink)}.body.t-noct .brand .t,body.t-noct .brand .t{border-color:var(--pink)}
+body.t-noct .mark{background:linear-gradient(135deg,var(--red),var(--pink))}
+body.t-noct .btn.red{background:var(--red)}
+body.t-noct .btn{border-radius:999px}
+body.t-noct .burger,body.t-noct .mnav button{color:var(--ink)}
+body.t-noct a{color:#C4B5FD}
+body.t-noct .tk,body.t-noct .inp,body.t-noct .ph{background:#0F0A1C}
+body.t-noct .etk .hd{background:linear-gradient(90deg,var(--red),var(--pink))}
+body.t-noct .stats4 b,body.t-noct .kick,body.t-noct .tag2{color:var(--pink)}
+body.t-noct footer{background:#050309}
+body.t-noct .modal{background:#140D24}
+@media (max-width:980px){.intro{grid-template-columns:1fr;gap:32px}.act{grid-template-columns:1fr;gap:12px}.act .hex{width:100%;height:140px}.gallery{grid-template-columns:repeat(2,1fr)}}
+.people .btn{white-space:normal;height:auto;min-height:38px;padding:8px 14px}
+</style>
+</head>
+<body class="t-ghs">
+<div class="demo" role="region" aria-label="Demo controls" id="bar"></div>
+<div id="app"></div>
+<script>
+/* ================= four example events ================= */
+const EVENTS={
+/* ---------------- 1. medical conference ---------------- */
+ghs:{key:'ghs',type:'medical',label:'Medical conference',free:true,after:'cme',shape:'hex',mark:'heart',cur:'KWD',
+ name:'5th Gulf Heart Summit',short:'GHS',org:'Gulf Cardiac Society',dates:'22–23 September 2026',venue:'The Regency',addr:'Arabian Gulf Street, Salmiya',city:'Kuwait City, Kuwait',phone:'+965 2225 0000',email:'info@gulfheartsummit.org',tz:'Kuwait time (UTC+3)',
+ nav:[['home','Home'],['people','Faculty'],['agenda','Sessions'],['venue','Venue'],['info','Registration & CME'],['past','Past meetings']],
+ ed:'THE FIFTH EDITION · GULF CARDIAC SOCIETY',guest:'delegate',credits:7,activity:'002398/CAR1/Sep26',
+ facts:[['7','CME/CPD credits'],['6','scientific sessions'],['14','expert speakers']],
+ peopleIntro:'Select a speaker to read their biography.',
+ peopleSecs:[['dir','Meeting directors'],['co','Meeting co-directors'],['int','International faculty'],['reg','Regional faculty'],['loc','Local faculty']],
+ people:[
+  {n:'Prof. Faisal Al-Rumaihi',k:'dir',r:'Meeting Director',b:'Consultant interventional cardiologist and chairman of the Kuwait coronary registry. He has led the Gulf Heart Summit since its first edition and has authored more than 120 peer-reviewed papers on acute coronary syndromes in the Gulf.'},
+  {n:'Prof. Elena Moreno',k:'dir',r:'Meeting Director',b:'Professor of Cardiology at a university hospital in Valencia and Vice President for Global Affairs of a leading European cardiology society. Her research focuses on heart failure registries and quality of care.'},
+  {n:'Dr Maryam Al-Kuwari',k:'co',r:'Meeting Co-Director',b:'Consultant cardiologist and head of the cardiac rehabilitation programme at a tertiary hospital in Doha.'},
+  {n:'Dr Salim Al-Harthy',k:'co',r:'Meeting Co-Director',b:'Senior consultant cardiologist in Muscat and past president of the Gulf Cardiac Society.'},
+  {n:'Prof. Richard Hale',k:'int',r:'International Faculty',b:'Professor of Cardiology in the United Kingdom, specialising in antiplatelet therapy and thrombosis in coronary disease.'},
+  {n:'Prof. Martín Castro',k:'int',r:'International Faculty',b:'Director of the Cardiology Department at a university hospital in northern Spain and former president of the Spanish Society of Cardiology.'},
+  {n:'Prof. Anna Lindqvist',k:'int',r:'International Faculty',b:'Heart failure specialist at a university hospital in Stockholm, with a focus on SGLT2 inhibitors.'},
+  {n:'Dr Khalid Al-Mansoori',k:'reg',r:'Regional Faculty',b:'Consultant cardiologist in Dubai and lead investigator of the Gulf breathlessness registry.'},
+  {n:'Dr Nadia Al-Sayegh',k:'reg',r:'Regional Faculty',b:'Heart failure consultant in Kuwait and co-author of the Gulf heart failure guidelines.'},
+  {n:'Dr Turki Al-Shehri',k:'reg',r:'Regional Faculty',b:'Interventional cardiologist at a cardiac centre in Riyadh.'},
+  {n:'Dr Hamad Al-Fadhli',k:'loc',r:'Local Faculty',b:'Electrophysiologist at a specialist chest hospital in Kuwait, with an interest in atrial fibrillation ablation.'},
+  {n:'Dr Yaqoub Al-Saleh',k:'loc',r:'Local Faculty',b:'Consultant cardiologist at a general hospital in Kuwait.'},
+  {n:'Dr Fahad Al-Otaibi',k:'loc',r:'Local Faculty',b:'Cardiac imaging specialist at a regional hospital in Kuwait.'},
+  {n:'Dr Reem Al-Hajri',k:'loc',r:'Local Faculty',b:'Consultant cardiologist and educator at a diabetes institute in Kuwait.'}],
+ agendaNote:'All times are Kuwait time (UTC+3). CME points are awarded for the time you spend in each session.',
+ days:[{d:'Tuesday 22 September',s:'Day 1',items:[
+   {brk:1,t:'08:00–09:00',x:'Registration and breakfast'},
+   {t:'09:00–10:30',x:'Session 1: Review of recent guidelines',ch:'Co-chairs: Prof. Elena Moreno, Dr Salim Al-Harthy',cme:1.5,l:[['09:00–09:25','2026 guidelines on chronic coronary syndromes','Prof. Richard Hale'],['09:25–09:50','Diabetes and cardiovascular disease: what changed','Prof. Martín Castro'],['09:50–10:15','Supraventricular tachycardia in practice','Dr Hamad Al-Fadhli'],['10:15–10:30','Panel discussion','']]},
+   {brk:1,t:'10:30–11:00',x:'Coffee break and exhibition'},
+   {t:'11:00–12:30',x:'Session 2: Challenging cases from Kuwait',ch:'Co-chairs: Dr Nadia Al-Sayegh, Dr Yaqoub Al-Saleh',cme:1.5,l:[['11:00–11:30','Complex PCI in the left main','Dr Yaqoub Al-Saleh'],['11:30–12:00','Cardiogenic shock: a team approach','Dr Fahad Al-Otaibi'],['12:00–12:30','Discussion','']]},
+   {brk:1,t:'12:30–13:00',x:'Lunch'},
+   {t:'13:00–14:30',x:'Session 3: Heart failure in the Gulf',ch:'Co-chairs: Prof. Anna Lindqvist, Dr Khalid Al-Mansoori',cme:1.5,l:[['13:00–13:30','Gulf breathlessness registry: what we learned','Dr Khalid Al-Mansoori'],['13:30–14:00','SGLT2 inhibitors for every patient?','Prof. Anna Lindqvist'],['14:00–14:30','Discussion','']]},
+   {t:'15:00–16:00',x:'Session 4: Imaging masterclass',ch:'Chair: Dr Fahad Al-Otaibi',cme:1,l:[['15:00–15:30','Cardiac MRI for the general cardiologist','Dr Fahad Al-Otaibi'],['15:30–16:00','Case quiz','']]}]},
+  {d:'Wednesday 23 September',s:'Day 2',items:[
+   {t:'09:00–10:30',x:'Session 5: Improving the quality of cardiology practice',ch:'Co-chairs: Prof. Faisal Al-Rumaihi, Dr Turki Al-Shehri',cme:1.5,l:[['09:00–09:30','Registries and their role in improving practice','Prof. Elena Moreno'],['09:30–10:00','Kuwait cath lab registry: what the data shows','Prof. Faisal Al-Rumaihi'],['10:00–10:30','Discussion','']]},
+   {brk:1,t:'10:30–11:00',x:'Coffee break'},
+   {t:'11:00–12:00',x:'Closing session and awards',ch:'Meeting directors',cme:0,l:[['11:00–11:40','Best abstract awards',''],['11:40–12:00','Closing remarks','Prof. Faisal Al-Rumaihi']]}]}],
+ welcome:{h:'Dear colleagues,',ps:['It gives us great pleasure to welcome you to the fifth edition of the Gulf Heart Summit, held in Kuwait on 22–23 September 2026.','The first four meetings brought together more than 1,500 healthcare professionals from across the Gulf and beyond, and built a lasting collaboration between regional and international experts.','This year’s programme focuses on the practical application of the latest guidelines, the lessons of our regional registries, and challenging cases from hospitals in Kuwait. We look forward to welcoming you.'],sign:['Prof. Faisal Al-Rumaihi','On behalf of the organising committee'],homeSecs:['dir','co']},
+ stats:[['1,500+','attendees across four editions'],['7','CME/CPD category 1 credits'],['2','days of scientific sessions'],['12','countries represented']],
+ sponsorsTitle:'Our partners',sponsors:['Gulf Cardiac Society','Kuwait Heart Foundation','Ministry of Health','Regional Pharma Co.','MedDevices Gulf'],
+ info:{h:'Registration &amp; CME',p:'How registration, attendance and certificates work.',
+  card:['Accreditation','This activity (No. 002398/CAR1/Sep26) is accredited by the Kuwait Institute for Medical Specialization for up to 7 CME/CPD credits in Category 1. Credits are calculated from the time you spend in each session.'],
+  stepsTitle:'From registration to certificate',
+  steps:[['Register online','Fill in the form on the homepage. You’ll get a registration ID and a confirmation email.'],['Collect your badge','Show your ID at the registration desk. Your badge carries a barcode.'],['Scan in and out','Staff scan your badge as you enter and leave each session. That’s how your CME time is counted.'],['Claim your certificate','After the meeting, enter your ID on the homepage, complete a short evaluation and download your certificate.']],
+  note:'Certificates are only available to delegates who checked in to at least one session. Registering alone is not enough.'},
+ pastTitle:'Past meetings',pastIntro:'Four editions of the Gulf Heart Summit.',
+ past:[['2025','Fourth edition','Kuwait · 540 delegates','Heart failure and registries'],['2024','Third edition','Kuwait · 470 delegates','Guidelines in practice'],['2023','Second edition','Kuwait · 310 delegates','Acute coronary syndromes'],['2022','First edition','Kuwait · 220 delegates','Founding meeting']],
+ venueCards:[['Parking','Free valet and underground parking for all registered delegates.'],['Getting there','20 minutes from Kuwait International Airport. Taxis wait at the main entrance.'],['On the day','Collect your badge at the registration desk from 08:00. Bring your registration ID.']],
+ regTitle:'Registration',regSub:'Free for healthcare professionals. Takes under a minute.',
+ certTitle:'Certificate of Attendance',certSigner:['Prof. Faisal Al-Rumaihi','Organiser & Meeting Director','23 September 2026'],
+ REG:{1001:{n:'Dr. Ahmed Al-Mutairi',att:true,pts:6},1002:{n:'Prof. Noura Al-Qahtani',att:true,pts:7},1003:{n:'Dr. Yousef Haddad',att:false,pts:0},1004:{n:'Mrs. Layla Mansour',att:true,pts:4.5}},nextId:1249,
+ evalTitle:'Evaluation',evalIntro:'One short step before your certificate. Your answers are anonymous and help us plan next year.',
+ evalQs:['Provided objectives at the start so I knew what I was expected to learn','Presented the content in a coherent, understandable way','Gave an adequate amount of detail, neither superficial nor excessive','Demonstrated a thorough knowledge of the subject','Used audiovisuals that complemented the presentation','Used the time allotted efficiently'],
+ evalChecks:['Met the stated objectives','Will change how I practise','Won’t change how I practise, but confirmed I’m doing the right thing','Will be relevant to my practice','Satisfied my expectations','Made me wish I hadn’t attended'],
+ evalChecksTitle:'This programme…'},
+
+/* ---------------- 2. design conference ---------------- */
+form:{key:'form',type:'conference',label:'Design conference',free:false,after:'attendance',shape:'sq',mark:'shapes',cur:'AED',
+ name:'Form Week 2026',short:'FW',org:'Form Collective',dates:'21–22 September 2026',venue:'Dubai Design District',addr:'Building 6, d3',city:'Dubai, United Arab Emirates',phone:'+971 4 555 0142',email:'hello@formweek.ae',tz:'UAE time (UTC+4)',
+ nav:[['home','Home'],['people','Speakers'],['agenda','Agenda'],['venue','Venue'],['info','Tickets'],['past','Past editions']],
+ ed:'THE FOURTH EDITION · FORM COLLECTIVE',guest:'attendee',
+ facts:[['2','days'],['10','speakers'],['4','hands-on workshops']],
+ peopleIntro:'Select a speaker to read their biography.',
+ peopleSecs:[['key','Keynotes'],['spk','Speakers'],['ws','Workshop leads']],
+ people:[
+  {n:'Lina Haddad',k:'key',r:'Creative director, Beirut',b:'Lina runs a studio known for bilingual brand systems across the Levant and the Gulf. Her keynote looks at what designing for a billion new internet users actually asks of us.'},
+  {n:'Maya Lindgren',k:'key',r:'Design lead, Stockholm',b:'Maya leads design at a product company of 400 people and writes about keeping craft alive in large teams.'},
+  {n:'Noor Al-Kaabi',k:'spk',r:'Festival director',b:'Noor founded Form Week in 2023 and hosts the main stage.',host:1},
+  {n:'Hana Kassem',k:'spk',r:'Motion designer, Cairo',b:'Hana builds motion systems for fintech apps used across North Africa.'},
+  {n:'Omar Farouk',k:'spk',r:'Brand strategist, Riyadh',b:'Omar works with national and consumer brands on naming, voice and identity.'},
+  {n:'Aisha Al-Suwaidi',k:'spk',r:'Architect, Dubai',b:'Aisha co-founded a practice designing shaded public spaces for hot cities.'},
+  {n:'Yousef Al-Amiri',k:'spk',r:'Urbanist, Abu Dhabi',b:'Yousef studies how people actually use streets in extreme heat, and what that means for design.'},
+  {n:'Tomás Ribeiro',k:'ws',r:'Type designer, Lisbon',b:'Tomás has drawn Latin and Arabic families for news brands and publishers.'},
+  {n:'Rana Aziz',k:'ws',r:'Type designer, Sharjah',b:'Rana is a calligrapher and type designer working on contemporary Arabic text faces.'},
+  {n:'Kenji Mori',k:'ws',r:'Product designer, Tokyo',b:'Kenji prototypes with AI tools and teaches teams to do the same without losing the plot.'}],
+ agendaNote:'All times are UAE time (UTC+4). Talks are open to every ticket. Workshops have limited seats — arrive ten minutes early.',
+ days:[{d:'Monday 21 September',s:'Day 1',items:[
+   {brk:1,t:'09:00–09:30',x:'Doors, coffee and badge collection'},
+   {t:'09:30–10:15',x:'Opening keynote: Designing for the next billion',ch:'Lina Haddad',loc:'Main hall',l:[]},
+   {t:'10:30–12:00',x:'Workshop: Arabic type systems',ch:'Tomás Ribeiro and Rana Aziz',loc:'Studio 2',cap:24,left:3,ws:1,l:[]},
+   {t:'10:30–12:00',x:'Talks: Brands that travel',ch:'Omar Farouk, Maya Lindgren',loc:'Main hall',l:[['10:30–11:05','Naming across three alphabets','Omar Farouk'],['11:10–11:45','Systems that survive a rebrand','Maya Lindgren'],['11:45–12:00','Questions','']]},
+   {brk:1,t:'12:00–14:00',x:'Lunch in the courtyard'},
+   {t:'14:00–15:30',x:'Workshop: Prototyping with AI',ch:'Kenji Mori',loc:'Studio 1',cap:30,left:0,ws:1,l:[]},
+   {t:'16:00–17:00',x:'Panel: Is the portfolio dead?',ch:'Hana Kassem, Maya Lindgren, Omar Farouk',loc:'Main hall',l:[]}]},
+  {d:'Tuesday 22 September',s:'Day 2',items:[
+   {t:'09:30–10:30',x:'Keynote: Craft at scale',ch:'Maya Lindgren',loc:'Main hall',l:[]},
+   {t:'10:45–12:15',x:'Workshop: Motion for interfaces',ch:'Hana Kassem',loc:'Studio 1',cap:30,left:6,ws:1,l:[]},
+   {t:'10:45–12:15',x:'Talks: Designing public space',ch:'Aisha Al-Suwaidi, Yousef Al-Amiri',loc:'Main hall',l:[['10:45–11:20','Shade as infrastructure','Aisha Al-Suwaidi'],['11:25–12:00','Streets at 45 degrees','Yousef Al-Amiri'],['12:00–12:15','Questions','']]},
+   {brk:1,t:'12:15–14:00',x:'Lunch and portfolio tables'},
+   {t:'14:00–15:00',x:'Closing panel and Form Awards',ch:'All speakers',loc:'Main hall',l:[]}]}],
+ welcome:{h:'Two days, one room, no fluff.',ps:['Form Week brings product, brand, type and spatial designers together for two days of talks and hands-on workshops in Dubai Design District.','Every ticket includes both days of talks. Workshops are small on purpose: twenty-four to thirty seats, so you actually get feedback on your work.','Bring something you are stuck on. The portfolio tables at lunch are the part people tell us about a year later.'],sign:['Noor Al-Kaabi','Festival director'],homeSecs:['key']},
+ stats:[['312','designers last year'],['4','workshops'],['18','studios hiring on site'],['2','days']],
+ sponsorsTitle:'Supported by',sponsors:['Dubai Design District','Form Collective','Northlight Design','Sable Studio','Kite & Key'],
+ info:{h:'Tickets',p:'What’s included, and answers to the usual questions.',
+  card:['Everything is included','Every ticket covers both days of talks, lunch, the portfolio tables and the closing party. Workshop seats are booked separately on the day, first come, first served.'],
+  stepsTitle:'From ticket to certificate',
+  steps:[['Buy your ticket','Choose a ticket on the homepage and pay by card or Apple Pay.'],['Get your ticket ID','It arrives by email straight away, with a barcode.'],['Scan in at the door','We scan you into each talk and workshop so we know how full each room is.'],['Claim your certificate','After the event, enter your ticket ID for a certificate of attendance.']],
+  note:'Student tickets are checked at the door. Bring a valid student ID.',
+  faq:[['Can I change which workshop I attend?','Yes, while seats last. Workshop seats are released at the door 15 minutes before each session.'],['Is there a student discount?','Student tickets are AED 150 with a valid student ID.'],['Can my studio buy several tickets?','Yes. Studio passes are for teams of three or more, at AED 550 a seat.'],['Do you record the talks?','Talks are recorded and shared with ticket holders two weeks after the event.']]},
+ pastTitle:'Past editions',pastIntro:'Three editions since 2023.',
+ past:[['2025','Third edition','Dubai · 312 attendees','Designing in two directions'],['2024','Second edition','Dubai · 240 attendees','Craft and constraint'],['2023','First edition','Dubai · 160 attendees','Founding edition']],
+ venueCards:[['Getting there','Ten minutes from Downtown Dubai. Paid parking in P2, or take the shuttle from the metro at Business Bay.'],['Accessibility','Step-free access to every room. Ask at the desk for a quiet room pass.'],['On the day','Collect your badge from 09:00 on day one. Have your ticket ID ready.']],
+ tickets:[{id:'t1',n:'Standard',price:650,d:'Both days, all talks, lunch and the closing party',left:160},{id:'t2',n:'Studio pass',price:550,d:'Per seat, for teams of three or more',left:39},{id:'t3',n:'Student',price:150,d:'Valid student ID checked at the door',left:79}],
+ regTitle:'Get tickets',regSub:'Both days, all talks. Workshop seats are booked on the day.',
+ certTitle:'Certificate of Attendance',certSigner:['Noor Al-Kaabi','Festival director','22 September 2026'],
+ certLine:'attended Form Week 2026 at Dubai Design District',
+ REG:{1001:{n:'Sara Nasser',att:true,pts:6},1002:{n:'Omar Khoury',att:true,pts:4},1003:{n:'Yousef Haddad',att:false,pts:0}},nextId:1313,
+ evalTitle:'Quick feedback',evalIntro:'Four questions before your certificate. It takes a minute and shapes next year’s programme.',
+ evalQs:['Overall, how would you rate Form Week?','The quality of the talks','The hands-on workshops','Time to meet other designers'],
+ evalChecks:['More workshops','Portfolio reviews','Longer breaks for networking','Student sessions','Evening events'],
+ evalChecksTitle:'Next year, I’d like…'},
+
+/* ---------------- 3. founders summit ---------------- */
+mfs:{key:'mfs',type:'summit',label:'Entrepreneur summit',free:false,after:'recordings',shape:'ci',mark:'arch',cur:'AED',
+ name:'Majlis Founders Summit',short:'MFS',org:'Majlis Founders',dates:'15–16 September 2026',venue:'Manarat Al Saadiyat',addr:'Saadiyat Cultural District',city:'Abu Dhabi, United Arab Emirates',phone:'+971 2 555 0199',email:'hello@majlisfounders.com',tz:'UAE time (UTC+4)',
+ nav:[['home','Home'],['people','Speakers'],['agenda','Agenda'],['venue','Venue'],['info','Tickets'],['past','Past editions']],
+ ed:'THE SECOND EDITION · ABU DHABI',guest:'attendee',
+ facts:[['520','founders and investors'],['2','days'],['12','start-ups pitching live']],
+ peopleIntro:'Select a speaker to read their biography.',
+ peopleSecs:[['key','Keynotes'],['pan','Panellists'],['jud','Pitch judges']],
+ people:[
+  {n:'Faris Al-Hashimi',k:'key',r:'Founder, payments',b:'Faris founded a regional payments company that now operates in six countries. He talks about the first three years, when nothing worked.'},
+  {n:'Leila Nasser',k:'key',r:'Founder, AI tools',b:'Leila left research to build tools for Arabic language models. Her keynote is about companies that outlast the hype cycle they were born in.'},
+  {n:'Mariam Al-Zaabi',k:'pan',r:'Host, Majlis Founders',b:'Mariam founded the Majlis Founders community and hosts the summit.',host:1},
+  {n:'Dina Mourad',k:'pan',r:'Partner, seed fund',b:'Dina invests at seed across the Gulf and North Africa, and has sat on both sides of the table.'},
+  {n:'Khaled Barakat',k:'pan',r:'Operator, logistics',b:'Khaled scaled a logistics start-up from Abu Dhabi into Saudi Arabia in eighteen months.'},
+  {n:'Tom Ellison',k:'pan',r:'People and hiring',b:'Tom was head of people at a London scale-up and now advises Gulf founders on their first hires.'},
+  {n:'Ravi Menon',k:'jud',r:'Angel investor',b:'Ravi runs a Dubai angel network and has backed forty companies in the region.'},
+  {n:'Salma Al-Nuaimi',k:'jud',r:'Corporate venture',b:'Salma leads a corporate venture arm in Abu Dhabi, investing in early-stage industrial technology.'}],
+ agendaNote:'All times are UAE time (UTC+4). The pitch arena runs in parallel with the main stage.',
+ days:[{d:'Tuesday 15 September',s:'Day 1',items:[
+   {brk:1,t:'08:30–09:00',x:'Registration and coffee'},
+   {t:'09:00–10:00',x:'Opening keynote: Building for the region from day one',ch:'Faris Al-Hashimi',loc:'Main stage',l:[]},
+   {t:'10:15–11:45',x:'Panel: What investors want in 2027',ch:'Dina Mourad, Ravi Menon, Salma Al-Nuaimi',loc:'Main stage',l:[]},
+   {t:'10:15–11:45',x:'Pitch arena: Fintech and commerce',ch:'Judges: Ravi Menon, Salma Al-Nuaimi',loc:'Pitch arena',l:[['10:15–10:45','Six start-ups, five minutes each',''],['10:45–11:45','Judges’ questions','']]},
+   {brk:1,t:'12:00–14:00',x:'Lunch and investor meetings'},
+   {t:'14:00–15:30',x:'Fireside: Scaling from Abu Dhabi to Riyadh',ch:'Khaled Barakat',loc:'Main stage',l:[]},
+   {t:'15:45–17:15',x:'Pitch arena: Climate and mobility',ch:'Judges: Dina Mourad, Tom Ellison',loc:'Pitch arena',l:[]}]},
+  {d:'Wednesday 16 September',s:'Day 2',items:[
+   {t:'09:30–10:30',x:'Keynote: AI companies that last',ch:'Leila Nasser',loc:'Main stage',l:[]},
+   {t:'10:45–12:15',x:'Investor roundtables',ch:'By invitation',loc:'Majlis room',cap:60,left:0,ws:1,l:[]},
+   {t:'10:45–12:15',x:'Workshop: Your first hire outside the founding team',ch:'Tom Ellison',loc:'Studio',l:[]},
+   {brk:1,t:'12:15–14:00',x:'Lunch'},
+   {t:'14:00–15:00',x:'Pitch final and closing',ch:'Mariam Al-Zaabi',loc:'Main stage',l:[]}]}],
+ welcome:{h:'Where the region’s founders actually meet.',ps:['Two days of honest talks, a live pitch arena and meetings that lead somewhere. No panels about synergy.','Last year 520 founders, investors and operators came through the doors, and twelve companies pitched on the main stage.','Founder tickets include both days and the pitch arena. Investor tickets add the roundtables on day two.'],sign:['Mariam Al-Zaabi','Founder, Majlis Founders'],homeSecs:['key']},
+ stats:[['520','founders and investors'],['12','start-ups pitching'],['AED 41M','raised by alumni in 2025'],['2','days']],
+ sponsorsTitle:'Partners',sponsors:['Majlis Founders','Oryx Seed Partners','Kanz Ventures','Abu Dhabi Growth Hub','Harbor Labs'],
+ info:{h:'Tickets',p:'Four ways in, depending on why you’re coming.',
+  card:['Investor tickets','Investor tickets include the roundtables on day two, where eight founders sit down with you for twenty minutes each. Numbers are capped so the matching actually works.'],
+  stepsTitle:'From ticket to recordings',
+  steps:[['Buy your ticket','Choose a ticket on the homepage and pay by card or Apple Pay.'],['Get your ticket ID','It arrives by email with a barcode for the door.'],['Scan in at each session','We scan you in so we know which rooms fill up, and who can access recordings afterwards.'],['Watch it back','After the summit, enter your ticket ID to unlock recordings and slides.']],
+  note:'Startup exhibitor tickets include a booth seat. Email us to add more people to the same booth.',
+  faq:[['Can I get an invoice for my company?','Yes. Enter your company details at checkout and the invoice is emailed with your ticket.'],['Are the recordings public?','No. They’re unlocked with the ticket ID of anyone who checked in.'],['Do you have a student rate?','Student tickets are AED 95 with a valid student ID.'],['Can I swap my ticket to a colleague?','Yes, up to 48 hours before the summit. Reply to your confirmation email.']]},
+ pastTitle:'Past editions',pastIntro:'The summit started in 2025.',
+ past:[['2025','First edition','Abu Dhabi · 380 attendees','Building in public']],
+ venueCards:[['Getting there','Twenty minutes from Abu Dhabi airport. Free parking on site.'],['Meetings','Six bookable meeting rooms for investors and founders, free with any ticket.'],['On the day','Badges from 08:30 on day one. Have your ticket ID ready.']],
+ tickets:[{id:'t1',n:'Founder',price:395,d:'Both days, pitch arena, lunch',left:120},{id:'t2',n:'Investor',price:1200,d:'Adds the investor roundtables on day two',left:18},{id:'t3',n:'Startup exhibitor',price:850,d:'Booth seat, per person',left:22},{id:'t4',n:'Student',price:95,d:'Valid student ID checked at the door',left:31}],
+ regTitle:'Get tickets',regSub:'Founder, investor, exhibitor or student.',
+ REG:{1001:{n:'Khalid Al-Mazrouei',att:true,pts:6},1002:{n:'Rania Saleh',att:true,pts:5},1003:{n:'Yousef Haddad',att:false,pts:0}},nextId:1541,
+ recTitle:'Recordings and slides',
+ recordings:[['Opening keynote: Building for the region from day one','Faris Al-Hashimi · 48 min'],['Panel: What investors want in 2027','Dina Mourad, Ravi Menon, Salma Al-Nuaimi · 71 min'],['Pitch arena: Fintech and commerce','Six start-ups · 84 min'],['Fireside: Scaling from Abu Dhabi to Riyadh','Khaled Barakat · 52 min'],['Keynote: AI companies that last','Leila Nasser · 46 min'],['Pitch final and closing','Mariam Al-Zaabi · 39 min']],
+ evalTitle:'Two minutes of feedback',evalIntro:'Tell us how the summit went. Your answers are anonymous.',
+ evalQs:['Overall, how would you rate the summit?','The quality of the speakers','The pitch arena','Meeting investors and partners'],
+ evalChecks:['New investor contacts','Potential customers or partners','A hire or co-founder lead','Ideas I will act on'],
+ evalChecksTitle:'I came away with…'},
+
+/* ---------------- 4. concert ---------------- */
+noct:{key:'noct',type:'concert',label:'Concert',free:false,after:'aftershow',shape:'rd',mark:'music',cur:'AED',
+ name:'Nocturne Live',sub:'Oud & Electronica',short:'NL',org:'Nocturne Nights',dates:'Tuesday 22 September 2026',venue:'The Waterfront Amphitheatre',addr:'Corniche West',city:'Abu Dhabi, United Arab Emirates',phone:'+971 2 555 0110',email:'tickets@nocturne.ae',tz:'UAE time (UTC+4)',
+ nav:[['home','Home'],['people','Line-up'],['agenda','Set times'],['venue','Venue'],['info','Tickets'],['past','FAQ']],
+ ed:'ONE NIGHT ONLY · THE WATERFRONT AMPHITHEATRE',guest:'guest',
+ facts:[['19:00','doors open'],['4','acts'],['18+','entry']],
+ peopleIntro:'Four acts, one open-air stage.',
+ peopleSecs:[['head','Headliner'],['sup','Support'],['dj','Opening set']],
+ people:[
+  {n:'Rawiya Ensemble',k:'head',r:'22:30–23:45',x:'22:30–23:45',b:'A twelve-piece oud and strings collective from Baghdad and Beirut, playing new arrangements with live electronics. This is their first show in Abu Dhabi.'},
+  {n:'The Dune Signal',k:'sup',r:'21:30–22:15',x:'21:30–22:15',b:'Abu Dhabi duo blending field recordings from the desert with modular synths.'},
+  {n:'Leila Oud Trio',k:'sup',r:'20:30–21:15',x:'20:30–21:15',b:'Oud, double bass and percussion, reimagining classic tarab for a standing crowd.'},
+  {n:'DJ Sahar',k:'dj',r:'19:30–20:15',x:'19:30–20:15',b:'Resident DJ at a Dubai rooftop, known for Arabic house and slow disco.'}],
+ agendaNote:'All times are UAE time (UTC+4). Doors open at 19:00. Last entry 22:00.',
+ days:[{d:'Tuesday 22 September',s:'One night',items:[
+   {brk:1,t:'19:00',x:'Doors open · gates A, B and the VIP entrance'},
+   {t:'19:30–20:15',x:'DJ Sahar',ch:'Opening set',loc:'Main stage',l:[]},
+   {t:'20:30–21:15',x:'Leila Oud Trio',ch:'Support',loc:'Main stage',l:[]},
+   {t:'21:30–22:15',x:'The Dune Signal',ch:'Support',loc:'Main stage',l:[]},
+   {brk:1,t:'22:00',x:'Last entry'},
+   {t:'22:30–23:45',x:'Rawiya Ensemble',ch:'Headliner',loc:'Main stage',l:[]},
+   {brk:1,t:'00:00',x:'Curfew'}]}],
+ welcome:{h:'Oud meets electronica, under the stars.',ps:['One night on the Corniche: four acts, an open-air stage and a view of the water.','Doors open at 19:00. Your e-ticket has a barcode — have it ready on your phone at the gate printed on it.','Pass-outs are allowed until 22:00, so you can step out and come back with the same ticket.'],sign:['Nocturne Nights',''],homeSecs:['head']},
+ stats:[['4','acts'],['19:00','doors'],['3','gates'],['18+','entry']],
+ sponsorsTitle:'Brought to you with',sponsors:['Nocturne Nights','The Waterfront Amphitheatre','Abu Dhabi Culture','Radio Mawj','Hala Taxi'],
+ info:{h:'Tickets',p:'Three ways to see the show.',
+  card:['Pass-outs','Leaving and coming back is fine until 22:00. Scan out at the gate and scan back in with the same e-ticket.'],
+  stepsTitle:'From ticket to gate',
+  steps:[['Buy your ticket','Pick your tier and how many. Pay by card or Apple Pay.'],['Get your e-ticket','It arrives by email with a barcode, one per ticket.'],['Come to your gate','General admission is gate A, front standing is gate B, VIP has its own entrance.'],['Scan in','Staff scan your barcode. That’s it — no paper, no queue at a box office.']],
+  note:'This is an 18+ event. Bring photo ID.',
+  faq:[['What time should I arrive?','Doors open at 19:00 and the first set starts at 19:30. Gate A is busiest around 20:00.'],['Can I re-enter?','Yes, pass-outs are allowed until 22:00 with the same e-ticket.'],['What can I bring?','No bags larger than A4, no professional cameras, no outside drinks. Empty water bottles are fine.'],['Is there parking?','Paid parking at the Corniche West car park, five minutes’ walk. Taxis drop off at gate A.'],['Is the venue accessible?','Yes. Accessible viewing is at the VIP entrance — bring your ticket and ask any steward.']]},
+ pastTitle:'FAQ',pastIntro:'Good to know before the night.',
+ venueCards:[['Getting there','Ten minutes from Downtown Abu Dhabi. Taxi drop-off is at gate A on Corniche West.'],['Gates','Gate A: general admission. Gate B: front standing. VIP lounge has its own entrance on the marina side.'],['On the night','Doors 19:00, last entry 22:00, curfew midnight. 18+ with photo ID.']],
+ tickets:[{id:'t1',n:'General admission',price:195,d:'Standing, main floor',left:760},{id:'t2',n:'Front standing',price:350,d:'Closest to the stage',left:320},{id:'t3',n:'VIP lounge',price:750,d:'Seated lounge, bar and fast-track entry',left:70}],
+ gates:{'General admission':'Gate A','Front standing':'Gate B','VIP lounge':'VIP entrance'},
+ regTitle:'Tickets',regSub:'Doors 19:00 · 18+ · e-tickets sent straight away.',
+ REG:{1001:{n:'Maha Al-Ketbi',att:true,pts:0},1002:{n:'Daniel Costa',att:true,pts:0},1003:{n:'Yousef Haddad',att:false,pts:0}},nextId:1641,
+ evalTitle:'How was the night?',evalIntro:'Five quick questions. It helps us plan the next one.',
+ evalQs:['Overall, how was the night?','Sound quality','Getting in: queues and security','Food and drink'],
+ evalChecks:['Another Nocturne night','A daytime festival','An acoustic, seated show','A club night'],
+ evalChecksTitle:'Next, I’d come to…',
+ afterTitle:'Thank you for coming',
+ afterMsg:'Rawiya Ensemble closed at 23:45 to 2,300 people on the Corniche. Here are the photos, and a two-minute survey if you have a moment.'}
+};
+</script>
+<script>
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const P={cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',pin:'<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>',check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/>',menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>',alert:'<path d="M12 3 2 20h20Z"/><path d="M12 10v4M12 17h.01"/>',print:'<path d="M7 9V3h10v6M7 17H4v-6h16v6h-3M7 14h10v7H7z"/>',phone:'<path d="M5 3h4l2 5-3 2a12 12 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2A17 17 0 0 1 3 5a2 2 0 0 1 2-2Z"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',tool:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-2.5Z"/>',ext:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+ shapes:'<circle cx="8" cy="8" r="4.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/><path d="M8 13.5 12.5 21h-9Z"/>',arch:'<path d="M5 21V9a7 7 0 0 1 14 0v12M9 21v-9a3 3 0 0 1 6 0v9"/>',music:'<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',ticket:'<path d="M3 9.5a2 2 0 0 0 0 4V18a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-4.5a2 2 0 0 1 0-4V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1Z"/><path d="M14 6.5v2M14 12v2M14 17.5v1"/>',play:'<circle cx="12" cy="12" r="9"/><path d="m10 8.5 6 3.5-6 3.5Z"/>',down:'<path d="M12 4v12M7 12l5 5 5-5M5 20h14"/>',photo:'<rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 8"/>',star:'<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/>',card:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/>',lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'};
+const I=(n,s)=>`<svg class="i" viewBox="0 0 24 24" ${s?`style="width:${s}px;height:${s}px"`:''} aria-hidden="true">${P[n]||''}</svg>`;
+const toast=m=>{$$('.toast').forEach(x=>x.remove());const e=document.createElement('div');e.className='toast';e.setAttribute('role','status');e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3200)};
+const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
+const ini=n=>n.replace(/^(Prof\.?|Dr\.?|The)\s+/,'').split(' ').filter(w=>!/^Al-?$/i.test(w)).map(w=>w.replace(/^Al-/,'')[0]).slice(0,2).join('');
+const money=(n,c)=>n?`${c||E.cur} ${n.toLocaleString('en-US')}`:'Free';
+const C39={'0':'nnnwwnwnn','1':'wnnwnnnnw','2':'nnwwnnnnw','3':'wnwwnnnnn','4':'nnnwwnnnw','5':'wnnwwnnnn','6':'nnwwwnnnn','7':'nnnwnnwnw','8':'wnnwnnwnn','9':'nnwwnnwnn','*':'nwnnwnwnn'};
+function barcode(v,h=46){const s=`*${v}*`;let x=0,r='';for(const ch of s){const p=C39[ch];for(let i=0;i<9;i++){const w=p[i]==='w'?3:1;if(i%2===0)r+=`<rect x="${x}" y="0" width="${w}" height="${h}" fill="#111"/>`;x+=w}x+=1}
+ return `<svg width="${Math.min(300,x*1.6)}" height="${h}" viewBox="0 0 ${x} ${h}" preserveAspectRatio="none" role="img" aria-label="Barcode ${v}">${r}</svg>`}
+function av(p,s=108){const sh={hex:'',sq:'sq',ci:'ci',rd:'rd'}[E.shape];
+ return `<span class="hex ${sh}" style="width:${s}px;${sh?`height:${s}px;`:`height:${s*1.15}px;`}font-size:${s*.28}px;background:linear-gradient(160deg,hsl(${hue(p.n)} 42% 45%),hsl(${hue(p.n)} 45% 26%))" aria-hidden="true">${esc(ini(p.n))}</span>`}
+
+let E=EVENTS.ghs;
+const S={ev:'ghs',route:'home',mode:'register',menu:false,day:0,done:null,buy:{step:'pick',qty:{}},cert:{id:null,msg:null,evalOk:{}},unlocked:null,surveyDone:false};
+function setEvent(k){E=EVENTS[k];S.ev=k;S.route='home';S.day=0;S.done=null;S.buy={step:'pick',qty:{}};S.cert={id:null,msg:null,evalOk:{}};S.unlocked=null;S.surveyDone=false;
+ if(S.mode==='cert'&&E.after==='aftershow')S.mode='cert';
+ document.body.className='t-'+k;document.title=`${E.name} · ${E.dates} · ${E.city.split(',')[0]}`;render()}
+const people=k=>E.people.filter(p=>p.k===k);
+const ticket=id=>E.tickets.find(t=>t.id===id);
+const qtyTotal=()=>Object.values(S.buy.qty).reduce((a,b)=>a+b,0);
+const orderTotal=()=>Object.entries(S.buy.qty).reduce((a,[id,q])=>a+ticket(id).price*q,0);
+
+/* ================= chrome ================= */
+function header(){const keys=E.nav;
+ return `<header class="top"><div class="wrap"><button class="brand" data-go="home" aria-label="${esc(E.name)} home"><span class="mark">${I(E.mark,22)}</span><span class="t"><b>${esc(E.name)}</b><small>${esc(E.dates)}</small></span></button>
+ <nav class="links" aria-label="Main">${keys.map(([k,l])=>`<button data-go="${k}" ${S.route===k?'aria-current="page"':''}>${l}</button>`).join('')}</nav><button class="burger" data-a="menu" aria-label="Menu" aria-expanded="${S.menu}">${I('menu',24)}</button></div>
+ <div class="mnav ${S.menu?'open':''}">${keys.map(([k,l])=>`<button data-go="${k}">${l}</button>`).join('')}</div></header>`}
+function footer(){return `<footer><div class="wrap"><div class="cols"><div><b style="color:#fff;font-size:16px">${esc(E.name)}</b><p style="margin:8px 0 0;max-width:340px">Organised by ${esc(E.org)}.${E.type==='medical'?' Accredited by the Kuwait Institute for Medical Specialization for 7 CME/CPD credits.':''}</p></div>
+ <div><h4>${E.type==='concert'?'The night':'Event'}</h4>${E.nav.slice(1,4).map(([k,l])=>`<button data-go="${k}">${l}</button>`).join('')}</div><div><h4>Contact</h4><p style="margin:0">${esc(E.phone)}<br>${esc(E.email)}</p></div></div>
+ <div class="legal"><span>© 2026 ${esc(E.org)}</span><span>Event made possible with zemmz</span></div></div></footer>`}
+
+/* ================= homepage panel ================= */
+function regPanel(){
+ if(S.done)return donePanel();
+ if(E.free)return freeForm();
+ return E.type==='concert'||S.buy.step!=='pick'?buyPanel():buyPanel();
+}
+function freeForm(){return `<form class="panel" data-f="reg" novalidate aria-labelledby="regh"><h2 id="regh">${E.regTitle}</h2><p class="sub">${E.regSub}</p>
+  <h3>Personal information</h3>
+  <div class="grid3"><div class="fld" id="f-title"><label for="r-title">Title <span class="req">*</span></label><select id="r-title" class="inp"><option value="">Select</option><option>Prof</option><option>Dr</option><option>Mr</option><option>Mrs</option><option>Ms</option></select><span class="err">Choose a title</span></div>
+  <div class="fld" id="f-first"><label for="r-first">First name <span class="req">*</span></label><input id="r-first" class="inp" autocomplete="given-name"><span class="err">Required</span></div>
+  <div class="fld" id="f-last"><label for="r-last">Last name <span class="req">*</span></label><input id="r-last" class="inp" autocomplete="family-name"><span class="err">Required</span></div></div>
+  <div class="grid2"><div class="fld" id="f-spec"><label for="r-spec">Speciality <span class="req">*</span></label><select id="r-spec" class="inp"><option value="">Select</option>${['Cardiology','Cardiac surgery','Internal medicine','Emergency medicine','Family medicine','Nursing','Pharmacy','Radiology','Other'].map(x=>`<option>${x}</option>`).join('')}</select><span class="err">Choose your speciality</span></div>
+  <div class="fld" id="f-hosp"><label for="r-hosp">Hospital / centre <span class="req">*</span></label><input id="r-hosp" class="inp" autocomplete="organization"><span class="err">Required</span></div></div>
+  <h3>Contact details</h3>
+  <div class="grid2"><div class="fld" id="f-mob"><label for="r-mob">Mobile <span class="req">*</span></label><div class="ph"><select aria-label="Country code" id="r-cc"><option>+965</option><option>+966</option><option>+971</option><option>+974</option><option>+973</option><option>+968</option></select><input id="r-mob" inputmode="tel" autocomplete="tel-national" placeholder="9xxx xxxx"></div><span class="err">Enter a valid mobile number</span></div>
+  <div class="fld" id="f-email"><label for="r-email">Email <span class="req">*</span></label><input id="r-email" class="inp" type="email" autocomplete="email" placeholder="name@hospital.com"><span class="err">Enter a valid email</span></div></div>
+  <button class="btn red" style="width:100%;margin-top:4px">Register now</button><p class="fine">You’ll get a registration ID straight away.</p></form>`}
+function buyPanel(){const b=S.buy,concert=E.type==='concert';
+ const steps=`<div class="steps3"><span class="${b.step==='pick'?'on':''}">1 · Tickets</span><span class="${b.step==='details'?'on':''}">2 · Your details</span><span class="${b.step==='pay'?'on':''}">3 · Payment</span></div>`;
+ if(b.step==='pick')return `<form class="panel" data-f="pick" novalidate><h2>${E.regTitle}</h2><p class="sub">${E.regSub}</p>${steps}
+  <div class="tk-list">${E.tickets.map(t=>{const q=b.qty[t.id]||0,out=t.left<=0;return `<div class="tk ${out?'off':''}"><div><b>${esc(t.n)}</b><small>${esc(t.d)}</small><small>${out?'Sold out':`${t.left} left`}${concert?' · max 6 per person':''}</small></div><span class="pr">${money(t.price)}</span>
+   <div class="qty">${out?'<span style="padding:0 12px;color:var(--muted);font-size:13px">Sold out</span>':`<button type="button" data-a="q" data-id="${t.id}" data-d="-1" ${q?'':'disabled'} aria-label="One fewer ${esc(t.n)}">−</button><span aria-live="polite">${q}</span><button type="button" data-a="q" data-id="${t.id}" data-d="1" ${q>=(concert?6:5)?'disabled':''} aria-label="One more ${esc(t.n)}">+</button>`}</div></div>`}).join('')}</div>
+  ${qtyTotal()?`<div class="sumrow tot"><span>Total</span><span>${money(orderTotal())}</span></div>`:'<p class="fine" style="text-align:left">Choose at least one ticket to continue.</p>'}
+  <button class="btn red" style="width:100%;margin-top:12px" ${qtyTotal()?'':'disabled'}>Continue</button></form>`;
+ const F=E.type==='conference'?[['disc','Discipline','select',['Product design','Brand & identity','Architecture','Interior design','Motion','Type design','UX research','Student','Other']],['org','Studio or company','text']]
+  :E.type==='summit'?[['disc','I am a…','select',['Founder','Investor','Corporate innovation','Government','Service provider','Student']],['org','Company','text']]
+  :[['city','City','select',['Abu Dhabi','Dubai','Al Ain','Sharjah','Other']]];
+ if(b.step==='details')return `<form class="panel" data-f="details" novalidate><h2>Your details</h2><p class="sub">${plural2(qtyTotal(),'ticket')} · ${money(orderTotal())}</p>${steps}
+  <div class="grid2"><div class="fld" id="f-first"><label for="r-first">First name <span class="req">*</span></label><input id="r-first" class="inp" autocomplete="given-name"><span class="err">Required</span></div>
+  <div class="fld" id="f-last"><label for="r-last">Last name <span class="req">*</span></label><input id="r-last" class="inp" autocomplete="family-name"><span class="err">Required</span></div></div>
+  <div class="fld" id="f-email"><label for="r-email">Email <span class="req">*</span></label><input id="r-email" class="inp" type="email" autocomplete="email" placeholder="name@example.com"><span class="err">Enter a valid email</span><span class="fine" style="text-align:left;margin:4px 0 0">Your ${concert?'e-tickets go':'ticket goes'} to this address.</span></div>
+  <div class="grid2">${F.map(([id,l,t,opts])=>t==='select'?`<div class="fld" id="f-${id}"><label for="r-${id}">${l}</label><select id="r-${id}" class="inp"><option value="">Select</option>${opts.map(o=>`<option>${o}</option>`).join('')}</select></div>`:`<div class="fld" id="f-${id}"><label for="r-${id}">${l}</label><input id="r-${id}" class="inp"></div>`).join('')}
+  <div class="fld" id="f-mob"><label for="r-mob">Mobile <span class="req">*</span></label><div class="ph"><select aria-label="Country code" id="r-cc"><option>+971</option><option>+966</option><option>+965</option><option>+974</option><option>+968</option></select><input id="r-mob" inputmode="tel" autocomplete="tel-national" placeholder="5x xxx xxxx"></div><span class="err">Enter a valid mobile number</span></div></div>
+  ${concert?`<label class="checks" style="display:flex;gap:10px;align-items:center;margin:4px 0 12px"><input type="checkbox" id="r-age"> <span style="font-size:14px">I confirm everyone in this booking is 18 or over</span></label><div class="fld" id="f-age"><span class="err" style="margin-top:-8px">Please confirm, this is an 18+ event</span></div>`:''}
+  <div style="display:flex;gap:10px"><button type="button" class="btn line sm" data-a="back">Back</button><button class="btn red" style="flex:1">Continue to payment</button></div></form>`;
+ return `<form class="panel" data-f="pay" novalidate><h2>Payment</h2><p class="sub">Nothing is really charged — this is a demo site.</p>${steps}
+  ${Object.entries(b.qty).filter(([,q])=>q).map(([id,q])=>`<div class="sumrow"><span>${q} × ${esc(ticket(id).n)}</span><span>${money(ticket(id).price*q)}</span></div>`).join('')}
+  ${b.promo?`<div class="sumrow"><span>Promo ${esc(b.promo)}</span><span>−${money(Math.round(orderTotal()*.15))}</span></div>`:''}
+  <div class="sumrow tot"><span>Total</span><span>${money(orderTotal()-(b.promo?Math.round(orderTotal()*.15):0))}</span></div>
+  <div class="paybtns" style="margin-top:14px"><button type="button" class="btn apple" data-a="applepay">Pay</button><button type="button" class="btn line" data-a="promo">${b.promo?'Promo applied':'Promo code'}</button></div><div class="or2">or pay by card</div>
+  <div class="fld" id="f-card"><label for="r-card">Card number</label><input id="r-card" class="inp" inputmode="numeric" placeholder="4242 4242 4242 4242"><span class="err">Enter a 16-digit card number</span></div>
+  <div class="grid2"><div class="fld" id="f-exp"><label for="r-exp">Expiry</label><input id="r-exp" class="inp" placeholder="09/28"><span class="err">MM/YY</span></div><div class="fld" id="f-cvc"><label for="r-cvc">CVC</label><input id="r-cvc" class="inp" inputmode="numeric" placeholder="123"><span class="err">3 digits</span></div></div>
+  <div style="display:flex;gap:10px"><button type="button" class="btn line sm" data-a="back">Back</button><button class="btn red" style="flex:1">${I('lock',16)} Pay ${money(orderTotal()-(b.promo?Math.round(orderTotal()*.15):0))}</button></div><p class="fine">Demo checkout. Any card number works and no payment is taken.</p></form>`;
+}
+const plural2=(n,w)=>`${n} ${w}${n===1?'':'s'}`;
+function donePanel(){const d=S.done,concert=E.type==='concert';
+ return `<div class="panel" role="status"><span class="done-ic">${I('check',26)}</span><h2>Thank you, ${esc(d.first)}</h2><p class="sub">${E.free?'Your registration is confirmed.':`Your ${plural2(d.ids.length,concert?'e-ticket':'ticket')} ${d.ids.length>1?'are':'is'} confirmed.`} A confirmation email is on its way to <b>${esc(d.email)}</b>.</p>
+  ${d.ids.map((id,i)=>`<div class="idbox"><small>${E.free?'Your registration ID':concert?`E-ticket ${i+1} of ${d.ids.length} · ${esc(d.items[i])}`:`Your ticket ID · ${esc(d.items[i])}`}</small><b>${id}</b><small>${E.free?'Keep this number. You’ll need it for your badge and your certificate.':concert?`Show this at ${esc(E.gates[d.items[i]]||'the gate')}`:'Show this at the door to collect your badge.'}</small></div>`).join('')}
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn red sm" data-a="mail">${I('mail',16)} View confirmation email</button>${concert?`<button class="btn line sm" data-a="etk">${I('ticket',16)} View e-ticket</button>`:''}<button class="btn line sm" data-a="again">${E.free?'Register someone else':'Buy more tickets'}</button></div>
+  <p class="fine">Didn’t get the email? Contact us and mention your ID.</p></div>`}
+function certPanel(){const c=S.cert;
+ if(E.after==='aftershow')return `<div class="panel"><h2>${E.afterTitle}</h2><p class="sub">${E.afterMsg}</p>
+  <div class="gallery" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">${[0,1,2,3,4,5].map(i=>`<i style="background:linear-gradient(${140+i*30}deg,hsl(${265+i*14} 60% ${30+i*4}%),hsl(${320-i*10} 55% ${22+i*3}%))"></i>`).join('')}</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn red sm" data-go="photos">${I('photo',16)} See all photos</button><button class="btn line sm" data-go="eval">${I('star',16)} Two-minute survey</button></div></div>`;
+ const rec=E.after==='recordings';
+ return `<form class="panel" data-f="claim" novalidate><h2>${rec?'Recordings':'Certificate'}</h2><p class="sub">${rec?'Enter the ticket ID from your confirmation email to unlock the recordings, slides and photos.':`Use the ${E.free?'registration':'ticket'} ID from your confirmation email to claim your certificate of attendance.`}</p>
+ ${c.msg?`<div class="note warn" role="alert">${I('alert',18)}<span>${c.msg}</span></div>`:''}
+ <div class="fld" id="f-cid"><label for="cid">${E.free?'Registration':'Ticket'} ID</label><input id="cid" class="inp" inputmode="numeric" value="${esc(c.id||'')}" placeholder="e.g. 1001" style="font-size:18px;font-weight:600;letter-spacing:.04em"><span class="err">Enter your ID</span></div>
+ <button class="btn red" style="width:100%">${rec?'Unlock':'Claim certificate'}</button><p class="fine">Demo IDs: 1001 and 1002 came · 1003 booked but didn’t come.</p></form>`}
+
+/* ================= pages ================= */
+function home(){
+ const panel=S.mode==='cert'?certPanel():regPanel();
+ const secs=E.welcome.homeSecs.flatMap(k=>people(k));
+ const concert=E.type==='concert';
+ return `<div class="hero"><div class="hex-bg"></div><div class="wrap"><div><p class="ed">${esc(E.ed)}</p><h1>${esc(E.name)}${E.sub?`<br><span style="font-size:.62em;opacity:.85">${esc(E.sub)}</span>`:''}</h1>
+ <div class="when"><span>${I('cal',18)} ${esc(E.dates)}</span><span>${I('pin',18)} ${esc(E.venue)}, ${esc(E.city.split(',')[0])}</span></div>
+ <div class="facts">${E.facts.map(([b,s])=>`<div><b>${b}</b><small>${s}</small></div>`).join('')}</div></div>${panel}</div></div>
+ <section><div class="wrap ${E.type==='medical'?'welcome':'intro'}"><div class="${E.type==='medical'?'letter':''}"><h2 ${E.type==='medical'?'':'class="sec-t" style="margin-bottom:16px"'}>${esc(E.welcome.h)}</h2>${E.welcome.ps.map(p=>`<p>${esc(p)}</p>`).join('')}${E.welcome.sign[0]?`<p style="margin-top:20px"><b>${esc(E.welcome.sign[0])}</b>${E.welcome.sign[1]?`<br><span style="color:var(--muted)">${esc(E.welcome.sign[1])}</span>`:''}</p>`:''}</div>
+ <div class="people"><h3>${concert?'Headlining':E.type==='medical'?'Meeting directors':'Keynotes'}</h3><div class="prow">${secs.map(p=>`<button class="person" data-p="${E.people.indexOf(p)}">${av(p)}<b>${esc(p.n)}</b><span class="role">${esc(p.r)}</span></button>`).join('')}</div>
+ ${E.type==='medical'?`<h3>Meeting co-directors</h3><div class="prow">${people('co').map(p=>`<button class="person" data-p="${E.people.indexOf(p)}">${av(p)}<b>${esc(p.n)}</b></button>`).join('')}</div>`:`<button class="btn line sm" data-go="people">See the full ${concert?'line-up':'line-up of speakers'}</button>`}</div></div></section>
+ <section class="strip"><div class="wrap stats4">${E.stats.map(([b,s])=>`<div><b>${b}</b><span>${s}</span></div>`).join('')}</div></section>
+ <section><div class="wrap"><p class="kick">${E.sponsorsTitle.toUpperCase()}</p><h2 class="sec-t" style="margin-bottom:24px">${E.type==='concert'?'Partners for the night':'Our partners'}</h2><div class="sponsors">${E.sponsors.map(s=>`<div>${s}</div>`).join('')}</div></div></section>`}
+function peoplePage(){const concert=E.type==='concert';
+ if(concert)return `<div class="page-h"><div class="wrap"><h1>Line-up</h1><p>${E.peopleIntro}</p></div></div><section><div class="wrap lineup">${E.people.map((p,i)=>`<button class="act ${p.k==='head'?'head':''}" data-p="${i}">${av(p,160)}<span><span class="tag2">${p.k==='head'?'Headliner':p.k==='sup'?'Support':'Opening set'}</span><h3>${esc(p.n)}</h3><p>${esc(p.b)}</p></span><span class="when">${esc(p.x)}</span></button>`).join('')}</div></section>`;
+ return `<div class="page-h"><div class="wrap"><h1>${E.nav[1][1]}</h1><p>${E.peopleIntro}</p></div></div><section><div class="wrap">${E.peopleSecs.map(([k,l])=>people(k).length?`<div class="fac-sec"><h2>${l}</h2><div class="fac-grid">${people(k).map(p=>`<button class="person" style="width:auto" data-p="${E.people.indexOf(p)}">${av(p,100)}<b>${esc(p.n)}</b><span class="role">${esc(p.r)}</span></button>`).join('')}</div></div>`:'').join('')}</div></section>`}
+function agenda(){const D=E.days[S.day];
+ return `<div class="page-h"><div class="wrap"><h1>${E.nav[2][1]}</h1><p>${E.agendaNote}</p></div></div>
+ <section><div class="wrap">${E.days.length>1?`<div class="days" role="group" aria-label="Day">${E.days.map((d,i)=>`<button data-day="${i}" aria-pressed="${S.day===i}">${d.s}<small>${d.d}</small></button>`).join('')}</div>`:''}
+ ${D.items.map(it=>it.brk?`<div class="sess"><div class="lec brk" style="border-top:0"><span class="tm">${it.t}</span><span>${esc(it.x)}</span></div></div>`
+  :`<article class="sess"><div class="sess-h"><span class="tm">${it.t}</span><div style="flex:1;min-width:220px"><h3>${esc(it.x)}</h3><p>${esc(it.ch||'')}${it.loc?` · ${esc(it.loc)}`:''}</p></div>${it.cme?`<span class="cme">${it.cme} CME ${it.cme===1?'point':'points'}</span>`:''}${it.ws?`<span class="seat ${it.left<=0?'low':it.left<8?'low':''}">${it.left<=0?'Full':`${it.left} of ${it.cap} seats left`}</span>`:''}</div>${(it.l||[]).map(([t,x,s])=>`<div class="lec"><span class="tm">${t}</span><span>${esc(x)}${s?`<small>${esc(s)}</small>`:''}</span></div>`).join('')}</article>`).join('')}</div></section>`}
+function venue(){return `<div class="page-h"><div class="wrap"><h1>Venue</h1><p>Everything you need to find us${E.type==='concert'?' on the night':' on the day'}.</p></div></div><section><div class="wrap"><div class="venue"><div class="map" role="img" aria-label="Map showing ${esc(E.venue)} in ${esc(E.city)}">
+ <svg viewBox="0 0 600 400" preserveAspectRatio="xMidYMid slice"><rect width="600" height="400" fill="#AED3EE"/><path d="M0 250 C120 220 170 290 260 250 S420 170 600 210 V400 H0Z" fill="#F4EFE4"/><path d="M0 300 C150 280 250 330 360 300 S520 260 600 280" stroke="#fff" stroke-width="14" fill="none"/><path d="M0 300 C150 280 250 330 360 300 S520 260 600 280" stroke="#F2C85B" stroke-width="3" fill="none"/><path d="M330 400 L360 250" stroke="#fff" stroke-width="10"/><path d="M470 400 L440 225" stroke="#fff" stroke-width="8"/><rect x="200" y="310" width="90" height="50" rx="8" fill="#CFE7C3"/><rect x="390" y="320" width="70" height="40" rx="6" fill="#E6E0D3"/><rect x="500" y="300" width="80" height="60" rx="6" fill="#E6E0D3"/><text x="245" y="340" text-anchor="middle" font-size="11" fill="#5C7A50" font-family="Arial">Park</text><text x="120" y="160" font-size="13" fill="#5A89AE" font-family="Arial" font-style="italic">Arabian Gulf</text></svg>
+ <div class="where"><b>WHERE</b><a class="btn red sm" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(E.venue+' '+E.city)}" target="_blank" rel="noopener" style="margin-top:10px">Get directions ${I('ext',15)}</a></div>
+ <span style="position:absolute;left:52%;top:52%;transform:translate(-50%,-100%);color:var(--red)">${I('pin',44)}</span></div>
+ <div class="vinfo"><h2>${esc(E.venue.toUpperCase())}</h2><b style="color:var(--red)">${esc(E.city.split(',')[0].toUpperCase())}</b><span class="crest">${esc(E.short[0])}</span><p style="margin:0;color:var(--ink-2)">${esc(E.addr)}<br>${esc(E.city)}</p><p style="margin:14px 0 0;font-weight:700;color:var(--red);font-size:13px">FOR MORE INFORMATION PLEASE CALL</p><a href="tel:${E.phone.replace(/\s/g,'')}" style="font:700 22px var(--serif);color:var(--ink);text-decoration:none">${esc(E.phone)}</a></div></div>
+ <div class="info-grid" style="margin-top:24px">${E.venueCards.map(([a,b])=>`<div class="card"><h3>${a}</h3><p>${b}</p></div>`).join('')}</div></div></section>`}
+function info(){const inf=E.info;
+ return `<div class="page-h"><div class="wrap"><h1>${inf.h}</h1><p>${inf.p}</p></div></div><section><div class="wrap">
+ ${E.tickets?`<div class="tiles" style="margin-bottom:34px">${E.tickets.map(t=>`<div class="tile"><div class="th" style="background:linear-gradient(140deg,var(--red),var(--red-d));font:700 26px var(--serif)">${money(t.price)}</div><div class="tb"><b>${esc(t.n)}</b><small>${esc(t.d)}</small><p style="margin:8px 0 0;font-size:12.5px;color:${t.left<40?'var(--warn)':'var(--muted)'}">${t.left<=0?'Sold out':`${t.left} left`}</p></div></div>`).join('')}</div><button class="btn red" data-go="home" style="margin-bottom:34px">${I('ticket',18)} Get tickets</button>`:''}
+ <div class="card" style="margin-bottom:32px;border-left:4px solid var(--red)"><h3>${inf.card[0]}</h3><p>${inf.card[1]}</p></div>
+ <h2 class="sec-t" style="font-size:28px;margin-bottom:22px">${inf.stepsTitle}</h2>
+ <div class="steps">${inf.steps.map(([h,p])=>`<div><h4>${h}</h4><p>${p}</p></div>`).join('')}</div>
+ <div class="note warn" style="margin-top:32px">${I('alert',18)}<span>${inf.note}</span></div>
+ ${inf.faq?`<h2 class="sec-t" style="font-size:28px;margin:44px 0 6px">Questions</h2><div class="faq">${inf.faq.map(([q,a],i)=>`<details ${i?'':'open'}><summary>${q}</summary><p>${a}</p></details>`).join('')}</div>`:''}</div></section>`}
+function past(){
+ if(E.type==='concert')return `<div class="page-h"><div class="wrap"><h1>${E.pastTitle}</h1><p>${E.pastIntro}</p></div></div><section><div class="wrap faq" style="max-width:820px">${E.info.faq.map(([q,a],i)=>`<details ${i?'':'open'}><summary>${q}</summary><p>${a}</p></details>`).join('')}</div></section>`;
+ return `<div class="page-h"><div class="wrap"><h1>${E.pastTitle}</h1><p>${E.pastIntro}</p></div></div><section><div class="wrap past">${E.past.map(([y,e,m,t])=>`<div class="card"><b>${y}</b><h3 style="margin-top:10px">${e}</h3><p>${m}</p><p style="margin-top:6px">Theme: ${t}</p></div>`).join('')}</div></section>`}
+function photosPage(){return `<div class="page-h"><div class="wrap"><h1>Photos</h1><p>From the night of ${esc(E.dates)}. Tag us if you share them.</p></div></div><section><div class="wrap"><div class="gallery">${Array.from({length:9},(_,i)=>`<i style="background:linear-gradient(${120+i*24}deg,hsl(${260+i*12} 60% ${28+i*3}%),hsl(${330-i*8} 55% ${20+i*3}%))"></i>`).join('')}</div><p style="margin-top:18px"><button class="btn red" data-go="eval">${I('star',16)} Leave feedback</button></p></div></section>`}
+function recPage(){const r=E.REG[S.unlocked];
+ return `<div class="page-h"><div class="wrap"><h1>${E.recTitle}</h1><p>Welcome back, ${esc(r.n)}. Everything from the summit, in one place.</p></div></div>
+ <section><div class="wrap"><div class="tiles">${E.recordings.map(([t,m],i)=>`<div class="tile"><div class="th" style="background:linear-gradient(140deg,hsl(${165+i*8} 40% 28%),hsl(${165+i*8} 45% 16%))">${I('play',40)}</div><div class="tb"><b>${esc(t)}</b><small>${esc(m)}</small></div></div>`).join('')}</div>
+ <div class="info-grid" style="margin-top:28px"><div class="card"><h3>${I('down',18)} Slides</h3><p>Every deck the speakers agreed to share, as one PDF pack.</p><p style="margin-top:10px"><button class="btn line sm" data-a="dl">Download (18 MB)</button></p></div>
+ <div class="card"><h3>${I('photo',18)} Photos</h3><p>412 photos from both days.</p><p style="margin-top:10px"><button class="btn line sm" data-go="photos">Open the gallery</button></p></div>
+ <div class="card"><h3>${I('star',18)} Feedback</h3><p>Two minutes, and it shapes next year.</p><p style="margin-top:10px"><button class="btn line sm" data-go="eval">Fill in the survey</button></p></div></div></div></section>`}
+function evalPage(){const r=S.cert.id?E.REG[S.cert.id]:null,gate=E.after==='cme'||E.after==='attendance';
+ if(S.surveyDone)return `<div class="page-h"><div class="wrap"><h1>Thank you</h1><p>Your answers have been recorded.</p></div></div><section><div class="wrap"><div class="card" style="max-width:640px"><h3>That’s it</h3><p>We read every answer. ${E.type==='concert'?'See you at the next one.':'See you next year.'}</p><p style="margin-top:12px"><button class="btn red sm" data-go="home">Back to the homepage</button></p></div></div></section>`;
+ return `<div class="page-h"><div class="wrap"><h1>${E.evalTitle}</h1><p>${E.evalIntro}${r?` Thanks, ${esc(r.n)}.`:''}</p></div></div>
+ <section><form class="wrap eval" data-f="eval" novalidate><h2 class="sec-t" style="font-size:24px">${E.after==='cme'?'The speakers overall…':'How did we do?'}</h2><p class="sec-p" style="margin-bottom:6px">1 = poor, 5 = excellent</p>
+ ${E.evalQs.map((s,i)=>`<div class="q" id="q${i}"><p>${s} <span class="req">*</span></p><div class="rate" role="group" aria-label="${esc(s)}"><span class="lab">Poor</span>${[1,2,3,4,5].map(n=>`<button type="button" data-rate="${i}" data-v="${n}" aria-pressed="false">${n}</button>`).join('')}<span class="lab">Excellent</span></div></div>`).join('')}
+ <h2 class="sec-t" style="font-size:24px;margin-top:32px">${E.evalChecksTitle}</h2><div class="checks q">${E.evalChecks.map(x=>`<label><input type="checkbox"> ${x}</label>`).join('')}</div>
+ <div class="fld" style="margin-top:16px"><label for="e3">Other comments <span style="color:var(--muted);font-weight:400">(optional)</span></label><textarea id="e3" class="inp"></textarea></div>
+ <button class="btn red" style="width:100%;height:56px;font-size:16px">${gate?'Submit and get my certificate':'Submit'}</button></form></section>`}
+function certPage(){const r=E.REG[S.cert.id],cme=E.after==='cme';
+ return `<div class="page-h"><div class="wrap" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div style="flex:1"><h1>Your certificate</h1><p>Thank you for your feedback. Save or print your certificate below.</p></div><button class="btn red" data-a="print">${I('print',18)} Print or save as PDF</button></div></div>
+ <div class="cert-wrap"><div class="cert" role="img" aria-label="Certificate for ${esc(r.n)}"><div class="lg"><span class="mark">${I(E.mark,24)}</span><span class="t"><b>${esc(E.name)}</b><small>${esc(E.dates)}</small></span></div>
+ <h2>${E.certTitle}</h2><p>This is to certify that</p><div class="nm">${esc(r.n)}</div><p>participated in</p><p style="font-size:clamp(12px,1.9vw,19px);font-weight:600;color:#111;font-family:var(--serif)">${esc(E.name)}</p>
+ ${cme?`<p>CME/CPD Activity No. ${E.activity}</p><p>Conducted on ${esc(E.dates)}</p><p class="small" style="margin-top:2%">Under the authority of the above CPD provider accredited by the Kuwait Institute for Medical Specialization for conducting continuing medical education and continuing professional development activities, we certify that the above participant is entitled to claim <b>${r.pts} CME/CPD credits</b> in Category 1 under the MPC Program.</p>`
+ :`<p>Held at ${esc(E.venue)}, ${esc(E.city.split(',')[0])} on ${esc(E.dates)}</p><p class="small" style="margin-top:2%">Sessions attended: <b>${r.pts}</b></p>`}
+ <div class="sig"><svg width="120" height="36" viewBox="0 0 120 36" aria-hidden="true"><path d="M5 26c10-18 16-18 14 0 6-14 12-16 14-4 4-10 10-12 12 0 8-8 18-12 30-10 10 2 20 0 36-6" fill="none" stroke="#1a1a1a" stroke-width="1.6"/></svg><br><b>${esc(E.certSigner[0])}</b><br>${esc(E.certSigner[1])}<br>${esc(E.certSigner[2])}</div></div></div>`}
+function maint(){return `<div class="maint"><div><span class="mark" style="margin:0 auto;width:64px;height:64px">${I('tool',30)}</span><h1>We’ll be right back</h1><p style="color:var(--ink-2);max-width:460px;margin:0 auto">The ${esc(E.name)} website is being updated. Please check back in a few minutes. For urgent questions call ${esc(E.phone)}.</p></div></div>`}
+
+/* ================= modals ================= */
+function modal(html){$('#ov')?.remove();document.body.insertAdjacentHTML('beforeend',`<div class="ov" id="ov"><div class="modal" role="dialog" aria-modal="true"><button class="x" data-a="close" aria-label="Close">${I('x')}</button><div class="mbody">${html}</div></div></div>`);$('#ov .x').focus()}
+function mailModal(){const d=S.done,concert=E.type==='concert';
+ const rows=[[E.free?'Registration ID':'Ticket ID',d.ids.join(', ')],['Name',`${d.title?d.title+'. ':''}${d.first} ${d.last}`],...(E.free?[['Speciality',d.spec],['Hospital / centre',d.hosp]]:[['Tickets',d.items.map((t,i)=>`${t} (${d.ids[i]})`).join('<br>')]]),['Mobile',d.mob]];
+ modal(`<div class="mail"><div class="card2"><div style="display:flex;gap:10px;align-items:center"><span class="mark" style="width:36px;height:36px">${I(E.mark,18)}</span><span style="border-left:3px solid var(--red);padding-left:8px;font-weight:700;color:var(--red);font-size:13px">${esc(E.name)}<br><span style="color:#333;font-weight:600;font-size:11px">${esc(E.dates)}</span></span></div>
+ <h3>${E.free?'REGISTRATION':concert?'YOUR E-TICKET':'YOUR TICKET'}</h3><h2>CONFIRMATION</h2><hr><p>Hi <b>${esc(d.first)}</b>,</p>
+ <p>${E.free?`Welcome to the ${esc(E.name)}. We can’t wait to see you in ${esc(E.city.split(',')[0])}.`:concert?`You’re in. Doors open at 19:00 at ${esc(E.venue)}.`:`You’re in. ${esc(E.name)} runs on ${esc(E.dates)} at ${esc(E.venue)}.`}</p>
+ <p>${E.free?`The meeting will be held at ${esc(E.venue)}. <a href="#" onclick="return false">Get directions to the hall</a>.`:`<a href="#" onclick="return false">Get directions</a> · ${esc(E.venue)}, ${esc(E.city)}`}</p>
+ <p>Your details:</p><table>${rows.map(([a,b])=>`<tr><td>${a}</td><td><b>${b}</b></td></tr>`).join('')}</table>
+ ${concert?`<div style="text-align:center;margin-top:16px">${barcode(d.ids[0],40)}<div style="font-size:11px;color:#777;letter-spacing:.14em">${d.ids[0]}</div></div>`:''}
+ <p style="margin-top:16px;color:#777;font-size:12px">${E.free?'Bring this ID to the registration desk to collect your badge.':concert?'Each ticket has its own barcode in this email.':'Show this at the door to collect your badge.'}</p></div></div>`)}
+function etkModal(){const d=S.done;
+ modal(`<h2 style="font:700 24px var(--serif);margin:0 0 4px">Your e-tickets</h2><p style="color:var(--muted);margin:0 0 16px">Have the barcode ready at your gate. Screenshots work.</p>
+ ${d.ids.map((id,i)=>`<div class="etk"><div class="hd"><span>${esc(E.name)}</span><span>${esc(d.items[i])}</span></div><div class="bd"><b>${esc(d.first)} ${esc(d.last)}</b><small>${esc(E.gates[d.items[i]]||'')} · ${esc(E.dates)} · doors 19:00</small>${barcode(id,44)}<small style="letter-spacing:.2em">ID ${id}</small></div></div>`).join('')}
+ <button class="btn red sm" data-a="print">${I('print',16)} Print</button>`)}
+
+/* ================= render ================= */
+function render(){
+ const bar=$('#bar');
+ bar.innerHTML=`<span class="lbl">Example event</span><select id="evsel" aria-label="Example event">${Object.values(EVENTS).map(e=>`<option value="${e.key}" ${e.key===S.ev?'selected':''}>${esc(e.label)} · ${esc(e.name)}</option>`).join('')}</select>
+  <span class="lbl">Homepage</span><span class="seg" id="modes">${[['register',E.free?'Registration open':'Tickets on sale'],['cert',E.after==='cme'||E.after==='attendance'?'Certificates':E.after==='recordings'?'After the event':'After the show'],['maint','Maintenance']].map(([k,l])=>`<button data-mode="${k}" aria-pressed="${S.mode===k}">${l}</button>`).join('')}</span>`;
+ if(S.mode==='maint'){$('#app').innerHTML=maint();return}
+ const V={home,people:peoplePage,agenda,venue,info,past,eval:evalPage,cert:certPage,rec:recPage,photos:photosPage};
+ $('#app').innerHTML=header()+`<main>${(V[S.route]||home)()}</main>`+footer();
+}
+function go(r){S.route=r;S.menu=false;render();window.scrollTo(0,0)}
+const bad=(id,on)=>{const e=$('#'+id);if(e)e.classList.toggle('bad',on);return on};
+const v=id=>($('#'+id)?.value||'').trim();
+
+document.addEventListener('change',e=>{if(e.target.id==='evsel')setEvent(e.target.value)});
+document.addEventListener('click',e=>{
+ const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
+ const m=e.target.closest('[data-mode]');if(m){S.mode=m.dataset.mode;S.route='home';S.cert={id:null,msg:null,evalOk:{}};S.done=null;S.buy={step:'pick',qty:{}};S.unlocked=null;S.surveyDone=false;render();
+  toast(m.dataset.mode==='cert'?`Homepage now shows ${E.after==='cme'||E.after==='attendance'?'the certificate claim form':E.after==='recordings'?'the after-event page':'the after-show page'}, as when organisers switch it on`:m.dataset.mode==='maint'?'Maintenance mode: visitors see this page only':E.free?'Registration is open on the homepage':'Tickets are on sale on the homepage');return}
+ const p=e.target.closest('[data-p]');if(p){const x=E.people[+p.dataset.p];modal(`<div class="bio">${av(x,130)}<div><h2>${esc(x.n)}</h2><p class="cat">${esc(x.r)}</p><p>${esc(x.b)}</p><button class="btn line sm" data-a="close">Close</button></div></div>`);return}
+ const d=e.target.closest('[data-day]');if(d){S.day=+d.dataset.day;render();return}
+ const rt=e.target.closest('[data-rate]');if(rt){rt.parentElement.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===rt));$('#q'+rt.dataset.rate).style.background='';return}
+ const a=e.target.closest('[data-a]');if(!a){if(e.target.id==='ov')$('#ov').remove();return}
+ const k=a.dataset.a;
+ if(k==='menu'){S.menu=!S.menu;render()}
+ if(k==='close')$('#ov')?.remove();
+ if(k==='again'){S.done=null;S.buy={step:'pick',qty:{}};render()}
+ if(k==='print'){try{window.print()}catch(_){toast('Use your browser’s print menu to save as PDF')}}
+ if(k==='mail')mailModal();
+ if(k==='etk')etkModal();
+ if(k==='dl')toast('Slides pack downloaded (demo)');
+ if(k==='back'){S.buy.step=S.buy.step==='pay'?'details':'pick';render()}
+ if(k==='q'){const id=a.dataset.id,q=(S.buy.qty[id]||0)+ +a.dataset.d;S.buy.qty[id]=Math.max(0,q);render();$(`[data-a="q"][data-id="${id}"][data-d="${a.dataset.d}"]`)?.focus()}
+ if(k==='promo'){S.buy.promo=S.buy.promo?null:(E.key==='noct'?'NOCTURNE15':E.key==='form'?'DESIGNERS10':'ALUMNI20');render();toast(S.buy.promo?`${S.buy.promo} applied — 15% off`:'Promo code removed')}
+ if(k==='applepay'){finishOrder(true)}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#ov')?.remove()});
+function finishOrder(fast){
+ const b=S.buy,items=[];Object.entries(b.qty).forEach(([id,q])=>{for(let i=0;i<q;i++)items.push(ticket(id).n)});
+ const ids=items.map(()=>E.nextId++);
+ S.done={...b.info,ids,items};
+ items.forEach((t,i)=>{E.REG[ids[i]]={n:`${b.info.first} ${b.info.last}`,att:false,pts:0}});
+ items.forEach(t=>{const tk=E.tickets.find(x=>x.n===t);if(tk)tk.left=Math.max(0,tk.left-1)});
+ S.buy={step:'pick',qty:{}};render();if(fast)toast('Paid with Apple Pay (demo)')
+}
+document.addEventListener('submit',e=>{e.preventDefault();const f=e.target.dataset.f;
+ if(f==='reg'){let err=0;
+  err|=bad('f-title',!v('r-title'));err|=bad('f-first',!v('r-first'));err|=bad('f-last',!v('r-last'));err|=bad('f-spec',!v('r-spec'));err|=bad('f-hosp',!v('r-hosp'));err|=bad('f-mob',v('r-mob').replace(/\D/g,'').length<7);err|=bad('f-email',!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('r-email')));
+  if(err){$('.fld.bad input, .fld.bad select').focus();return}
+  const id=E.nextId++;S.done={ids:[id],items:[],title:v('r-title'),first:v('r-first'),last:v('r-last'),spec:v('r-spec'),hosp:v('r-hosp'),email:v('r-email'),mob:$('#r-cc').value+' '+v('r-mob')};
+  E.REG[id]={n:`${v('r-title')}. ${v('r-first')} ${v('r-last')}`,att:false,pts:0};render()}
+ if(f==='pick'){if(!qtyTotal())return;S.buy.step='details';render()}
+ if(f==='details'){let err=0;
+  err|=bad('f-first',!v('r-first'));err|=bad('f-last',!v('r-last'));err|=bad('f-email',!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('r-email')));err|=bad('f-mob',v('r-mob').replace(/\D/g,'').length<7);
+  if(E.type==='concert')err|=bad('f-age',!$('#r-age').checked);
+  if(err){$('.fld.bad input, .fld.bad select')?.focus();return}
+  S.buy.info={first:v('r-first'),last:v('r-last'),email:v('r-email'),mob:$('#r-cc').value+' '+v('r-mob'),disc:v('r-disc'),org:v('r-org'),city:v('r-city')};
+  S.buy.step='pay';render()}
+ if(f==='pay'){let err=0;
+  err|=bad('f-card',v('r-card').replace(/\D/g,'').length<16);err|=bad('f-exp',!/^\d{2}\/\d{2}$/.test(v('r-exp')));err|=bad('f-cvc',v('r-cvc').replace(/\D/g,'').length<3);
+  if(err){$('.fld.bad input').focus();return}
+  finishOrder(false)}
+ if(f==='claim'){const id=v('cid');S.cert.id=id;if(bad('f-cid',!id))return;const r=E.REG[id];
+  if(!r)S.cert.msg=`We couldn’t find ID ${esc(id)}. Check your confirmation email and try again.`;
+  else if(!r.att)S.cert.msg=E.after==='recordings'?`Our records show ${esc(r.n)} booked a ticket but didn’t check in at the summit, so the recordings aren’t available. If you attended, contact us with your ID.`:`Our records show ${esc(r.n)} ${E.free?'registered':'bought a ticket'} but didn’t check in to any session, so a certificate isn’t available. If you attended, contact the registration desk with your ID.`;
+  else{S.cert.msg=null;if(E.after==='recordings'){S.unlocked=id;go('rec');return}go(S.cert.evalOk[id]?'cert':'eval');return}render()}
+ if(f==='eval'){let miss=null;E.evalQs.forEach((_,i)=>{if(!$(`[data-rate="${i}"][aria-pressed="true"]`)){$('#q'+i).style.background='var(--red-soft)';miss=miss??i}});
+  if(miss!=null){$('#q'+miss).scrollIntoView({block:'center'});toast('Please rate every statement');return}
+  if(E.after==='cme'||E.after==='attendance'){S.cert.evalOk[S.cert.id]=true;toast('Thank you. Your certificate is ready');go('cert')}
+  else{S.surveyDone=true;toast('Thank you for the feedback');go('eval')}}
+});
+setEvent((location.hash||'').replace('#','')in EVENTS?location.hash.replace('#',''):'ghs');
+</script>
+</body></html>

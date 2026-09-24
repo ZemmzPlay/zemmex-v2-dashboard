@@ -1,0 +1,20 @@
+# Caddy 2 in front of the web container. With a real domain in SITE_ADDRESS
+# (e.g. live.zemmz.com), Caddy obtains and renews TLS certificates itself.
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Long cache for Next.js build assets; they are content-hashed.
+	@static path /_next/static/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	reverse_proxy web:3000 {
+		header_up X-Forwarded-Host {host}
+	}
+}

@@ -1,0 +1,62 @@
+# Local and staging stack: Postgres, web, worker and Caddy.
+#
+#   docker compose up -d db                      # just Postgres, for `npm run dev`
+#   docker compose up -d --build                 # everything, on http://localhost
+#   docker compose run --rm worker npm run db:deploy -w @zemmz/db   # migrations
+#
+# Production uses RDS instead of the db service: set DATABASE_URL and drop db.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zemmz
+      POSTGRES_PASSWORD: zemmz
+      POSTGRES_DB: zemmz
+      # Prisma stores UTC; keep the server in UTC so raw SQL and defaults agree.
+      TZ: UTC
+      PGTZ: UTC
+    ports: ["5432:5432"]
+    volumes: [db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zemmz"]
+      interval: 5s
+      retries: 10
+
+  web:
+    build: { context: ., dockerfile: infra/web.Dockerfile }
+    image: ${WEB_IMAGE:-zemmz-web:local}
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://zemmz:zemmz@db:5432/zemmz?schema=public}
+    depends_on:
+      db: { condition: service_healthy }
+
+  worker:
+    build: { context: ., dockerfile: infra/worker.Dockerfile }
+    image: ${WORKER_IMAGE:-zemmz-worker:local}
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://zemmz:zemmz@db:5432/zemmz?schema=public}
+    depends_on:
+      db: { condition: service_healthy }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [web]
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>zemmz — tournament websites for esports leagues</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+ --navy:#07052E;--navy-2:#120F45;--brand:#3B25E5;--brand-hover:#2F1CC4;--brand-soft:#EDEBFE;--coral:#FF6B4A;--mint:#22C993;--sky:#3B82F6;
+ --bg:#F4F5FA;--surface:#FFFFFF;--surface-2:#F8F8FC;--line:#E4E4EF;--line-2:#D4D4E3;--ink:#0D0B2E;--ink-2:#45445F;--muted:#737290;
+ --ok:#0F7A52;--ok-soft:#DFF5EC;--danger:#C8323A;
+ --font:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B0A1F;--surface:#15142F;--surface-2:#1B1A3B;--line:#2A2950;--line-2:#3A3966;--ink:#F1F0FA;--ink-2:#C9C8E0;--muted:#9291B0;--brand-soft:#26225E;--ok:#46D39C;--ok-soft:#0F3528;--danger:#FF7A80}}
+:root[data-theme="dark"]{--bg:#0B0A1F;--surface:#15142F;--surface-2:#1B1A3B;--line:#2A2950;--line-2:#3A3966;--ink:#F1F0FA;--ink-2:#C9C8E0;--muted:#9291B0;--brand-soft:#26225E;--ok:#46D39C;--ok-soft:#0F3528;--danger:#FF7A80}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:calc(76px + env(safe-area-inset-top,0px));scroll-behavior:smooth}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:400 15.5px/1.6 var(--font);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+a{color:var(--brand)}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 22px;border-radius:12px;border:1px solid transparent;font-weight:600;font-size:15px;white-space:nowrap;text-decoration:none;transition:background .15s,border-color .15s}
+.btn.primary{background:var(--brand);color:#fff}.btn.primary:hover{background:var(--brand-hover)}
+.btn.ghost{background:transparent;border-color:var(--line-2);color:var(--ink)}.btn.ghost:hover{border-color:var(--brand);color:var(--brand)}
+.btn.light{background:#fff;color:var(--navy)}.btn.light:hover{background:#ECEBFF}
+.btn.onnav{background:transparent;border-color:rgba(255,255,255,.22);color:#fff}.btn.onnav:hover{border-color:#fff}
+.btn.sm{height:38px;padding:0 16px;font-size:14px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.linkbtn{border:0;background:none;padding:0;color:var(--brand);font-weight:600;font-size:inherit}
+
+/* nav */
+header.nav{position:sticky;top:0;z-index:40;background:var(--navy);color:#fff}
+header.nav .wrap{display:flex;align-items:center;gap:32px;height:72px}
+.logo{font:800 26px/1 var(--font);letter-spacing:-.045em;color:#fff;border:0;background:none;padding:0}
+.links{display:flex;gap:4px}
+.links button{border:0;background:none;color:#B9B8D8;padding:8px 12px;border-radius:9px;font-weight:500;font-size:14.5px}
+.links button:hover{color:#fff}
+.nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.burger{display:none;border:0;background:none;color:#fff;width:42px;height:42px}
+.mmenu{display:none}
+
+/* hero */
+.hero{background:var(--navy);color:#fff;overflow:hidden;position:relative}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:48px;align-items:center;padding-top:64px;padding-bottom:88px}
+.hero h1{font-size:clamp(40px,5.4vw,70px);line-height:1.02;letter-spacing:-.04em;margin:0 0 20px;font-weight:800}
+.hero .lede{font-size:18px;color:#C4C3E3;margin:0 0 30px;max-width:520px}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap}
+.hero .fine{margin-top:16px;font-size:13px;color:#8F8EB8}
+.badge-new{display:inline-flex;gap:8px;align-items:center;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:5px 12px 5px 6px;font-size:13px;margin-bottom:22px;color:#D6D5F0}
+.badge-new b{background:var(--coral);color:#fff;border-radius:999px;padding:1px 8px;font-size:11.5px}
+
+/* live builder demo */
+.demo{position:relative}
+.browser{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 40px 80px -30px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.08);color:#0D0B2E;transition:transform .3s}
+.bbar{height:36px;background:#EDEDF4;display:flex;align-items:center;gap:6px;padding:0 12px}
+.bbar i{width:10px;height:10px;border-radius:50%;background:#CFCFDD}
+.bbar span{margin-left:12px;flex:1;background:#fff;border-radius:7px;height:22px;display:flex;align-items:center;padding:0 10px;font-size:11.5px;color:#737290}
+.site{--c:#3B25E5;--ct:#fff;font-size:12px}
+.site .snav{background:var(--nav,#07052E);color:#fff;display:flex;align-items:center;gap:14px;padding:12px 16px;transition:background .35s}
+.site .snav b{font-size:14px}.site .snav span{opacity:.7}
+.site .snav .cta{margin-left:auto;background:var(--c);color:var(--ct);padding:6px 12px;border-radius:8px;font-weight:700;opacity:1;transition:background .35s,color .35s}
+.site .shero{background:linear-gradient(135deg,var(--nav,#07052E),color-mix(in srgb,var(--c) 70%,#000));color:#fff;padding:22px 16px 26px;transition:background .35s}
+.site .shero h4{margin:0 0 6px;font-size:22px;letter-spacing:-.02em;line-height:1.1}
+.site .shero p{margin:0 0 12px;opacity:.8}
+.site .sbtn{display:inline-block;background:var(--c);color:var(--ct);border-radius:8px;padding:7px 14px;font-weight:700;transition:background .35s,color .35s}
+.site .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px;background:#F4F5FA}
+.site .card{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 12px -6px rgba(0,0,0,.2)}
+.site .card .art{height:54px;display:flex;align-items:flex-end;padding:6px 8px;color:#fff;font-weight:800}
+.site .card .bd{padding:8px}
+.site .card .bar{height:5px;border-radius:9px;background:#E7E7F0;margin-top:6px}.site .card .bar i{display:block;height:100%;border-radius:9px;background:var(--c);transition:background .35s}
+.swatches{position:absolute;left:-18px;bottom:28px;background:#fff;color:#0D0B2E;border-radius:14px;padding:12px 14px;box-shadow:0 20px 40px -12px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:8px}
+.swatches small{font-size:11.5px;color:#737290;font-weight:500}
+.swatches div{display:flex;gap:8px}
+.swatches button{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+.swatches button[aria-pressed="true"]{box-shadow:0 0 0 2px #0D0B2E}
+.floating{position:absolute;right:-14px;top:70px;background:#fff;color:#0D0B2E;border-radius:14px;padding:10px 12px;box-shadow:0 20px 40px -12px rgba(0,0,0,.55);font-size:12.5px;display:flex;gap:10px;align-items:center;max-width:250px}
+.floating .ok{width:28px;height:28px;border-radius:50%;background:#DFF5EC;color:#0F7A52;display:grid;place-items:center;flex:none}
+
+section{padding:88px 0}
+.eyebrow{color:var(--brand);font-weight:600;font-size:14px;margin:0 0 10px}
+h2.big{font-size:clamp(30px,3.6vw,46px);line-height:1.08;letter-spacing:-.035em;margin:0 0 14px}
+.sub{color:var(--ink-2);font-size:17px;max-width:620px;margin:0}
+.logos{padding:34px 0;border-bottom:1px solid var(--line);background:var(--surface)}
+.logos .wrap{display:flex;align-items:center;gap:40px;flex-wrap:wrap;justify-content:space-between}
+.logos p{margin:0;color:var(--muted);font-size:13.5px}
+.logos span{font-weight:800;font-size:19px;letter-spacing:-.03em;color:var(--muted)}
+
+.steps3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px;counter-reset:s}
+.steps3 div{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;position:relative}
+.steps3 .n{font-size:13px;font-weight:700;color:var(--brand);background:var(--brand-soft);border-radius:8px;padding:2px 10px;display:inline-block;margin-bottom:14px}
+.steps3 h3{margin:0 0 6px;font-size:19px;letter-spacing:-.02em}.steps3 p{margin:0;color:var(--ink-2);font-size:14.5px}
+.steps3 .time{margin-top:14px;font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;padding:56px 0;border-top:1px solid var(--line)}
+.feat:first-of-type{border-top:0}
+.feat.rev .txt{order:2}
+.feat h3{font-size:30px;letter-spacing:-.03em;line-height:1.12;margin:0 0 12px}
+.feat p{color:var(--ink-2);margin:0 0 16px}
+.feat ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.feat li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
+.feat li svg{color:var(--ok);margin-top:3px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 24px 50px -30px rgba(13,11,46,.35)}
+.mini-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:13px}
+.mini-h b{font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:700}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.p-red{background:#FDE7E8;color:#C8323A}.p-ok{background:#DFF5EC;color:#0F7A52}.p-warn{background:#FFF2D9;color:#9A5B00}.p-blue{background:#E7EDFF;color:#2549C9}
+.shotrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.shotrow div{aspect-ratio:16/9;border-radius:10px;background:linear-gradient(135deg,#15B86F,#063B27);color:#fff;display:grid;place-items:center;text-align:center;font-weight:900;font-size:22px;position:relative;overflow:hidden}
+.shotrow div small{display:block;font-size:10px;font-weight:600;opacity:.8}
+.shotrow .crop::after{content:"";position:absolute;inset:0 0 0 55%;background:#000}
+.scorein{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
+.scorein span.box{border:1px solid var(--line-2);border-radius:10px;height:48px;display:grid;place-items:center;font-size:22px;font-weight:800}
+.winl{margin-top:10px;color:var(--ok);font-size:13px;font-weight:600}
+.bil{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bil div{border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13px}
+.bil h5{margin:0 0 6px;font-size:15px}
+.bil [dir="rtl"]{font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif}
+.mtbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.mtbl td{padding:8px 6px;border-bottom:1px solid var(--line)}
+.mtbl tr:last-child td{border:0}
+.av{width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;font-size:10.5px;font-weight:700;margin-right:6px;vertical-align:middle}
+.bars{display:flex;align-items:flex-end;gap:6px;height:130px;padding-top:10px}
+.bars i{flex:1;background:var(--brand);border-radius:6px 6px 2px 2px;opacity:.85}
+.bars i:last-child{opacity:1;background:var(--coral)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.kpis div{background:var(--surface-2);border-radius:10px;padding:10px}
+.kpis b{display:block;font-size:20px;letter-spacing:-.02em}.kpis span{font-size:11.5px;color:var(--muted)}
+
+.band{background:var(--navy);color:#fff}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.stats b{display:block;font-size:44px;letter-spacing:-.04em;line-height:1}
+.stats span{color:#A9A8CE;font-size:14px}
+.quote{margin-top:56px;display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:start;border-top:1px solid rgba(255,255,255,.1);padding-top:40px}
+.quote .qm{font-size:80px;line-height:.8;color:var(--coral);font-weight:800}
+.quote p{font-size:22px;line-height:1.45;margin:0 0 16px;letter-spacing:-.01em}
+.quote cite{font-style:normal;color:#A9A8CE;font-size:14px}
+
+/* pricing */
+.toggle{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin:26px 0 30px}
+.toggle button{border:0;background:transparent;padding:8px 16px;border-radius:9px;font-weight:600;font-size:14px;color:var(--muted)}
+.toggle button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.toggle em{font-style:normal;color:var(--ok);font-size:12px;margin-left:4px}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:26px;display:flex;flex-direction:column}
+.plan.pop{border:2px solid var(--brand);position:relative}
+.plan.pop::before{content:"Most popular";position:absolute;top:-13px;left:24px;background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+.plan h3{margin:0 0 4px;font-size:20px}.plan .for{color:var(--muted);font-size:14px;margin:0 0 18px;min-height:44px}
+.price{font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1}.price small{font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0}
+.plan .note{font-size:13px;color:var(--muted);margin:6px 0 20px;min-height:20px}
+.plan ul{list-style:none;padding:0;margin:20px 0 0;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.plan li{display:flex;gap:10px}.plan li svg{color:var(--ok);margin-top:3px}
+.faq{max-width:780px}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{padding:20px 0;font-weight:600;font-size:16.5px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px}
+.faq summary::after{content:"+";color:var(--muted);font-size:22px;line-height:1}
+.faq details[open] summary::after{content:"–"}
+.faq p{margin:0 0 20px;color:var(--ink-2)}
+.cta-band{background:var(--brand);color:#fff;border-radius:24px;padding:48px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.cta-band h2{margin:0;font-size:34px;letter-spacing:-.03em;line-height:1.1;flex:1;min-width:260px}
+footer{padding:56px 0 36px;border-top:1px solid var(--line);margin-top:88px}
+footer .cols{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:24px}
+footer h4{margin:0 0 12px;font-size:14px}
+footer button.fl{display:block;border:0;background:none;padding:4px 0;color:var(--ink-2);font-size:14px;text-align:left}
+footer button.fl:hover{color:var(--brand)}
+footer .legal{margin-top:36px;color:var(--muted);font-size:13px;display:flex;gap:18px;flex-wrap:wrap}
+
+/* auth + onboarding */
+.ob{min-height:100vh;display:grid;grid-template-columns:420px 1fr}
+.ob-side{background:var(--navy);color:#fff;padding:36px;display:flex;flex-direction:column;gap:30px;position:sticky;top:0;height:100vh}
+.ob-side .logo{font-size:28px}
+.ob-steps{display:flex;flex-direction:column;gap:4px}
+.ob-step{display:flex;gap:14px;align-items:center;padding:10px 0;color:#8F8EB8;font-size:14.5px}
+.ob-step .d{width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(255,255,255,.2);display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.ob-step.cur{color:#fff}.ob-step.cur .d{border-color:#fff;background:#fff;color:var(--navy)}
+.ob-step.done{color:#D6D5F0}.ob-step.done .d{background:var(--mint);border-color:var(--mint);color:#062A1D}
+.ob-side .foot{margin-top:auto;font-size:13px;color:#8F8EB8}
+.ob-side blockquote{margin:0;padding:18px;border-radius:14px;background:rgba(255,255,255,.06);font-size:14px;color:#D6D5F0}
+.ob-main{padding:48px;display:flex;flex-direction:column;align-items:center}
+.ob-card{width:100%;max-width:560px}
+.ob-card h1{font-size:32px;letter-spacing:-.03em;margin:0 0 8px;line-height:1.1}
+.ob-card .lead{color:var(--ink-2);margin:0 0 28px}
+.ob-top{width:100%;max-width:560px;display:flex;align-items:center;gap:12px;margin-bottom:28px;font-size:13.5px;color:var(--muted)}
+.ob-top .prog{flex:1;height:6px;background:var(--line);border-radius:99px;overflow:hidden}.ob-top .prog i{display:block;height:100%;background:var(--brand);border-radius:99px;transition:width .3s}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;min-width:0}
+.fld label,.fld .lbl{font-size:13.5px;font-weight:600;color:var(--ink-2)}
+.opt{color:var(--muted);font-weight:400;font-size:12.5px;margin-left:4px}
+.inp{height:48px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface);padding:0 14px;width:100%}
+.inp:focus{outline:2px solid color-mix(in srgb,var(--brand) 35%,transparent);border-color:var(--brand)}
+.fld .help{font-size:12.5px;color:var(--muted)}
+.fld .err{display:none;font-size:12.5px;color:var(--danger)}
+.fld.bad .inp,.fld.bad .joined,.fld.bad .dd-btn{border-color:var(--danger)}.fld.bad .err{display:block}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.joined{display:flex;border:1px solid var(--line-2);border-radius:12px;overflow:hidden;background:var(--surface)}
+.joined input{border:0;flex:1;height:46px;padding:0 14px;background:transparent;min-width:0}.joined input:focus{outline:none}
+.joined span{padding:0 14px;display:grid;place-items:center;background:var(--surface-2);border-left:1px solid var(--line);color:var(--muted);font-size:14px}
+.pw{position:relative}.pw button{position:absolute;right:8px;top:8px;height:32px;border:0;background:none;color:var(--muted);font-size:13px;font-weight:600}
+.meter{display:flex;gap:4px;margin-top:4px}.meter i{flex:1;height:4px;border-radius:9px;background:var(--line)}
+.meter.s1 i:nth-child(1){background:var(--danger)}.meter.s2 i:nth-child(-n+2){background:#E0A100}.meter.s3 i:nth-child(-n+3){background:var(--ok)}.meter.s4 i{background:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line-2);background:var(--surface);font-size:14px;font-weight:500;color:var(--ink-2)}
+.chip:hover{border-color:var(--brand)}
+.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+.otp{display:flex;gap:10px;margin:8px 0 20px}
+.otp input{width:56px;height:62px;text-align:center;font-size:26px;font-weight:700;border-radius:12px;border:1px solid var(--line-2);background:var(--surface)}
+.otp input:focus{outline:2px solid var(--brand);border-color:var(--brand)}
+.sso{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px;margin:18px 0}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.ob-nav{display:flex;gap:10px;align-items:center;margin-top:24px}.ob-nav .sp{flex:1}
+.dd{position:relative}.dd-btn{height:48px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface);padding:0 14px;text-align:left}
+.dd-btn:hover{border-color:var(--brand)}.dd-btn[aria-expanded="true"]{border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent)}
+.dd-btn svg{color:var(--muted)}
+.dd-list{position:absolute;left:0;right:0;top:54px;z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px -16px rgba(13,11,46,.35);padding:6px;max-height:260px;overflow:auto}
+.dd-list button{display:flex;justify-content:space-between;width:100%;border:0;background:transparent;padding:10px 12px;border-radius:8px;text-align:left;font-size:14px}
+.dd-list button:hover,.dd-list button:focus-visible{background:var(--surface-2)}
+.dd-list button[aria-selected="true"]{background:var(--brand-soft);color:var(--brand);font-weight:600}
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.preset{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface);padding:0;text-align:left}
+.preset[aria-pressed="true"]{border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent)}
+.preset .pv{height:64px;display:flex;flex-direction:column}
+.preset .pv i{height:18px}.preset .pv span{flex:1}
+.preset b{display:block;padding:8px 10px;font-size:13px}
+.colorrow{display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.colorrow label.sw{width:48px;height:48px;border-radius:12px;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);cursor:pointer}
+.colorrow label.sw input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.mini{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:18px}
+.mini .n{padding:10px 14px;display:flex;gap:10px;align-items:center;font-size:12.5px;font-weight:700}
+.mini .n .b{margin-left:auto;padding:5px 12px;border-radius:8px}
+.mini .h{padding:16px 14px;font-size:13px}
+.hintnote{font-size:12.5px;color:var(--muted);margin-top:8px}
+.upload{border:1.5px dashed var(--line-2);border-radius:14px;padding:18px;display:flex;gap:14px;align-items:center;position:relative;background:var(--surface)}
+.upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload .lg{width:120px;height:48px;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;overflow:hidden;color:var(--muted);font-size:12px}
+.upload .lg img{max-width:100%;max-height:100%}
+.invites .inv{display:grid;grid-template-columns:1fr 170px 40px;gap:10px;margin-bottom:10px}
+.iconbtn{width:40px;height:48px;border:0;background:transparent;border-radius:10px;color:var(--muted)}
+.iconbtn:hover{background:var(--surface-2);color:var(--danger)}
+.plan-pick{display:flex;flex-direction:column;gap:10px}
+.plan-pick button{display:flex;gap:14px;align-items:center;border:1.5px solid var(--line);border-radius:14px;background:var(--surface);padding:16px;text-align:left}
+.plan-pick button[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-soft)}
+.plan-pick .r{width:20px;height:20px;border-radius:50%;border:2px solid var(--line-2);flex:none}
+.plan-pick button[aria-pressed="true"] .r{border:6px solid var(--brand)}
+.plan-pick b{display:block}.plan-pick small{color:var(--muted)}
+.plan-pick .pr{margin-left:auto;font-weight:700;white-space:nowrap}
+.done-hero{width:72px;height:72px;border-radius:20px;background:var(--ok-soft);color:var(--ok);display:grid;place-items:center;margin-bottom:22px}
+.check{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:6px 18px;margin:20px 0}
+.check div{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.check div:last-child{border:0}
+.check .ck{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none}
+.check .y{background:var(--ok);color:#fff}.check .n{border:1.5px solid var(--line-2)}
+.check small{margin-left:auto;color:var(--muted);font-size:12.5px}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;z-index:90;box-shadow:0 16px 40px -12px rgba(0,0,0,.5)}
+
+@media (max-width:980px){
+ .hero .wrap,.feat{grid-template-columns:1fr}.feat.rev .txt{order:0}
+ .steps3,.plans,.stats{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}
+ .links,.nav-r .hide-m{display:none}.burger{display:grid;place-items:center}
+ .mmenu.open{display:flex;flex-direction:column;padding:8px 16px 16px;background:var(--navy);border-top:1px solid rgba(255,255,255,.08)}
+ .mmenu button{border:0;background:none;color:#fff;text-align:left;padding:12px 6px;font-size:15px;font-weight:500}
+ .swatches{left:10px}.floating{right:10px}
+ footer .cols{grid-template-columns:1fr 1fr}
+ .ob{grid-template-columns:1fr}.ob-side{position:static;height:auto;padding:20px 24px;gap:14px}.ob-side .ob-steps,.ob-side blockquote,.ob-side .foot{display:none}
+ .ob-main{padding:28px 20px}
+}
+@media (max-width:560px){.wrap{padding:0 18px}section{padding:60px 0}.row2,.presets{grid-template-columns:1fr}.invites .inv{grid-template-columns:1fr 40px}.invites .inv .dd{grid-column:1}.sso{grid-template-columns:1fr}.otp input{width:46px;height:56px}.cta-band{padding:30px}.shotrow{grid-template-columns:1fr}.quote{grid-template-columns:1fr}.quote .qm{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const DASH='https://claude.ai/artifact/XF4bQyJaLbsRDzDhUmpoEy',SITE='https://claude.ai/artifact/32xKU4yWz5wR28XLYE8BCH';
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const P={check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',back:'<path d="M19 12H5M11 6l-6 6 6 6"/>',menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',chev:'<path d="m6 9 6 6 6-6"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',ext:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>',plus:'<path d="M12 5v14M5 12h14"/>',upload:'<path d="M12 20V9M7 14l5-5 5 5M4 4h16"/>',party:'<path d="M4 20 9 7l8 8-13 5Z"/><path d="M14 4v2M19 9h2M17 6l1.5-1.5M12 9c2-2 2-4 1-5M15 12c2-2 4-2 5-1"/>'};
+const I=(n,s)=>`<svg class="i" viewBox="0 0 24 24" ${s?`style="width:${s}px;height:${s}px"`:''} aria-hidden="true">${P[n]}</svg>`;
+const toast=m=>{const e=document.createElement('div');e.className='toast';e.setAttribute('role','status');e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)};
+const lum=h=>{const n=parseInt(h.slice(1),16);return [n>>16&255,n>>8&255,n&255].map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0)};
+const cr=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+const textOn=bg=>cr(bg,'#FFFFFF')>=cr(bg,'#0D0B2E')?'#FFFFFF':'#0D0B2E';
+
+const S={route:'home',annual:true,menu:false,demo:'#3B25E5',ob:{step:0,d:{name:'',email:'',pw:'',org:'',type:'',country:'Kuwait',size:'2–10',proj:'',sub:'',subTouched:false,langs:'both',tz:'Asia/Kuwait',preset:'esports',primary:'#3B25E5',logo:null,invites:[{e:'',r:'Admin'}],plan:'pro'}}};
+const STEPS=['Your account','Verify email','Organisation','First website','Brand','Team','Plan'];
+
+/* ---------- marketing ---------- */
+function nav(){return `<header class="nav"><div class="wrap"><button class="logo" data-go="home" aria-label="zemmz home">zemmz</button>
+ <nav class="links" aria-label="Main"><button data-scroll="how">How it works</button><button data-scroll="features">Features</button><button data-scroll="pricing">Pricing</button><button data-scroll="faq">FAQ</button><a class="btn onnav sm" href="${SITE}" target="_blank" rel="noopener" style="border:0;color:#B9B8D8;font-weight:500">Live example ${I('ext',14)}</a></nav>
+ <div class="nav-r"><button class="btn onnav sm hide-m" data-go="login">Sign in</button><button class="btn light sm hide-m" data-go="signup">Start free trial</button><button class="burger" data-a="menu" aria-label="Menu" aria-expanded="${S.menu}">${I('menu',22)}</button></div></div>
+ <div class="mmenu ${S.menu?'open':''}"><button data-scroll="how">How it works</button><button data-scroll="features">Features</button><button data-scroll="pricing">Pricing</button><button data-scroll="faq">FAQ</button><button data-go="login">Sign in</button><button data-go="signup">Start free trial</button></div></header>`}
+function demoSite(){const c=S.demo,t=textOn(c);
+ return `<div class="demo"><div class="browser" aria-label="Preview of a tournament website"><div class="bbar"><i></i><i></i><i></i><span>yourleague.zemmz.gg</span></div>
+ <div class="site" id="dsite" style="--c:${c};--ct:${t}"><div class="snav"><b>Your League</b><span>Tournaments</span><span>Standings</span><span class="cta">Register</span></div>
+ <div class="shero"><h4>Season 1 starts 12 October</h4><p>Free tournaments for players across the GCC.</p><span class="sbtn">Browse tournaments</span></div>
+ <div class="cards">${[['Valorant Open','#FF4655','#7A0F22',80],['EA FC Cup','#15B86F','#063B27',55]].map(([n,a,b,w])=>`<div class="card"><div class="art" style="background:linear-gradient(135deg,${a},${b})">${n.split(' ')[0]}</div><div class="bd"><b>${n}</b><div class="bar"><i style="width:${w}%"></i></div></div></div>`).join('')}</div></div></div>
+ <div class="swatches"><small>Try your brand colour</small><div>${['#3B25E5','#FF6B4A','#0F9F6E','#FFD23F','#0C7BC0','#E1306C'].map(x=>`<button data-demo="${x}" style="background:${x}" aria-label="Use ${x}" aria-pressed="${x===c}"></button>`).join('')}</div></div>
+ <div class="floating"><span class="ok">${I('check',15)}</span><span id="dnote">${t==='#0D0B2E'?'Light colour — button text switched to dark so it stays readable':'Score confirmed. Falcons advance to the final'}</span></div></div>`}
+function home(){const pr=S.annual;
+ const plans=[['Club','For a single community league or campus cup.',pr?159:199,['1 tournament website','Up to 2,000 players','Unlimited tournaments','English and Arabic','Screenshot score reports','Email support']],
+  ['Season','For brands and organisers running a full circuit.',pr?639:799,['3 tournament websites','Up to 100,000 players','Custom domain','Season rankings across tournaments','Advanced colours and 29 typefaces','Roles and permissions for 10 admins','Priority chat support']],
+  ['Publishers and federations','For federations and agencies with many clients.',null,['Unlimited websites','Unlimited players','SSO and audit exports','Dedicated success manager','Uptime SLA','Onboarding for your team']]];
+ return nav()+`<div class="hero"><div class="wrap"><div><span class="badge-new"><b>New</b>Screenshot score verification</span>
+ <h1>Launch your esports league in an afternoon.</h1><p class="lede">zemmz gives you a branded tournament website in English and Arabic, plus the dashboard to run it: registrations, brackets, player verification and score checks.</p>
+ <div class="ctas"><button class="btn primary" data-go="signup">Start your free trial ${I('arrow',18)}</button><a class="btn onnav" href="${SITE}" target="_blank" rel="noopener">See a live league ${I('ext',16)}</a></div><p class="fine">14 days free. No card needed. Cancel any time.</p></div>${demoSite()}</div></div>
+ <div class="logos"><div class="wrap"><p>Running leagues across the Gulf for</p><span>Zawaya</span><span>NOVA</span><span>Kuwait Uni</span><span>stc play</span><span>Oryx</span><span>Boubyan</span></div></div>
+ <section id="how"><div class="wrap"><p class="eyebrow">How it works</p><h2 class="big">From sign-up to open registration</h2><p class="sub">No developers, no plugins. Three steps and your players can sign up.</p>
+ <div class="steps3"><div><span class="n">Step 1</span><h3>Create a project</h3><p>Name your league and pick a web address. You get a site at yourleague.zemmz.gg, or connect your own domain.</p><div class="time">${I('clock',14)} 2 minutes</div></div>
+ <div><span class="n">Step 2</span><h3>Make it yours</h3><p>Choose a theme, fonts and colours. We check every colour pair so text stays readable, in both languages.</p><div class="time">${I('clock',14)} 10 minutes</div></div>
+ <div><span class="n">Step 3</span><h3>Open registration</h3><p>Create a tournament with dates, rules and artwork. Players register, verify their phone and play.</p><div class="time">${I('clock',14)} 15 minutes</div></div></div></div></section>
+ <section id="features" style="padding-top:0"><div class="wrap"><p class="eyebrow">Features</p><h2 class="big">Everything a league needs, nothing it doesn’t</h2>
+ <div class="feat"><div class="txt"><h3>Verify every result from a screenshot</h3><p>Players upload a photo of the result screen. You see both players’ screenshots side by side, enter the real score and the winner moves on in the bracket.</p><ul><li>${I('check')}Conflicting reports are flagged automatically</li><li>${I('check')}Ask for a clearer screenshot in one click</li><li>${I('check')}Every decision is logged against an admin</li></ul></div>
+  <div class="panel"><div class="mini-h"><b>Omar vs Khalid · Round 4</b><span class="pill p-red">Scores don’t match</span></div><div class="shotrow"><div><small>FULL TIME</small>3 – 1</div><div class="crop"><small>FULL TIME</small>3 – 1</div></div><div class="scorein"><span class="box">3</span><span>–</span><span class="box">1</span></div><div class="winl">✓ Omar Al-Mutairi wins 3–1 and advances</div></div></div>
+ <div class="feat rev"><div class="txt"><h3>Built for Arabic and English from day one</h3><p>Every page, email and tournament has an English and an Arabic version. The Arabic site reads right to left with its own typeface, not a mirrored afterthought.</p><ul><li>${I('check')}Side-by-side editor for both languages</li><li>${I('check')}11 Arabic typefaces</li><li>${I('check')}Players switch language in one tap</li></ul></div>
+  <div class="panel bil"><div><h5>Valorant Open</h5>Register before places run out. Round 1 starts Friday at 19:00.</div><div dir="rtl"><h5>بطولة فالورانت</h5>سجّل قبل نفاد الأماكن. تبدأ الجولة الأولى يوم الجمعة الساعة 19:00.</div></div></div>
+ <div class="feat"><div class="txt"><h3>Know every player before check-in</h3><p>Phone verification, a review queue and a blacklist keep smurfs and repeat offenders out. Import thousands of players from a spreadsheet when you need to.</p><ul><li>${I('check')}Verify players in bulk</li><li>${I('check')}Search by name, email or phone</li><li>${I('check')}Custom sign-up questions, like Discord username</li></ul></div>
+  <div class="panel"><table class="mtbl"><tbody>${[['Fatima Al-Sabah','🇰🇼','p-ok','Verified'],['Omar Haddad','🇸🇦','p-blue','Pending review'],['Layla Mansour','🇦🇪','p-ok','Verified'],['Salem Al-Ajmi','🇶🇦','p-red','Blacklisted']].map(([n,f,c,s],i)=>`<tr><td><span class="av" style="background:hsl(${i*80} 70% 92%);color:hsl(${i*80} 55% 30%)">${n.split(' ').map(w=>w.replace('Al-','')[0]).join('')}</span>${n}</td><td>${f}</td><td style="text-align:right"><span class="pill ${c}">${s}</span></td></tr>`).join('')}</tbody></table></div></div>
+ <div class="feat rev"><div class="txt"><h3>See what’s working</h3><p>Registrations, fill rates, no-shows, players by game and country — always compared with the previous period, so you know whether things are getting better.</p><ul><li>${I('check')}Needs your attention list on the dashboard</li><li>${I('check')}Export any report</li><li>${I('check')}Updated every 15 minutes</li></ul></div>
+  <div class="panel"><div class="kpis"><div><b>1,284</b><span>New registrations</span></div><div><b>91%</b><span>Fill rate</span></div><div><b>6.2%</b><span>No-shows</span></div></div><div class="bars">${[38,52,45,61,58,70,66,78,74,88].map(h=>`<i style="height:${h}%"></i>`).join('')}</div></div></div></div></section>
+ <section class="band"><div class="wrap"><div class="stats"><div><b>420+</b><span>tournaments run</span></div><div><b>180k</b><span>players registered</span></div><div><b>9 min</b><span>average time to confirm a score</span></div><div><b>12</b><span>countries</span></div></div>
+ <div class="quote"><span class="qm">“</span><div><p>We used to confirm scores in a Discord channel with 40 screenshots an hour. Now two admins run a 512-player league on a Friday night, and the bracket is right every time.</p><cite>Hessa Al-Sabah, Tournament Director, Gulf Esports League</cite></div></div></div></section>
+ <section id="pricing"><div class="wrap"><p class="eyebrow">Pricing</p><h2 class="big">Simple plans that grow with your league</h2><p class="sub">Every plan includes unlimited tournaments and both languages. Free entry costs nothing per player; paid entry fees add 2.5% plus AED 2, capped at AED 25 a player. Try Season free for 14 days.</p>
+ <div class="toggle" role="group" aria-label="Billing period"><button data-a="bill" data-v="m" aria-pressed="${!pr}">Monthly</button><button data-a="bill" data-v="y" aria-pressed="${pr}">Yearly <em>save 20%</em></button></div>
+ <div class="plans">${plans.map(([n,f,p,items],i)=>`<div class="plan ${i===1?'pop':''}"><h3>${n}</h3><p class="for">${f}</p><div class="price">${p?`AED ${p}<small> /month</small>`:'Let’s talk'}</div><p class="note">${p?(pr?`Billed AED ${(p*12).toLocaleString()} yearly`:'Billed monthly'):'Custom pricing for your organisation'}</p>
+  <button class="btn ${i===1?'primary':'ghost'}" data-go="${p?'signup':'contact'}" data-plan="${n.toLowerCase()}">${p?'Start free trial':'Contact sales'}</button><ul>${items.map(x=>`<li>${I('check',16)}${x}</li>`).join('')}</ul></div>`).join('')}</div></div></section>
+ <section id="faq" style="padding-top:0"><div class="wrap"><h2 class="big" style="margin-bottom:20px">Questions</h2><div class="faq">${[
+  ['Do I need a developer?','No. Everything — pages, theme, tournaments, players — is managed from the dashboard. Most leagues open registration on the first day.'],
+  ['Can I use my own domain?','Yes, on Season and above. Until then your site lives at yourleague.zemmz.gg.'],
+  ['Which games do you support?','Any game. Brackets, Swiss and round robin work the same way whatever players compete in. We include artwork templates for Valorant, EA FC, Tekken, Call of Duty, Rocket League, League of Legends and more.'],
+  ['How does score verification work?','After a match, each player uploads a screenshot of the result. Admins compare the screenshots, confirm the score and the winner advances. If players disagree, the match is flagged before anyone moves on.'],
+  ['What happens when my trial ends?','We’ll email you three days before. If you don’t choose a plan, your site goes offline but nothing is deleted for 60 days.'],
+  ['Is player data stored in the region?','Enterprise customers can choose data residency in the UAE or Saudi Arabia. Talk to us for details.']].map(([q,a],i)=>`<details ${i?'':'open'}><summary>${q}</summary><p>${a}</p></details>`).join('')}</div>
+ <div class="cta-band" style="margin-top:72px"><h2>Your league could be taking registrations by tonight.</h2><button class="btn light" data-go="signup">Start free trial ${I('arrow',18)}</button><a class="btn onnav" href="${DASH}" target="_blank" rel="noopener">Explore the dashboard ${I('ext',16)}</a></div></div></section>
+ <footer><div class="wrap"><div class="cols"><div><span class="logo" style="color:var(--ink)">zemmz</span><p style="color:var(--ink-2);max-width:300px;font-size:14px">Tournament websites and league management for esports organisers in the Middle East.</p></div>
+ <div><h4>Product</h4><button class="fl" data-scroll="features">Features</button><button class="fl" data-scroll="pricing">Pricing</button><button class="fl" data-a="ext" data-u="${SITE}">Live example</button><button class="fl" data-a="ext" data-u="${DASH}">Dashboard demo</button></div>
+ <div><h4>Company</h4><button class="fl" data-go="contact">Contact sales</button><button class="fl" data-a="soon">Careers</button><button class="fl" data-a="soon">Press</button></div>
+ <div><h4>Support</h4><button class="fl" data-a="ext" data-u="${DASH}">Help centre</button><button class="fl" data-a="soon">Status</button><button class="fl" data-a="soon">Privacy</button><button class="fl" data-a="soon">Terms</button></div></div>
+ <div class="legal"><span>© 2026 zemmz</span><span>Kuwait City · Dubai · Riyadh</span></div></div></footer>`}
+
+/* ---------- auth ---------- */
+function simpleShell(inner){return `<div class="ob"><aside class="ob-side"><button class="logo" data-go="home" style="text-align:left">zemmz</button><blockquote>“Two admins now run a 512-player league on a Friday night, and the bracket is right every time.”<br><br><b>Hessa Al-Sabah</b>, Gulf Esports League</blockquote><div class="foot">Need help? support@zemmz.gg</div></aside><main class="ob-main"><div class="ob-card">${inner}</div></main></div>`}
+function login(){return simpleShell(`<h1>Welcome back</h1><p class="lead">Sign in to manage your leagues.</p><form data-f="login" novalidate>
+ <div class="sso"><button type="button" class="btn ghost" data-a="sso">Continue with Google</button><button type="button" class="btn ghost" data-a="sso">Continue with Microsoft</button></div><div class="or">or with email</div>
+ <div class="fld" id="f-le"><label for="le">Work email</label><input id="le" class="inp" type="email" autocomplete="email" placeholder="name@company.com"><span class="err">Enter a valid email address.</span></div>
+ <div class="fld" id="f-lp"><label for="lp" style="display:flex;justify-content:space-between">Password <button type="button" class="linkbtn" data-a="forgot" style="font-size:13px">Forgot password?</button></label><input id="lp" class="inp" type="password" autocomplete="current-password"><span class="err">Enter your password.</span></div>
+ <button class="btn primary" style="width:100%">Sign in</button><p style="text-align:center;color:var(--muted);font-size:14px;margin:20px 0 0">New to zemmz? <button type="button" class="linkbtn" data-go="signup">Start a free trial</button></p></form>`)}
+function contact(){return simpleShell(`<h1>Talk to sales</h1><p class="lead">Tell us about your organisation and we’ll reply within one working day.</p><form data-f="contact" novalidate>
+ <div class="row2"><div class="fld" id="f-cn"><label for="cn">Name</label><input id="cn" class="inp" autocomplete="name"><span class="err">Enter your name.</span></div><div class="fld" id="f-ce"><label for="ce">Work email</label><input id="ce" class="inp" type="email" autocomplete="email"><span class="err">Enter a valid email.</span></div></div>
+ <div class="fld"><label for="co">Organisation</label><input id="co" class="inp" autocomplete="organization"></div><div class="fld"><label for="cm">What are you planning?<span class="opt">(optional)</span></label><textarea id="cm" class="inp" style="height:110px;padding:12px 14px" placeholder="e.g. A national league with 20 events a year"></textarea></div>
+ <button class="btn primary" style="width:100%">Send message</button></form>`)}
+
+/* ---------- onboarding ---------- */
+function dd(id,val,opts){return `<div class="dd" id="${id}"><button type="button" class="dd-btn" data-a="dd" data-id="${id}" aria-haspopup="listbox" aria-expanded="false"><span>${esc((opts.find(o=>o[0]===val)||opts[0])[1])}</span>${I('chev',16)}</button></div>`}
+const DDO={country:['Kuwait','Saudi Arabia','United Arab Emirates','Qatar','Bahrain','Oman','Egypt','Jordan','Other'].map(x=>[x,x]),size:['Just me','2–10','11–50','51–200','200+'].map(x=>[x,x]),tz:[['Asia/Kuwait','UTC+3 Kuwait, Riyadh, Doha'],['Asia/Dubai','UTC+4 Dubai, Muscat'],['Africa/Cairo','UTC+3 Cairo'],['Asia/Amman','UTC+3 Amman'],['UTC','UTC']],role:[['Admin','Admin'],['Tournament manager','Tournament manager'],['Moderator','Moderator'],['Content editor','Content editor']]};
+const PRE={esports:['Esports','#07052E','#3B25E5','#F4F5FA'],clean:['Clean','#FFFFFF','#0C7BC0','#F7F8FA'],neon:['Neon','#0A0A0F','#C6FF3D','#121218']};
+function onboarding(){
+ const o=S.ob,d=o.d,st=o.step;let body='';
+ if(st===0)body=`<h1>Create your account</h1><p class="lead">Start your 14-day free trial. No card needed.</p>
+  <div class="sso"><button type="button" class="btn ghost" data-a="ssoUp">Sign up with Google</button><button type="button" class="btn ghost" data-a="ssoUp">Sign up with Microsoft</button></div><div class="or">or with email</div>
+  <div class="fld" id="f-name"><label for="o-name">Full name</label><input id="o-name" class="inp" data-k="name" value="${esc(d.name)}" autocomplete="name" placeholder="e.g. Nabil Alhaj"><span class="err">Enter your name.</span></div>
+  <div class="fld" id="f-email"><label for="o-email">Work email</label><input id="o-email" class="inp" type="email" data-k="email" value="${esc(d.email)}" autocomplete="email" placeholder="name@company.com"><span class="err">Enter a valid email address, like name@company.com.</span></div>
+  <div class="fld" id="f-pw"><label for="o-pw">Password</label><div class="pw"><input id="o-pw" class="inp" type="password" data-k="pw" value="${esc(d.pw)}" autocomplete="new-password" aria-describedby="pwh"><button type="button" data-a="showpw">Show</button></div><div class="meter s${pwScore(d.pw)}" id="pwm" aria-hidden="true"><i></i><i></i><i></i><i></i></div><span class="help" id="pwh">At least 8 characters, with a number.</span><span class="err">Use at least 8 characters, including a number.</span></div>
+  <p class="help" style="font-size:12.5px;color:var(--muted)">By continuing you agree to the zemmz terms and privacy policy.</p>`;
+ if(st===1)body=`<h1>Check your email</h1><p class="lead">We sent a 6-digit code to <b>${esc(d.email||'your email')}</b>. It expires in 10 minutes.</p>
+  <div class="otp" role="group" aria-label="Verification code">${[0,1,2,3,4,5].map(i=>`<input inputmode="numeric" maxlength="1" data-otp="${i}" aria-label="Digit ${i+1}">`).join('')}</div>
+  <p style="font-size:14px;color:var(--muted);margin:0">Didn’t get it? <button type="button" class="linkbtn" data-a="resend">Send a new code</button> or <button type="button" class="linkbtn" data-a="obBack">change email</button>. Any 6 digits work in this demo.</p>`;
+ if(st===2)body=`<h1>Tell us about your organisation</h1><p class="lead">This helps us set sensible defaults. You can change everything later.</p>
+  <div class="fld" id="f-org"><label for="o-org">Organisation name</label><input id="o-org" class="inp" data-k="org" value="${esc(d.org)}" autocomplete="organization" placeholder="e.g. Zawaya Media"><span class="err">Enter your organisation’s name.</span></div>
+  <div class="fld" id="f-type"><span class="lbl">What kind of organisation?</span><div class="chips" role="group" aria-label="Organisation type">${['Brand or sponsor','Event agency','University or school','Federation','Gaming community','Other'].map(x=>`<button type="button" class="chip" data-a="set" data-k="type" data-v="${x}" aria-pressed="${d.type===x}">${x}</button>`).join('')}</div><span class="err">Choose one.</span></div>
+  <div class="row2"><div class="fld"><span class="lbl">Country</span>${dd('country',d.country,DDO.country)}</div><div class="fld"><span class="lbl">Team size</span>${dd('size',d.size,DDO.size)}</div></div>`;
+ if(st===3)body=`<h1>Create your first tournament website</h1><p class="lead">Each website is a project with its own players, tournaments and admins.</p>
+  <div class="fld" id="f-proj"><label for="o-proj">Website name</label><input id="o-proj" class="inp" data-k="proj" value="${esc(d.proj)}" placeholder="e.g. Gulf Esports League"><span class="err">Give your website a name.</span></div>
+  <div class="fld" id="f-sub"><label for="o-sub">Web address</label><div class="joined"><input id="o-sub" data-k="sub" value="${esc(d.sub)}" placeholder="gulf-esports" autocapitalize="none"><span>.zemmz.gg</span></div><span class="help" id="subh">${d.sub?`${esc(d.sub)}.zemmz.gg is available`:'You can connect your own domain later.'}</span><span class="err">Use letters, numbers and hyphens only.</span></div>
+  <div class="fld"><span class="lbl">Languages</span><div class="chips" role="group" aria-label="Languages">${[['both','English and Arabic'],['en','English only'],['ar','Arabic only']].map(([k,l])=>`<button type="button" class="chip" data-a="set" data-k="langs" data-v="${k}" aria-pressed="${d.langs===k}">${l}</button>`).join('')}</div></div>
+  <div class="fld"><span class="lbl">Timezone for tournaments</span>${dd('tz',d.tz,DDO.tz)}<span class="help">Players see times converted to their own timezone.</span></div>`;
+ if(st===4){const p=PRE[d.preset],tx=textOn(d.primary);
+  body=`<h1>Make it look like you</h1><p class="lead">Pick a starting style and your brand colour. Fine-tune fonts and every colour later in Website → Theme.</p>
+  <div class="fld"><span class="lbl">Logo<span class="opt">(optional)</span></span><div class="upload"><div class="lg">${d.logo?`<img src="${d.logo}" alt="Your logo">`:'No logo yet'}</div><div><b style="font-size:14px">${d.logo?'Replace logo':'Upload your logo'}</b><div class="help" style="font-size:12.5px;color:var(--muted)">PNG or SVG, at least 320 × 80 px</div></div><input type="file" accept="image/*" id="o-logo" aria-label="Upload logo"></div></div>
+  <div class="fld"><span class="lbl">Style</span><div class="presets">${Object.entries(PRE).map(([k,[n,nav,pc,bg]])=>`<button type="button" class="preset" data-a="preset" data-v="${k}" aria-pressed="${d.preset===k}"><span class="pv"><i style="background:${nav}"></i><span style="background:${bg};display:flex;align-items:center;padding:0 10px"><span style="width:40px;height:12px;border-radius:4px;background:${pc}"></span></span></span><b>${n}</b></button>`).join('')}</div></div>
+  <div class="fld"><span class="lbl">Brand colour</span><div class="colorrow"><label class="sw" style="background:${d.primary}"><input type="color" id="o-col" value="${d.primary}" aria-label="Pick brand colour"></label><input class="inp" id="o-hex" value="${d.primary}" maxlength="7" style="width:140px;text-transform:uppercase" aria-label="Brand colour hex value">${['#3B25E5','#FF6B4A','#0F9F6E','#FFD23F','#0C7BC0'].map(c=>`<button type="button" data-a="col" data-v="${c}" style="width:32px;height:32px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line-2);background:${c}" aria-label="Use ${c}"></button>`).join('')}</div>
+  <p class="hintnote" id="cnote">${tx==='#0D0B2E'?`This is a light colour, so button text will be dark (${cr(d.primary,'#0D0B2E').toFixed(1)}:1) to stay readable.`:`Buttons will use white text (${cr(d.primary,'#FFFFFF').toFixed(1)}:1 contrast).`}</p></div>
+  <div class="mini" id="mini"><div class="n" style="background:${p[1]};color:${textOn(p[1])}">${d.logo?`<img src="${d.logo}" alt="" style="height:18px">`:esc(d.proj||'Your League')}<span style="opacity:.7;font-weight:500">Tournaments</span><span class="b" style="background:${d.primary};color:${tx}">Register</span></div><div class="h" style="background:${p[3]};color:${textOn(p[3])}"><b style="font-size:16px">Season 1 starts soon</b><br><span style="opacity:.75">Preview of ${esc(d.sub||'yourleague')}.zemmz.gg</span></div></div>`;}
+ if(st===5)body=`<h1>Invite your team</h1><p class="lead">Admins can help you verify players and confirm scores. You can skip this and invite people later.</p>
+  <div class="invites">${d.invites.map((v,i)=>`<div class="inv"><div class="fld" style="margin:0" id="f-inv${i}"><label class="sr" for="inv${i}">Email ${i+1}</label><input id="inv${i}" class="inp" type="email" data-inv="${i}" value="${esc(v.e)}" placeholder="colleague@company.com"><span class="err">Enter a valid email or remove this row.</span></div>${dd('role'+i,v.r,DDO.role)}<button type="button" class="iconbtn" data-a="rmInv" data-i="${i}" aria-label="Remove row" ${d.invites.length<2?'disabled':''}>${I('x')}</button></div>`).join('')}</div>
+  <button type="button" class="btn ghost sm" data-a="addInv">${I('plus',16)} Add another</button>
+  <p class="hintnote" style="margin-top:16px">Admins manage everything. Tournament managers run brackets and scores. Moderators verify players. Content editors change pages and design.</p>`;
+ if(st===6)body=`<h1>Choose a plan for after your trial</h1><p class="lead">You won’t be charged today. Every feature is unlocked for 14 days, then we’ll ask for payment details.</p>
+  <div class="plan-pick">${[['starter','Club','1 website, up to 2,000 players','AED 199/mo'],['pro','Season','3 websites, up to 100,000 players, custom domain','AED 799/mo'],['ent','Publishers and federations','Unlimited websites, SSO, SLA','Custom']].map(([k,n,s,p])=>`<button type="button" data-a="set" data-k="plan" data-v="${k}" aria-pressed="${d.plan===k}"><span class="r"></span><span><b>${n}</b><small>${s}</small></span><span class="pr">${p}</span></button>`).join('')}</div><p class="hintnote">Prices shown billed yearly. Change or cancel any time.</p>`;
+ if(st===7){const name=d.proj||'Your League',sub=d.sub||'yourleague';
+  return `<div class="ob"><aside class="ob-side"><button class="logo" data-go="home" style="text-align:left">zemmz</button><div class="ob-steps">${STEPS.map(s=>`<div class="ob-step done"><span class="d">${I('check',14)}</span>${s}</div>`).join('')}</div><div class="foot">Trial ends 6 October 2026</div></aside>
+  <main class="ob-main"><div class="ob-card"><div class="done-hero">${I('party',34)}</div><h1>${esc(name)} is ready</h1><p class="lead">Your website is live at <b>${esc(sub)}.zemmz.gg</b>. Here’s what’s left before players can register.</p>
+  <div class="check"><div><span class="ck y">${I('check',14)}</span>Create your account</div><div><span class="ck y">${I('check',14)}</span>Set up ${esc(name)}</div><div><span class="ck y">${I('check',14)}</span>Choose your brand colour</div><div><span class="ck ${d.invites.some(v=>v.e)?'y':'n'}">${d.invites.some(v=>v.e)?I('check',14):''}</span>Invite your team<small>${d.invites.filter(v=>v.e).length?`${d.invites.filter(v=>v.e).length} invited`:'Skipped'}</small></div><div><span class="ck n"></span>Create your first tournament<small>About 15 minutes</small></div><div><span class="ck n"></span>Publish your terms & conditions<small>Template ready</small></div></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn primary" href="${DASH}" target="_blank" rel="noopener">Go to your dashboard ${I('ext',16)}</a><a class="btn ghost" href="${SITE}" target="_blank" rel="noopener">View your website ${I('ext',16)}</a></div>
+  <p class="hintnote" style="margin-top:18px">New to zemmz? Open Help centre in the dashboard and choose “Take a tour of the dashboard”.</p></div></main></div>`;}
+ const pct=Math.round(st/STEPS.length*100);
+ return `<div class="ob"><aside class="ob-side"><button class="logo" data-go="home" style="text-align:left">zemmz</button>
+  <div class="ob-steps" aria-label="Sign-up progress">${STEPS.map((s,i)=>`<div class="ob-step ${i<st?'done':i===st?'cur':''}" ${i===st?'aria-current="step"':''}><span class="d">${i<st?I('check',14):i+1}</span>${s}</div>`).join('')}</div>
+  <blockquote>Most organisers finish this in under 5 minutes.</blockquote><div class="foot">Already have an account? <button class="linkbtn" data-go="login" style="color:#fff">Sign in</button></div></aside>
+ <main class="ob-main"><div class="ob-top"><span>Step ${st+1} of ${STEPS.length}</span><span class="prog" aria-hidden="true"><i style="width:${pct}%"></i></span></div>
+ <form class="ob-card" data-f="ob" novalidate>${body}<div class="ob-nav">${st>0&&st!==2?`<button type="button" class="btn ghost" data-a="obBack">${I('back',16)} Back</button>`:st===0?`<button type="button" class="btn ghost" data-go="home">Cancel</button>`:''}<span class="sp"></span>${[5].includes(st)?`<button type="button" class="btn ghost" data-a="skip">Skip for now</button>`:''}<button class="btn primary">${st===6?'Start my free trial':st===1?'Verify':'Continue'} ${I('arrow',16)}</button></div></form></main></div>`;
+}
+function pwScore(p){let s=0;if(p.length>=8)s++;if(/\d/.test(p))s++;if(/[A-Z]/.test(p)&&/[a-z]/.test(p))s++;if(/[^\w]/.test(p)||p.length>=12)s++;return p?Math.max(1,s):0}
+
+/* ---------- render / events ---------- */
+function render(){const V={home,login,contact,signup:onboarding};$('#app').innerHTML=V[S.route]();document.title=S.route==='home'?'zemmz — tournament websites for esports leagues':'zemmz — '+({login:'Sign in',contact:'Contact sales',signup:'Start your free trial'})[S.route]}
+function go(r,x={}){Object.assign(S,{route:r,menu:false},x);render();window.scrollTo(0,0);setTimeout(()=>{const f=$('.ob-card input:not([type=hidden]):not([type=file]), .ob-card .inp');if(f&&S.route!=='home')f.focus({preventScroll:true})},40)}
+const bad=(id,on)=>{const e=$('#'+id);if(e)e.classList.toggle('bad',on);return on};
+function validate(){const o=S.ob,d=o.d;let err=false;
+ if(o.step===0){err=bad('f-name',!d.name.trim())|bad('f-email',!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))|bad('f-pw',!(d.pw.length>=8&&/\d/.test(d.pw)))}
+ if(o.step===1){const c=$$('[data-otp]').map(i=>i.value).join('');if(c.length<6){toast('Enter all 6 digits');err=true}}
+ if(o.step===2){err=bad('f-org',!d.org.trim())|bad('f-type',!d.type)}
+ if(o.step===3){err=bad('f-proj',!d.proj.trim())|bad('f-sub',!/^[a-z0-9-]{2,}$/.test(d.sub))}
+ if(o.step===5){d.invites.forEach((v,i)=>{if(v.e&&bad('f-inv'+i,!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.e)))err=true})}
+ if(err){const f=$('.fld.bad input, .fld.bad button');f&&f.focus()}return !err}
+function obGo(n){S.ob.step=n;render();window.scrollTo(0,0);setTimeout(()=>{const f=S.ob.step===1?$('[data-otp="0"]'):$('.ob-card .inp');f&&f.focus({preventScroll:true})},40)}
+function slug(s){return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)}
+function closeDD(){$$('.dd-list').forEach(l=>{l.previousElementSibling?.setAttribute('aria-expanded','false');l.remove()})}
+
+document.addEventListener('click',e=>{
+ if(!e.target.closest('.dd'))closeDD();
+ const sc=e.target.closest('[data-scroll]');if(sc){if(S.route!=='home')go('home');S.menu=false;render();setTimeout(()=>document.getElementById(sc.dataset.scroll)?.scrollIntoView(),30);return}
+ const g=e.target.closest('[data-go]');if(g){e.preventDefault();if(g.dataset.plan)S.ob.d.plan=g.dataset.plan==='starter'?'starter':'pro';if(g.dataset.go==='signup'&&S.route!=='signup')S.ob.step=0;go(g.dataset.go);return}
+ const dm=e.target.closest('[data-demo]');if(dm){S.demo=dm.dataset.demo;const s=$('#dsite'),t=textOn(S.demo);s.style.setProperty('--c',S.demo);s.style.setProperty('--ct',t);$$('[data-demo]').forEach(b=>b.setAttribute('aria-pressed',b===dm));$('#dnote').textContent=t==='#0D0B2E'?'Light colour — button text switched to dark so it stays readable':'Looks great. Text contrast checked automatically';return}
+ const opt=e.target.closest('[data-opt]');if(opt){const id=opt.dataset.dd,v=opt.dataset.opt,d=S.ob.d;if(id.startsWith('role'))d.invites[+id.slice(4)].r=v;else d[id]=v;closeDD();const b=$(`#${id} .dd-btn`);b.querySelector('span').textContent=opt.textContent;b.focus();return}
+ const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a,d=S.ob.d;
+ if(k==='menu'){S.menu=!S.menu;render()}
+ if(k==='bill'){S.annual=a.dataset.v==='y';const y=window.scrollY;render();window.scrollTo(0,y)}
+ if(k==='ext')window.open(a.dataset.u,'_blank','noopener');
+ if(k==='soon')toast('This page isn’t part of the prototype');
+ if(k==='sso'){toast('Signed in. Opening your dashboard');setTimeout(()=>window.open(DASH,'_blank','noopener'),500)}
+ if(k==='ssoUp'){d.name=d.name||'Nabil Alhaj';d.email=d.email||'nabil@zawaya.me';toast('Google account connected');obGo(2)}
+ if(k==='forgot')toast('We’ve sent a reset link if that email has an account');
+ if(k==='showpw'){const i=$('#o-pw');i.type=i.type==='password'?'text':'password';a.textContent=i.type==='password'?'Show':'Hide'}
+ if(k==='resend')toast('New code sent');
+ if(k==='obBack')obGo(Math.max(0,S.ob.step-1));
+ if(k==='skip'){d.invites=[{e:'',r:'Admin'}];obGo(S.ob.step+1)}
+ if(k==='set'){d[a.dataset.k]=a.dataset.v;a.parentElement.querySelectorAll('[aria-pressed]').forEach(b=>b.setAttribute('aria-pressed',b===a));a.closest('.fld')?.classList.remove('bad')}
+ if(k==='preset'){d.preset=a.dataset.v;d.primary=PRE[d.preset][2];render()}
+ if(k==='col'){d.primary=a.dataset.v;render()}
+ if(k==='addInv'){d.invites.push({e:'',r:'Tournament manager'});render();$(`#inv${d.invites.length-1}`)?.focus()}
+ if(k==='rmInv'){d.invites.splice(+a.dataset.i,1);render()}
+ if(k==='dd'){const open=a.getAttribute('aria-expanded')==='true';closeDD();if(open)return;const id=a.dataset.id,key=id.startsWith('role')?'role':id,cur=id.startsWith('role')?d.invites[+id.slice(4)].r:d[id];
+  a.setAttribute('aria-expanded','true');a.insertAdjacentHTML('afterend',`<div class="dd-list" role="listbox">${DDO[key].map(([v,l])=>`<button type="button" role="option" data-dd="${id}" data-opt="${esc(v)}" aria-selected="${v===cur}">${esc(l)}${v===cur?I('check',15):''}</button>`).join('')}</div>`);($('.dd-list [aria-selected="true"]')||$('.dd-list button')).focus()}
+});
+document.addEventListener('input',e=>{const t=e.target,d=S.ob.d;
+ if(t.dataset.k){d[t.dataset.k]=t.value;t.closest('.fld')?.classList.remove('bad');
+  if(t.dataset.k==='pw'){const m=$('#pwm');m.className='meter s'+pwScore(t.value)}
+  if(t.dataset.k==='proj'&&!d.subTouched){d.sub=slug(t.value);$('#o-sub').value=d.sub;$('#subh').textContent=d.sub?`${d.sub}.zemmz.gg is available`:'You can connect your own domain later.'}
+  if(t.dataset.k==='sub'){d.subTouched=true;d.sub=t.value=t.value.toLowerCase().replace(/[^a-z0-9-]/g,'');$('#subh').textContent=d.sub?`${d.sub}.zemmz.gg is available`:'You can connect your own domain later.'}}
+ if(t.dataset.inv!=null){d.invites[+t.dataset.inv].e=t.value.trim();t.closest('.fld')?.classList.remove('bad')}
+ if(t.dataset.otp!=null&&t.value){t.value=t.value.replace(/\D/g,'').slice(-1);const n=$(`[data-otp="${+t.dataset.otp+1}"]`);n&&n.focus()}
+ if(t.id==='o-col'||t.id==='o-hex'){let v=t.value.trim();if(!v.startsWith('#'))v='#'+v;if(/^#[0-9a-f]{6}$/i.test(v)){d.primary=v.toUpperCase();const tx=textOn(d.primary);$('.colorrow .sw').style.background=d.primary;if(t.id==='o-col')$('#o-hex').value=d.primary;$('#mini .b').style.background=d.primary;$('#mini .b').style.color=tx;
+  $('#cnote').textContent=tx==='#0D0B2E'?`This is a light colour, so button text will be dark (${cr(d.primary,'#0D0B2E').toFixed(1)}:1) to stay readable.`:`Buttons will use white text (${cr(d.primary,'#FFFFFF').toFixed(1)}:1 contrast).`}}
+});
+document.addEventListener('keydown',e=>{
+ if(e.key==='Backspace'&&e.target.dataset.otp!=null&&!e.target.value){const p=$(`[data-otp="${+e.target.dataset.otp-1}"]`);p&&p.focus()}
+ if(e.key==='Escape')closeDD();
+ if(['ArrowDown','ArrowUp'].includes(e.key)&&$('.dd-list')){e.preventDefault();const bs=$$('.dd-list button'),i=bs.indexOf(document.activeElement);bs[(i+(e.key==='ArrowDown'?1:-1)+bs.length)%bs.length].focus()}
+});
+document.addEventListener('paste',e=>{if(e.target.dataset.otp!=null){const v=(e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,6);if(v.length>1){e.preventDefault();v.split('').forEach((c,i)=>{const x=$(`[data-otp="${i}"]`);if(x)x.value=c});$(`[data-otp="${Math.min(5,v.length-1)}"]`).focus()}}});
+document.addEventListener('change',e=>{if(e.target.id==='o-logo'){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{S.ob.d.logo=r.result;render()};r.readAsDataURL(f)}});
+document.addEventListener('submit',e=>{e.preventDefault();const f=e.target.dataset.f;
+ if(f==='ob'){if(!validate())return;if(S.ob.step===1)toast('Email verified');if(S.ob.step===6)toast('Your trial has started');obGo(S.ob.step+1)}
+ if(f==='login'){const ok1=!bad('f-le',!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($('#le').value)),ok2=!bad('f-lp',!$('#lp').value);if(ok1&&ok2){toast('Signed in. Opening your dashboard');setTimeout(()=>window.open(DASH,'_blank','noopener'),500)}}
+ if(f==='contact'){const ok1=!bad('f-cn',!$('#cn').value.trim()),ok2=!bad('f-ce',!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($('#ce').value));if(ok1&&ok2){toast('Thanks — we’ll be in touch within one working day');go('home')}}
+});
+render();
+</script>
+</body>
+</html>

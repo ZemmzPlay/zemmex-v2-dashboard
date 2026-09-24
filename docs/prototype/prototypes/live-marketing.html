@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zemmz Live — conference registration, check-in and CME certificates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+ --navy:#00032E;--navy-2:#0D1247;--brand:#0B5CFF;--brand-hover:#0848CC;--brand-soft:#E6EEFF;--coral:#FF6B4A;--mint:#00E6A0;--sky:#3B82F6;
+ --bg:#F4F5FA;--surface:#FFFFFF;--surface-2:#F8F8FC;--line:#E4E4EF;--line-2:#D4D4E3;--ink:#0D0B2E;--ink-2:#45445F;--muted:#737290;
+ --ok:#0F7A52;--ok-soft:#DFF5EC;--danger:#C8323A;
+ --font:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B0A1F;--surface:#15142F;--surface-2:#1B1A3B;--line:#2A2950;--line-2:#3A3966;--ink:#F1F0FA;--ink-2:#C9C8E0;--muted:#9291B0;--brand-soft:#16264F;--ok:#46D39C;--ok-soft:#0F3528;--danger:#FF7A80}}
+:root[data-theme="dark"]{--bg:#0B0A1F;--surface:#15142F;--surface-2:#1B1A3B;--line:#2A2950;--line-2:#3A3966;--ink:#F1F0FA;--ink-2:#C9C8E0;--muted:#9291B0;--brand-soft:#16264F;--ok:#46D39C;--ok-soft:#0F3528;--danger:#FF7A80}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:calc(76px + env(safe-area-inset-top,0px));scroll-behavior:smooth}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:400 15.5px/1.6 var(--font);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+a{color:var(--brand)}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 22px;border-radius:12px;border:1px solid transparent;font-weight:600;font-size:15px;white-space:nowrap;text-decoration:none;transition:background .15s,border-color .15s}
+.btn.primary{background:var(--brand);color:#fff}.btn.primary:hover{background:var(--brand-hover)}
+.btn.ghost{background:transparent;border-color:var(--line-2);color:var(--ink)}.btn.ghost:hover{border-color:var(--brand);color:var(--brand)}
+.btn.light{background:#fff;color:var(--navy)}.btn.light:hover{background:#ECEBFF}
+.btn.onnav{background:transparent;border-color:rgba(255,255,255,.22);color:#fff}.btn.onnav:hover{border-color:#fff}
+.btn.sm{height:38px;padding:0 16px;font-size:14px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.linkbtn{border:0;background:none;padding:0;color:var(--brand);font-weight:600;font-size:inherit}
+
+/* nav */
+header.nav{position:sticky;top:0;z-index:40;background:var(--navy);color:#fff}
+header.nav .wrap{display:flex;align-items:center;gap:32px;height:72px}
+.logo{font:800 26px/1 var(--font);letter-spacing:-.045em;color:#fff;border:0;background:none;padding:0}
+.links{display:flex;gap:4px}
+.links button{border:0;background:none;color:#B9B8D8;padding:8px 12px;border-radius:9px;font-weight:500;font-size:14.5px}
+.links button:hover{color:#fff}
+.nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.burger{display:none;border:0;background:none;color:#fff;width:42px;height:42px}
+.mmenu{display:none}
+
+/* hero */
+.hero{background:var(--navy);color:#fff;overflow:hidden;position:relative}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:48px;align-items:center;padding-top:64px;padding-bottom:88px}
+.hero h1{font-size:clamp(40px,5.4vw,70px);line-height:1.02;letter-spacing:-.04em;margin:0 0 20px;font-weight:800}
+.hero .lede{font-size:18px;color:#C4C3E3;margin:0 0 30px;max-width:520px}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap}
+.hero .fine{margin-top:16px;font-size:13px;color:#8F8EB8}
+.badge-new{display:inline-flex;gap:8px;align-items:center;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:5px 12px 5px 6px;font-size:13px;margin-bottom:22px;color:#D6D5F0}
+.badge-new b{background:var(--coral);color:#fff;border-radius:999px;padding:1px 8px;font-size:11.5px}
+
+/* live builder demo */
+.demo{position:relative}
+.browser{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 40px 80px -30px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.08);color:#0D0B2E;transition:transform .3s}
+.bbar{height:36px;background:#EDEDF4;display:flex;align-items:center;gap:6px;padding:0 12px}
+.bbar i{width:10px;height:10px;border-radius:50%;background:#CFCFDD}
+.bbar span{margin-left:12px;flex:1;background:#fff;border-radius:7px;height:22px;display:flex;align-items:center;padding:0 10px;font-size:11.5px;color:#737290}
+.site{--c:#3B25E5;--ct:#fff;font-size:12px}
+.site .snav{background:var(--nav,#07052E);color:#fff;display:flex;align-items:center;gap:14px;padding:12px 16px;transition:background .35s}
+.site .snav b{font-size:14px}.site .snav span{opacity:.7}
+.site .snav .cta{margin-left:auto;background:var(--c);color:var(--ct);padding:6px 12px;border-radius:8px;font-weight:700;opacity:1;transition:background .35s,color .35s}
+.site .shero{background:linear-gradient(135deg,var(--nav,#07052E),color-mix(in srgb,var(--c) 70%,#000));color:#fff;padding:22px 16px 26px;transition:background .35s}
+.site .shero h4{margin:0 0 6px;font-size:22px;letter-spacing:-.02em;line-height:1.1}
+.site .shero p{margin:0 0 12px;opacity:.8}
+.site .sbtn{display:inline-block;background:var(--c);color:var(--ct);border-radius:8px;padding:7px 14px;font-weight:700;transition:background .35s,color .35s}
+.site .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px;background:#F4F5FA}
+.site .card{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 12px -6px rgba(0,0,0,.2)}
+.site .card .art{height:54px;display:flex;align-items:flex-end;padding:6px 8px;color:#fff;font-weight:800}
+.site .card .bd{padding:8px}
+.site .card .bar{height:5px;border-radius:9px;background:#E7E7F0;margin-top:6px}.site .card .bar i{display:block;height:100%;border-radius:9px;background:var(--c);transition:background .35s}
+.swatches{position:absolute;left:-18px;bottom:28px;background:#fff;color:#0D0B2E;border-radius:14px;padding:12px 14px;box-shadow:0 20px 40px -12px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:8px}
+.swatches small{font-size:11.5px;color:#737290;font-weight:500}
+.swatches div{display:flex;gap:8px}
+.swatches button{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+.swatches button[aria-pressed="true"]{box-shadow:0 0 0 2px #0D0B2E}
+.floating{position:absolute;right:-14px;top:70px;background:#fff;color:#0D0B2E;border-radius:14px;padding:10px 12px;box-shadow:0 20px 40px -12px rgba(0,0,0,.55);font-size:12.5px;display:flex;gap:10px;align-items:center;max-width:250px}
+.floating .ok{width:28px;height:28px;border-radius:50%;background:#DFF5EC;color:#0F7A52;display:grid;place-items:center;flex:none}
+
+section{padding:88px 0}
+.eyebrow{color:var(--brand);font-weight:600;font-size:14px;margin:0 0 10px}
+h2.big{font-size:clamp(30px,3.6vw,46px);line-height:1.08;letter-spacing:-.035em;margin:0 0 14px}
+.sub{color:var(--ink-2);font-size:17px;max-width:620px;margin:0}
+.logos{padding:34px 0;border-bottom:1px solid var(--line);background:var(--surface)}
+.logos .wrap{display:flex;align-items:center;gap:14px 40px;flex-wrap:wrap;justify-content:space-between}
+.logos p{margin:0;color:var(--muted);font-size:13.5px;flex-basis:100%;text-align:center}
+.logos span{font-weight:800;font-size:19px;letter-spacing:-.03em;color:var(--muted)}
+
+.steps3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px;counter-reset:s}
+.steps3 div{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;position:relative}
+.steps3 .n{font-size:13px;font-weight:700;color:var(--brand);background:var(--brand-soft);border-radius:8px;padding:2px 10px;display:inline-block;margin-bottom:14px}
+.steps3 h3{margin:0 0 6px;font-size:19px;letter-spacing:-.02em}.steps3 p{margin:0;color:var(--ink-2);font-size:14.5px}
+.steps3 .time{margin-top:14px;font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;padding:56px 0;border-top:1px solid var(--line)}
+.feat:first-of-type{border-top:0}
+.feat.rev .txt{order:2}
+.feat h3{font-size:30px;letter-spacing:-.03em;line-height:1.12;margin:0 0 12px}
+.feat p{color:var(--ink-2);margin:0 0 16px}
+.feat ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.feat li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
+.feat li svg{color:var(--ok);margin-top:3px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 24px 50px -30px rgba(13,11,46,.35)}
+.mini-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:13px}
+.mini-h b{font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:700}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.p-red{background:#FDE7E8;color:#C8323A}.p-ok{background:#DFF5EC;color:#0F7A52}.p-warn{background:#FFF2D9;color:#9A5B00}.p-blue{background:#E7EDFF;color:#2549C9}
+.shotrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.shotrow div{aspect-ratio:16/9;border-radius:10px;background:linear-gradient(135deg,#15B86F,#063B27);color:#fff;display:grid;place-items:center;text-align:center;font-weight:900;font-size:22px;position:relative;overflow:hidden}
+.shotrow div small{display:block;font-size:10px;font-weight:600;opacity:.8}
+.shotrow .crop::after{content:"";position:absolute;inset:0 0 0 55%;background:#000}
+.scorein{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
+.scorein span.box{border:1px solid var(--line-2);border-radius:10px;height:48px;display:grid;place-items:center;font-size:22px;font-weight:800}
+.winl{margin-top:10px;color:var(--ok);font-size:13px;font-weight:600}
+.bil{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bil div{border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13px}
+.bil h5{margin:0 0 6px;font-size:15px}
+.bil [dir="rtl"]{font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif}
+.mtbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.mtbl td{padding:8px 6px;border-bottom:1px solid var(--line)}
+.mtbl tr:last-child td{border:0}
+.av{width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;font-size:10.5px;font-weight:700;margin-right:6px;vertical-align:middle}
+.bars{display:flex;align-items:flex-end;gap:6px;height:130px;padding-top:10px}
+.bars i{flex:1;background:var(--brand);border-radius:6px 6px 2px 2px;opacity:.85}
+.bars i:last-child{opacity:1;background:var(--coral)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.kpis div{background:var(--surface-2);border-radius:10px;padding:10px}
+.kpis b{display:block;font-size:20px;letter-spacing:-.02em}.kpis span{font-size:11.5px;color:var(--muted)}
+
+.band{background:var(--navy);color:#fff}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.stats b{display:block;font-size:44px;letter-spacing:-.04em;line-height:1}
+.stats span{color:#A9A8CE;font-size:14px}
+.quote{margin-top:56px;display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:start;border-top:1px solid rgba(255,255,255,.1);padding-top:40px}
+.quote .qm{font-size:80px;line-height:.8;color:var(--coral);font-weight:800}
+.quote p{font-size:22px;line-height:1.45;margin:0 0 16px;letter-spacing:-.01em}
+.quote cite{font-style:normal;color:#A9A8CE;font-size:14px}
+
+/* pricing */
+.toggle{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin:26px 0 30px}
+.toggle button{border:0;background:transparent;padding:8px 16px;border-radius:9px;font-weight:600;font-size:14px;color:var(--muted)}
+.toggle button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.toggle em{font-style:normal;color:var(--ok);font-size:12px;margin-left:4px}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:26px;display:flex;flex-direction:column}
+.plan.pop{border:2px solid var(--brand);position:relative}
+.plan.pop::before{content:"Most popular";position:absolute;top:-13px;left:24px;background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+.plan h3{margin:0 0 4px;font-size:20px}.plan .for{color:var(--muted);font-size:14px;margin:0 0 18px;min-height:44px}
+.price{font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1}.price small{font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0}
+.plan .note{font-size:13px;color:var(--muted);margin:6px 0 20px;min-height:20px}
+.plan ul{list-style:none;padding:0;margin:20px 0 0;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.plan li{display:flex;gap:10px}.plan li svg{color:var(--ok);margin-top:3px}
+.faq{max-width:780px}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{padding:20px 0;font-weight:600;font-size:16.5px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:16px}
+.faq summary::after{content:"+";color:var(--muted);font-size:22px;line-height:1}
+.faq details[open] summary::after{content:"–"}
+.faq p{margin:0 0 20px;color:var(--ink-2)}
+.cta-band{background:var(--brand);color:#fff;border-radius:24px;padding:48px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.cta-band h2{margin:0;font-size:34px;letter-spacing:-.03em;line-height:1.1;flex:1;min-width:260px}
+footer{padding:56px 0 36px;border-top:1px solid var(--line);margin-top:88px}
+footer .cols{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:24px}
+footer h4{margin:0 0 12px;font-size:14px}
+footer button.fl{display:block;border:0;background:none;padding:4px 0;color:var(--ink-2);font-size:14px;text-align:left}
+footer button.fl:hover{color:var(--brand)}
+footer .legal{margin-top:36px;color:var(--muted);font-size:13px;display:flex;gap:18px;flex-wrap:wrap}
+
+/* auth + onboarding */
+.ob{min-height:100vh;display:grid;grid-template-columns:420px 1fr}
+.ob-side{background:var(--navy);color:#fff;padding:36px;display:flex;flex-direction:column;gap:30px;position:sticky;top:0;height:100vh}
+.ob-side .logo{font-size:28px}
+.ob-steps{display:flex;flex-direction:column;gap:4px}
+.ob-step{display:flex;gap:14px;align-items:center;padding:10px 0;color:#8F8EB8;font-size:14.5px}
+.ob-step .d{width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(255,255,255,.2);display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.ob-step.cur{color:#fff}.ob-step.cur .d{border-color:#fff;background:#fff;color:var(--navy)}
+.ob-step.done{color:#D6D5F0}.ob-step.done .d{background:var(--mint);border-color:var(--mint);color:#062A1D}
+.ob-side .foot{margin-top:auto;font-size:13px;color:#8F8EB8}
+.ob-side blockquote{margin:0;padding:18px;border-radius:14px;background:rgba(255,255,255,.06);font-size:14px;color:#D6D5F0}
+.ob-main{padding:48px;display:flex;flex-direction:column;align-items:center}
+.ob-card{width:100%;max-width:560px}
+.ob-card h1{font-size:32px;letter-spacing:-.03em;margin:0 0 8px;line-height:1.1}
+.ob-card .lead{color:var(--ink-2);margin:0 0 28px}
+.ob-top{width:100%;max-width:560px;display:flex;align-items:center;gap:12px;margin-bottom:28px;font-size:13.5px;color:var(--muted)}
+.ob-top .prog{flex:1;height:6px;background:var(--line);border-radius:99px;overflow:hidden}.ob-top .prog i{display:block;height:100%;background:var(--brand);border-radius:99px;transition:width .3s}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;min-width:0}
+.fld label,.fld .lbl{font-size:13.5px;font-weight:600;color:var(--ink-2)}
+.opt{color:var(--muted);font-weight:400;font-size:12.5px;margin-left:4px}
+.inp{height:48px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface);padding:0 14px;width:100%}
+.inp:focus{outline:2px solid color-mix(in srgb,var(--brand) 35%,transparent);border-color:var(--brand)}
+.fld .help{font-size:12.5px;color:var(--muted)}
+.fld .err{display:none;font-size:12.5px;color:var(--danger)}
+.fld.bad .inp,.fld.bad .joined,.fld.bad .dd-btn{border-color:var(--danger)}.fld.bad .err{display:block}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.joined{display:flex;border:1px solid var(--line-2);border-radius:12px;overflow:hidden;background:var(--surface)}
+.joined input{border:0;flex:1;height:46px;padding:0 14px;background:transparent;min-width:0}.joined input:focus{outline:none}
+.joined span{padding:0 14px;display:grid;place-items:center;background:var(--surface-2);border-left:1px solid var(--line);color:var(--muted);font-size:14px}
+.pw{position:relative}.pw button{position:absolute;right:8px;top:8px;height:32px;border:0;background:none;color:var(--muted);font-size:13px;font-weight:600}
+.meter{display:flex;gap:4px;margin-top:4px}.meter i{flex:1;height:4px;border-radius:9px;background:var(--line)}
+.meter.s1 i:nth-child(1){background:var(--danger)}.meter.s2 i:nth-child(-n+2){background:#E0A100}.meter.s3 i:nth-child(-n+3){background:var(--ok)}.meter.s4 i{background:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line-2);background:var(--surface);font-size:14px;font-weight:500;color:var(--ink-2)}
+.chip:hover{border-color:var(--brand)}
+.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+.otp{display:flex;gap:10px;margin:8px 0 20px}
+.otp input{width:56px;height:62px;text-align:center;font-size:26px;font-weight:700;border-radius:12px;border:1px solid var(--line-2);background:var(--surface)}
+.otp input:focus{outline:2px solid var(--brand);border-color:var(--brand)}
+.sso{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px;margin:18px 0}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.ob-nav{display:flex;gap:10px;align-items:center;margin-top:24px}.ob-nav .sp{flex:1}
+.dd{position:relative}.dd-btn{height:48px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface);padding:0 14px;text-align:left}
+.dd-btn:hover{border-color:var(--brand)}.dd-btn[aria-expanded="true"]{border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent)}
+.dd-btn svg{color:var(--muted)}
+.dd-list{position:absolute;left:0;right:0;top:54px;z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px -16px rgba(13,11,46,.35);padding:6px;max-height:260px;overflow:auto}
+.dd-list button{display:flex;justify-content:space-between;width:100%;border:0;background:transparent;padding:10px 12px;border-radius:8px;text-align:left;font-size:14px}
+.dd-list button:hover,.dd-list button:focus-visible{background:var(--surface-2)}
+.dd-list button[aria-selected="true"]{background:var(--brand-soft);color:var(--brand);font-weight:600}
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.preset{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface);padding:0;text-align:left}
+.preset[aria-pressed="true"]{border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent)}
+.preset .pv{height:64px;display:flex;flex-direction:column}
+.preset .pv i{height:18px}.preset .pv span{flex:1}
+.preset b{display:block;padding:8px 10px;font-size:13px}
+.colorrow{display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.colorrow label.sw{width:48px;height:48px;border-radius:12px;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);cursor:pointer}
+.colorrow label.sw input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.mini{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:18px}
+.mini .n{padding:10px 14px;display:flex;gap:10px;align-items:center;font-size:12.5px;font-weight:700}
+.mini .n .b{margin-left:auto;padding:5px 12px;border-radius:8px}
+.mini .h{padding:16px 14px;font-size:13px}
+.hintnote{font-size:12.5px;color:var(--muted);margin-top:8px}
+.upload{border:1.5px dashed var(--line-2);border-radius:14px;padding:18px;display:flex;gap:14px;align-items:center;position:relative;background:var(--surface)}
+.upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload .lg{width:120px;height:48px;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;overflow:hidden;color:var(--muted);font-size:12px}
+.upload .lg img{max-width:100%;max-height:100%}
+.invites .inv{display:grid;grid-template-columns:1fr 170px 40px;gap:10px;margin-bottom:10px}
+.iconbtn{width:40px;height:48px;border:0;background:transparent;border-radius:10px;color:var(--muted)}
+.iconbtn:hover{background:var(--surface-2);color:var(--danger)}
+.plan-pick{display:flex;flex-direction:column;gap:10px}
+.plan-pick button{display:flex;gap:14px;align-items:center;border:1.5px solid var(--line);border-radius:14px;background:var(--surface);padding:16px;text-align:left}
+.plan-pick button[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-soft)}
+.plan-pick .r{width:20px;height:20px;border-radius:50%;border:2px solid var(--line-2);flex:none}
+.plan-pick button[aria-pressed="true"] .r{border:6px solid var(--brand)}
+.plan-pick b{display:block}.plan-pick small{color:var(--muted)}
+.plan-pick .pr{margin-left:auto;font-weight:700;white-space:nowrap}
+.done-hero{width:72px;height:72px;border-radius:20px;background:var(--ok-soft);color:var(--ok);display:grid;place-items:center;margin-bottom:22px}
+.check{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:6px 18px;margin:20px 0}
+.check div{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.check div:last-child{border:0}
+.check .ck{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none}
+.check .y{background:var(--ok);color:#fff}.check .n{border:1.5px solid var(--line-2)}
+.check small{margin-left:auto;color:var(--muted);font-size:12.5px}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;z-index:90;box-shadow:0 16px 40px -12px rgba(0,0,0,.5)}
+
+@media (max-width:980px){
+ .hero .wrap,.feat{grid-template-columns:1fr}.feat.rev .txt{order:0}
+ .steps3,.plans,.stats{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}
+ .links,.nav-r .hide-m{display:none}.burger{display:grid;place-items:center}
+ .mmenu.open{display:flex;flex-direction:column;padding:8px 16px 16px;background:var(--navy);border-top:1px solid rgba(255,255,255,.08)}
+ .mmenu button{border:0;background:none;color:#fff;text-align:left;padding:12px 6px;font-size:15px;font-weight:500}
+ .swatches{left:10px}.floating{right:10px}
+ footer .cols{grid-template-columns:1fr 1fr}
+ .ob{grid-template-columns:1fr}.ob-side{position:static;height:auto;padding:20px 24px;gap:14px}.ob-side .ob-steps,.ob-side blockquote,.ob-side .foot{display:none}
+ .ob-main{padding:28px 20px}
+}
+@media (max-width:560px){.wrap{padding:0 18px}section{padding:60px 0}.row2,.presets{grid-template-columns:1fr}.invites .inv{grid-template-columns:1fr 40px}.invites .inv .dd{grid-column:1}.sso{grid-template-columns:1fr}.otp input{width:46px;height:56px}.cta-band{padding:30px}.shotrow{grid-template-columns:1fr}.quote{grid-template-columns:1fr}.quote .qm{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+@media (max-width:700px){.logos .wrap{justify-content:center;gap:10px 22px}.logos span{font-size:16px}}
+</style><style>
+.blob{position:absolute;right:-120px;bottom:-140px;width:620px;height:420px;pointer-events:none;opacity:.9}
+.hero .wrap{position:relative;z-index:1}
+.ctrl{background:#fff;color:#0D0B2E;border-radius:16px;box-shadow:0 40px 80px -30px rgba(0,0,0,.7);overflow:hidden}
+.ctrl .top{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid #ECECF3;font-size:12.5px;color:#737290}
+.ctrl .top b{color:#0D0B2E;font-size:13.5px}
+.ctrl .body{display:grid;grid-template-columns:200px 1fr}
+.ctrl .qs{padding:14px 16px;border-right:1px solid #ECECF3}
+.ctrl .qs h5{margin:0 0 8px;font-size:12px;color:#737290;font-weight:600}
+.ctrl .row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;font-size:13px;font-weight:600;border-bottom:1px solid #F1F1F6}
+.ctrl .row:last-child{border:0}
+.sw2{appearance:none;width:36px;height:21px;border-radius:999px;background:#D4D4E3;position:relative;cursor:pointer;margin:0;transition:background .15s;flex:none}
+.sw2::after{content:"";position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw2:checked{background:#0B5CFF}.sw2:checked::after{transform:translateX(15px)}
+.ctrl .site{padding:0;background:#101631;position:relative;min-height:230px}
+.cs-nav{background:#fff;display:flex;gap:10px;align-items:center;padding:8px 12px;font-size:10.5px;font-weight:700;color:#B3122E}
+.cs-nav i{width:18px;height:18px;border-radius:50%;background:#B3122E;display:inline-block}
+.cs-nav span:first-of-type{margin-left:auto}
+.cs-hero{display:grid;grid-template-columns:1fr 1.05fr;gap:10px;padding:16px 12px;background:radial-gradient(400px 200px at 10% 10%,rgba(179,18,46,.55),transparent),#101631;color:#fff;align-items:center}
+.cs-hero h6{margin:0;font:700 18px/1.1 Georgia,serif}.cs-hero small{font-size:10px;opacity:.7}
+.cs-panel{background:#fff;color:#171A2B;border-radius:6px;padding:10px;border-top:3px solid #B3122E;font-size:10.5px;min-height:128px;transition:opacity .2s}
+.cs-panel b{display:block;font-size:12px;margin-bottom:6px;font-family:Georgia,serif}
+.cs-panel i{display:block;height:14px;border:1px solid #E7E5E1;border-radius:3px;margin-bottom:5px}
+.cs-panel span.btn2{display:block;background:#B3122E;color:#fff;border-radius:3px;text-align:center;padding:4px;font-weight:700;margin-top:6px}
+.cs-maint{position:absolute;inset:0;background:#fff;display:grid;place-items:center;text-align:center;color:#171A2B;font-size:12px}
+.cs-maint b{display:block;font:700 17px Georgia,serif;margin-bottom:4px}
+.ctrl .cap{padding:10px 16px;font-size:12.5px;border-top:1px solid #ECECF3;color:#45445F;display:flex;gap:8px;align-items:center}
+.ctrl .cap b{color:#0B5CFF}
+.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
+.phase{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.phase .tag2{align-self:flex-start;font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 12px}
+.phase h3{margin:0;font-size:21px;letter-spacing:-.02em}
+.phase ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:9px;font-size:14.5px;color:var(--ink-2)}
+.phase li{display:flex;gap:10px}.phase li svg{color:var(--ok);margin-top:3px}
+.scanmock .fb{display:flex;gap:12px;align-items:center;border-radius:12px;padding:12px;margin-top:10px;font-size:13px}
+.scanmock .fb .c{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none}
+.scanmock .inp2{border:2px solid var(--brand);border-radius:12px;height:50px;display:flex;align-items:center;padding:0 14px;font-size:20px;font-weight:700;letter-spacing:.08em}
+.modetabs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:10px;font-size:13px;font-weight:700;text-align:center}
+.modetabs span{padding:9px}.modetabs .on{background:#16A36A;color:#fff}
+.certmini{background:#fff;color:#1a1a1a;border:1px solid var(--line);outline:1px solid #E7D7C0;outline-offset:-10px;aspect-ratio:1.414/1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:Georgia,serif;border-radius:6px;padding:20px}
+.certmini h5{margin:0;font-size:22px}.certmini .n{font-size:28px;border-bottom:1px solid #999;padding:0 20px 2px;margin:10px 0}.certmini p{margin:3px 0;font:13.5px Arial,sans-serif;color:#444}
+.badgemini{width:220px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#fff;color:#171A2B;text-align:center}
+.badgemini .b{background:#B3122E;color:#fff;font-size:11.5px;font-weight:700;padding:10px}
+.badgemini .n{font:700 20px Georgia,serif;margin:14px 0 2px}
+.badgemini small{color:#737891;font-size:11.5px}
+.fac{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 14px;justify-items:center}
+.fac div{text-align:center;font-size:12px;width:84px}
+.fac span{display:grid;place-items:center;width:70px;height:80px;margin:0 auto 6px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);color:#fff;font:700 20px Georgia,serif}
+@media (max-width:980px){.phases{grid-template-columns:1fr}.ctrl .body{grid-template-columns:1fr}.ctrl .qs{border-right:0;border-bottom:1px solid #ECECF3}.blob{display:none}}
+</style><style>
+/* event-type demo + use cases (all live events) */
+.ctrl{--ec:#B3122E;--eh:radial-gradient(400px 200px at 10% 10%,rgba(179,18,46,.55),transparent),#101631}
+.cs-nav{color:var(--ec)}.cs-nav i{background:var(--ec)}
+.cs-hero{background:var(--eh);transition:background .3s}
+.cs-panel{border-top-color:var(--ec)}.cs-panel span.btn2{background:var(--ec)}
+.cs-panel .tkl{display:flex;justify-content:space-between;border:1px solid #E7E5E1;border-radius:4px;padding:3px 6px;margin-bottom:4px;font-size:10px}
+.cs-panel .ph3{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin:4px 0}.cs-panel .ph3 i{height:26px;border:0;border-radius:3px;margin:0}
+.evtabs{display:flex;gap:4px;padding:8px 10px;border-bottom:1px solid #ECECF3;overflow-x:auto;scrollbar-width:none}
+.evtabs button{border:0;background:none;padding:6px 10px;border-radius:8px;font:600 12.5px var(--font);color:#55546E;white-space:nowrap}
+.evtabs button[aria-pressed="true"]{background:#0D0B2E;color:#fff}
+.ctrl .row.dis{opacity:.45}
+.uses{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}
+.use{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:10px}
+.use .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:#fff}
+.use h3{margin:0;font-size:19px;letter-spacing:-.02em}
+.use p{margin:0;color:var(--ink-2);font-size:14.5px}
+.use .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px}
+.use .tags span{font-size:12px;font-weight:600;background:var(--brand-soft);color:var(--brand);padding:3px 9px;border-radius:999px}
+.use a{font-size:13.5px;font-weight:600;color:var(--brand);text-decoration:none}
+.aftertabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.aftertabs button{border:1px solid var(--line-2);background:var(--surface);border-radius:999px;padding:5px 12px;font:600 12.5px var(--font);color:var(--ink-2)}
+.aftertabs button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.rtile{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;font-size:13.5px}
+.rtile span.pl{width:54px;height:34px;border-radius:6px;display:grid;place-items:center;color:#fff;flex:none}
+.tkrow{display:grid;grid-template-columns:1fr 140px 40px;gap:8px;margin-bottom:8px;align-items:start}
+.ob-step{padding:6px 0}
+.typecard .emo{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:#fff;flex:none}
+@media (max-width:980px){.uses{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){.uses{grid-template-columns:1fr}.tkrow{grid-template-columns:1fr 100px 40px}}
+</style>
+<style>
+:root{--logo-mask:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDIgNjYiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTg1Ljc1IDY1Ljc1Qzg1LjQwIDY1LjQ2IDg0LjU3IDY1LjE3IDgzLjQ1IDY0Ljk0QzgzLjAxIDY0Ljg1IDgyLjMxIDY0LjY0IDgxLjkwIDY0LjQ4QzgxLjQ5IDY0LjMxIDgwLjc5IDY0LjA1IDgwLjM1IDYzLjkwQzc3LjgxIDYzLjAyIDc0LjU3IDYwLjk2IDcyLjA4IDU4LjY1QzY4LjYyIDU1LjQ1IDY2LjczIDUyLjkxIDY0LjUyIDQ4LjUyQzYzLjgxIDQ3LjExIDYzLjE1IDQ1LjcwIDYzLjA1IDQ1LjQwQzYyLjk2IDQ1LjEwIDYyLjcyIDQ0LjUwIDYyLjUzIDQ0LjA2QzYyLjM0IDQzLjYzIDYyLjA1IDQyLjc4IDYxLjg5IDQyLjE2QzYxLjczIDQxLjU1IDYxLjQ5IDQwLjcxIDYxLjM1IDQwLjMwQzYxLjA2IDM5LjQyIDYwLjQ2IDM1LjUwIDYwLjI5IDMzLjM5QzYwLjExIDMxLjA4IDYwLjcwIDI2LjMxIDYxLjQ1IDI0LjA1QzYxLjYzIDIzLjUwIDYxLjg2IDIyLjc2IDYxLjk1IDIyLjQwQzYyLjIzIDIxLjMwIDYzLjc0IDE4LjEwIDY0LjQ0IDE3LjEwQzY0LjYyIDE2Ljg1IDY1LjA5IDE2LjEzIDY1LjUwIDE1LjUwQzY4LjA5IDExLjQ1IDcyLjEyIDcuNzUgNzcuMTUgNC43N0M3OS4xMyAzLjYxIDgxLjk1IDIuMzMgODMuMjUgMi4wMUM4My41MiAxLjk0IDg0LjEzIDEuNzQgODQuNjEgMS41NUM4NS4wOCAxLjM3IDg2LjAzIDEuMTAgODYuNzEgMC45NUM4Ny45OCAwLjY3IDg4LjY3IDAuNDAgODguNzcgMC4xNUM4OC44MSAwLjAyIDg5LjUzIDAuMDAgOTMuNzIgMC4wMEw5OC42MyAwLjAwTDk5LjAwIDAuMzNDOTkuMjkgMC42MCA5OS41NyAwLjcyIDEwMC4zMSAwLjkwQzEwMC44MyAxLjAzIDEwMS42NiAxLjMwIDEwMi4xNiAxLjUwQzEwMi42NiAxLjcxIDEwMy4yOSAxLjk1IDEwMy41NyAyLjA0QzEwNC4wNSAyLjIwIDEwNS4zOSAyLjk0IDEwNi45NSAzLjkwQzEwNy45MCA0LjQ4IDEwOS4wNCA1LjQ2IDExMC44NCA3LjI1QzExMy44MSAxMC4xNyAxMTQuOTggMTEuOTggMTE3LjQ5IDE3LjQ1QzExNy43MSAxNy45NSAxMTcuOTkgMTguNjggMTE4LjEwIDE5LjA5QzExOC4yMiAxOS40OSAxMTguNDIgMjAuMTAgMTE4LjU3IDIwLjQ0QzExOC44MyAyMS4wNiAxMTkuMjkgMjMuMDYgMTE5LjM3IDIzLjkxQzExOS40MyAyNC41MCAxMTkuMjIgMjQuOTIgMTE4LjcyIDI1LjI1QzExOC4zMCAyNS41MiAxMTUuOTIgMjYuNDcgMTE0LjY1IDI2Ljg2QzExNC4yMSAyNy4wMCAxMTMuNDAgMjcuMjkgMTEyLjg1IDI3LjUwQzExMi4zMCAyNy43MiAxMTEuNTggMjcuOTggMTExLjI1IDI4LjA5QzExMC45MiAyOC4yMCAxMTAuMzEgMjguNDIgMTA5LjkwIDI4LjU5QzEwOS40OSAyOC43NSAxMDguODEgMjkuMDAgMTA4LjQwIDI5LjE0QzEwNy40MCAyOS40NyAxMDQuNzYgMzAuNDMgMTA0LjIwIDMwLjY3QzEwMy45NSAzMC43OCAxMDMuNDYgMzAuOTUgMTAzLjEwIDMxLjA0QzEwMi43NCAzMS4xNCAxMDEuOTMgMzEuNDIgMTAxLjMwIDMxLjY3Qzk4LjYxIDMyLjcxIDk4LjEwIDMyLjkwIDk3LjI1IDMzLjE4Qzk1LjUxIDMzLjc1IDk0LjI0IDM0LjIxIDkzLjQ1IDM0LjU0QzkzLjAxIDM0LjczIDkyLjE4IDM1LjA0IDkxLjYwIDM1LjIzQzg4LjM3IDM2LjI5IDg3LjY0IDM2LjYzIDg3LjM0IDM3LjIxQzg3LjEzIDM3LjYzIDg3LjE5IDM3Ljg5IDg3Ljc5IDM4LjkzQzkwLjYwIDQzLjc5IDk0LjEwIDQ2Ljk0IDk4LjE5IDQ4LjI2QzEwMC4wNSA0OC44NyAxMDAuNTIgNDguOTQgMTAyLjQwIDQ4LjkzQzEwNi40MyA0OC45MiAxMTAuNDYgNDcuMTkgMTE0LjI3IDQzLjgzQzExNS4wMSA0My4xOCAxMTYuNjYgNDEuMTggMTE3LjU1IDM5Ljg1QzExOC41NiAzOC4zNCAxMTguNzIgMzguMjAgMTE5LjQ2IDM4LjIwQzExOS45MiAzOC4yMCAxMjEuNTMgMzguODQgMTIyLjg1IDM5LjU2QzEyMy42NyA0MC4wMCAxMjUuMDggNDAuNTMgMTI1LjI2IDQwLjQ2QzEyNS42MyA0MC4zMiAxMjUuNjUgNDAuMDkgMTI1LjY4IDMxLjU1QzEyNS43MiAyMy41NCAxMjUuNjYgMjAuNzkgMTI1LjM5IDE3LjY1QzEyNS4yMiAxNS43MiAxMjQuOTAgMTUuMjYgMTIzLjU3IDE1LjA4QzEyMC4wNCAxNC42MSAxMTkuMjkgMTQuMzkgMTE4Ljc2IDEzLjY3QzExOC41NSAxMy4zOSAxMTguNTUgMTMuMjggMTE4LjUyIDguNTlDMTE4LjQ5IDMuNDUgMTE4LjUxIDMuMjIgMTE4Ljk4IDIuNzdDMTE5LjQ3IDIuMzAgMTE5LjY2IDIuMjkgMTMzLjk1IDIuMzJDMTQ4LjYxIDIuMzUgMTQ3LjgyIDIuMzIgMTQ4LjI0IDIuOTFDMTQ4LjU1IDMuMzYgMTQ4LjgyIDUuMTMgMTQ4Ljk1IDcuNThDMTQ5LjAzIDkuMTkgMTQ5LjMxIDkuNzEgMTQ5LjkxIDkuMzlDMTUwLjA0IDkuMzMgMTUwLjg2IDguNTUgMTUxLjc0IDcuNjZDMTUzLjU5IDUuNzkgMTU0LjgyIDQuNzUgMTU2LjI4IDMuNzhDMTU4LjMyIDIuNDQgMTYwLjk3IDEuMzQgMTYyLjk4IDEuMDBDMTYzLjYxIDAuODkgMTY0LjcyIDAuNjQgMTY1LjQ0IDAuNDNDMTY3LjI2IC0wLjEwIDE2OC42OSAtMC4xMSAxNzAuMzUgMC4zN0MxNzAuOTUgMC41NSAxNzIuMTEgMC44MSAxNzIuOTIgMC45NUMxNzMuNzMgMS4wOSAxNzQuNzAgMS4zMiAxNzUuMDcgMS40NkMxNzUuNDUgMS42MCAxNzYuMDQgMS44MSAxNzYuNDAgMS45MkMxNzcuODMgMi4zNiAxNzkuODUgMy43NSAxODEuNjAgNS41MEMxODIuOTUgNi44NiAxODMuNTggNy42NyAxODQuMTAgOC43MkMxODUuMjQgMTEuMDEgMTg1LjU2IDExLjAzIDE4Ny4zNCA4Ljk2QzE4OS45NSA1LjkzIDE5NC4yNSAyLjU5IDE5Ni4zNSAxLjk3QzE5Ni42MiAxLjg5IDE5Ny4xNiAxLjY3IDE5Ny41NSAxLjUwQzE5Ny45NiAxLjMxIDE5OC42NiAxLjEwIDE5OS4yNSAxLjAwQzIwMC40MSAwLjc5IDIwMS40MyAwLjQ3IDIwMS44MiAwLjE5QzIwMi4wNyAwLjAxIDIwMi4yOCAwLjAwIDIwNC43NCAwLjAwQzIwNi4yOCAwLjAwIDIwNy40MSAwLjA0IDIwNy40NSAwLjA5QzIwNy41NiAwLjI3IDIwOC42NiAwLjYyIDIxMC4wMyAwLjkwQzIxMi42MyAxLjQ0IDIxNS4yNCAyLjU3IDIxNy4xMCAzLjk1QzIxOS4yNyA1LjU3IDIyMS4xMyA4LjM4IDIyMi4yNCAxMS43MEMyMjIuNzEgMTMuMTEgMjIyLjgyIDEzLjYzIDIyMy4yNSAxNi40MEMyMjMuNzIgMTkuMzcgMjIzLjcyIDE5LjMzIDIyMy43OSAzNy41NUMyMjMuODUgNTQuMDQgMjIzLjg2IDU1LjA3IDIyNC4wMyA1NS4zN0MyMjQuMjkgNTUuODUgMjI0LjUwIDU1Ljk1IDIyNi4xMCA1Ni4zNUMyMjguNjYgNTcuMDEgMjI5LjA2IDU3LjAzIDIzMC41MSA1Ni42NkMyMzMuOTEgNTUuNzcgMjM0LjAxIDU1LjczIDIzNC4yMCA1NS4wMUMyMzQuNjAgNTMuNTIgMjM0LjUxIDE5LjI5IDIzNC4xMCAxNi43MkMyMzMuODggMTUuMzkgMjMzLjcxIDE1LjI4IDIzMS41MyAxNS4wMEMyMjguNTEgMTQuNjIgMjI3LjgyIDE0LjM4IDIyNy40MiAxMy42MEMyMjcuMTkgMTMuMTUgMjI3LjE5IDEzLjE1IDIyNy4yMiA4LjI1QzIyNy4yNSAyLjgzIDIyNy4yNCAyLjk0IDIyNy45MCAyLjU2QzIyOC4yNSAyLjM1IDIyOC4zMiAyLjM1IDI0Mi4yMCAyLjM1QzI1Ny4zNSAyLjM1IDI1Ni41OSAyLjMyIDI1Ny4wMCAyLjkwQzI1Ny4yNiAzLjI3IDI1Ny40NiA0LjA3IDI1Ny41NCA1LjEwQzI1Ny44NCA4Ljg2IDI1Ny45NiA5LjQwIDI1OC41MiA5LjQwQzI1OC42MyA5LjQwIDI1OS4zNyA4LjczIDI2MC4zMyA3Ljc3QzI2MS45MyA2LjE1IDI2My43NCA0LjY1IDI2NS4yOCAzLjY2QzI2Ni45MyAyLjYxIDI2OS43MiAxLjQwIDI3MS4xMCAxLjE0QzI3MS41NyAxLjA1IDI3Mi45MiAwLjc1IDI3NC4xMCAwLjQ4QzI3Ni43OCAtMC4xNCAyNzcuODIgLTAuMTYgMjc5LjMwIDAuMzlDMjc5Ljc3IDAuNTYgMjgwLjc5IDAuODIgMjgxLjU3IDAuOTVDMjg0LjYzIDEuNDggMjg4LjA3IDMuMTYgMjkwLjA0IDUuMDhDMjkwLjkxIDUuOTMgMjkyLjQ4IDguMDIgMjkzLjAwIDkuMDFDMjkzLjU5IDEwLjE0IDI5NC4xMiAxMC41MSAyOTQuNzIgMTAuMTlDMjk0LjgzIDEwLjEzIDI5NS45OSA5LjAxIDI5Ny4yOSA3LjcxQzMwMC4wNiA0LjkzIDMwMS41MiAzLjc2IDMwMy41MCAyLjc1QzMwNS40NyAxLjc1IDMwNi43OCAxLjIzIDMwNy43NiAxLjA1QzMwOC44NCAwLjg1IDMwOS43MSAwLjU4IDMxMC4yOSAwLjI1QzMxMC43MiAwLjAwIDMxMC43NSAtMC4wMCAzMTMuMTEgMC4wMEMzMTUuMjYgMC4wMCAzMTUuNTUgMC4wMiAzMTUuODggMC4xOUMzMTYuMzIgMC40MSAzMTcuNTggMC43MyAzMTguOTAgMC45NUMzMjEuMDMgMS4zMSAzMjMuNjAgMi4zNyAzMjUuMzQgMy42MkMzMjcuMjIgNC45NiAzMjguNDEgNi40MiAzMjkuNzAgOC45M0MzMzAuNzggMTEuMDQgMzMwLjc2IDExLjAwIDMzMS40MCAxMy40OUMzMzIuMjQgMTYuNzQgMzMyLjIyIDE2LjMzIDMzMi4zMSAzNC43NUMzMzIuMzYgNDMuNTAgMzMyLjQzIDUxLjcwIDMzMi40NyA1Mi45N0MzMzIuNTcgNTUuOTQgMzMyLjQwIDU1LjcxIDMzNS4wOSA1Ni40NUMzMzcuMTkgNTcuMDMgMzM3LjQ1IDU3LjE1IDMzNy42NyA1Ny42N0MzMzcuOTAgNTguMjQgMzM3LjgyIDYyLjM1IDMzNy41NyA2Mi43NEMzMzcuMTggNjMuMzMgMzM4LjEyIDYzLjMwIDMyMS4wMyA2My4zMEMzMDUuOTYgNjMuMzAgMzA1LjMzIDYzLjI5IDMwNC45NCA2My4xMUMzMDQuMjggNjIuODEgMzA0LjIwIDYyLjQ5IDMwNC4yMCA2MC4wNEMzMDQuMjAgNTcuNzkgMzA0LjI2IDU3LjQ5IDMwNC43NiA1Ny4xMkMzMDUuMDMgNTYuOTIgMzA3LjA2IDU2LjIxIDMwNy45NiA1Ni4wMEMzMDguNDQgNTUuODggMzA4Ljg1IDU1LjUyIDMwOC45NCA1NS4xMkMzMDkuMDYgNTQuNjAgMzA5LjEzIDI0LjE5IDMwOS4wMiAyMS43NUMzMDguNzggMTYuNzggMzA3LjU0IDE0LjQ2IDMwNC44NSAxMy45OUMzMDQuMDcgMTMuODYgMzAxLjkyIDEzLjkyIDMwMC45NSAxNC4xMEMyOTkuNzcgMTQuMzMgMjk3LjM4IDE1LjM0IDI5Ni4zMCAxNi4wOEMyOTUuNTIgMTYuNjEgMjk1LjM0IDE2Ljk2IDI5NS4zNyAxNy45NUMyOTUuMzkgMTguMzkgMjk1LjQ0IDI2LjQ3IDI5NS40OSAzNS45MEMyOTUuNjAgNTMuODEgMjk1LjYxIDU0Ljg5IDI5NS43NCA1NS4zMEMyOTUuOTUgNTUuOTYgMjk2LjQ4IDU2LjI2IDI5OC4yNSA1Ni43MUMzMDAuMjYgNTcuMjIgMzAwLjI0IDU3LjIwIDMwMC4zMCA1OS42MkMzMDAuMzggNjIuNTkgMzAwLjI4IDYzLjAwIDI5OS40MyA2My4zNkMyOTkuMDEgNjMuNTQgMjY4LjEwIDYzLjU3IDI2Ny42MyA2My4zOUMyNjYuNzcgNjMuMDcgMjY2LjY4IDYyLjc3IDI2Ni42OCA2MC4xOUMyNjYuNjcgNTcuMjMgMjY2LjY3IDU3LjI0IDI2OC43NiA1Ni41N0MyNjkuMzYgNTYuMzcgMjcwLjE4IDU2LjE0IDI3MC41OCA1Ni4wNUMyNzEuNDIgNTUuODYgMjcxLjc1IDU1LjYzIDI3MS45MSA1NS4xMkMyNzIuMDggNTQuNjMgMjcyLjE2IDIzLjQ4IDI3Mi4wMSAyMS4wMUMyNzEuODkgMTguOTkgMjcxLjgwIDE4LjU3IDI3MS4yMiAxNy4xMEMyNzAuODAgMTYuMDQgMjcwLjcxIDE1LjkwIDI3MC4wNCAxNS4yMkMyNjkuMTkgMTQuMzYgMjY4LjcyIDE0LjEzIDI2Ny41MyAxMy45OEMyNjUuNzQgMTMuNzYgMjYzLjg2IDE0LjAyIDI2Mi4yNCAxNC43MEMyNjAuMDQgMTUuNjMgMjU5LjAwIDE2LjM0IDI1OC41OCAxNy4xOEMyNTguMzUgMTcuNjUgMjU4LjM1IDE3LjY1IDI1OC4zMiAzNC45NUMyNTguMjkgNTIuODggMjU4LjMyIDU0Ljc2IDI1OC42OCA1NS41MEMyNTguOTAgNTUuOTUgMjU5LjU4IDU2LjMyIDI2MC43MCA1Ni41OUMyNjIuMjkgNTYuOTggMjYyLjU4IDU3LjA5IDI2Mi44NCA1Ny40MUMyNjMuMTkgNTcuODIgMjYzLjIyIDU4LjA4IDI2My4xOCA2MC40N0MyNjMuMTUgNjIuODMgMjYzLjExIDYyLjk2IDI2Mi4zOSA2My4zM0MyNjIuMDIgNjMuNTIgMjUzLjgxIDYzLjUyIDIxMS44OCA2My4zMkMxOTYuMjEgNjMuMjUgMTk2LjIxIDYzLjI1IDE5NS45MyA2My4wNEMxOTUuMzkgNjIuNjQgMTk1LjM1IDYyLjQ1IDE5NS4zNSA2MC4wNUMxOTUuMzUgNTguMDMgMTk1LjM3IDU3LjgyIDE5NS41NSA1Ny41MkMxOTUuNzggNTcuMTMgMTk2LjU3IDU2LjczIDE5Ny43MCA1Ni40MUMxOTkuMjcgNTUuOTcgMTk5LjQ3IDU1Ljg5IDE5OS42NyA1NS42OEMyMDAuMTcgNTUuMTMgMjAwLjE1IDU1LjgzIDIwMC4xNSAzNy43NUMyMDAuMTUgMTkuNTggMjAwLjE0IDE5LjA5IDE5OS42NSAxNy42M0MxOTguNjQgMTQuNjUgMTk3LjMwIDEzLjc4IDE5My45MCAxMy45NEMxOTIuMjQgMTQuMDEgMTkxLjUxIDE0LjE2IDE5MC4yNCAxNC43MEMxODcuNDQgMTUuODggMTg2LjYwIDE2LjYxIDE4Ni41OSAxNy44NUMxODYuNTkgMTkuMzEgMTg2LjgwIDUxLjU1IDE4Ni44MiA1My4yMEMxODYuODYgNTYuMDEgMTg2Ljg5IDU2LjA1IDE4OS41MCA1Ni43MUMxOTEuNjggNTcuMjYgMTkxLjY0IDU3LjE5IDE5MS42OCA1OS43MEMxOTEuNzMgNjIuNDYgMTkxLjU0IDYzLjE0IDE5MC42MSA2My40MEMxOTAuMzggNjMuNDYgMTg0LjYwIDYzLjUwIDE3NC42MCA2My41MEMxNTkuOTAgNjMuNTAgMTU4LjkzIDYzLjQ5IDE1OC42MSA2My4zMkMxNTcuODggNjIuOTUgMTU3Ljg1IDYyLjg2IDE1Ny44MiA2MC4yOEMxNTcuNzkgNTcuODAgMTU3LjgyIDU3LjU1IDE1OC4yOCA1Ny4yMEMxNTguNTQgNTYuOTkgMTYwLjE0IDU2LjQ2IDE2MS42MyA1Ni4wOUMxNjIuNTkgNTUuODUgMTYzLjAyIDU1LjU1IDE2My4xNCA1NS4wM0MxNjMuMTcgNTQuODggMTYzLjIzIDQ3LjgwIDE2My4yNiAzOS4zMEMxNjMuMzUgMTkuMjggMTYzLjMyIDE4Ljc2IDE2Mi4wMyAxNi4yN0MxNjEuNjQgMTUuNTQgMTYwLjg1IDE0LjczIDE2MC4xOCAxNC4zOUMxNTguOTkgMTMuNzggMTU2LjA4IDEzLjc0IDE1NC41NSAxNC4zMEMxNTQuMjggMTQuNDAgMTUzLjYxIDE0LjY1IDE1My4wNyAxNC44NEMxNTEuMjkgMTUuNDkgMTQ5Ljg2IDE2LjYwIDE0OS42MSAxNy41MkMxNDkuNTIgMTcuODUgMTQ5LjUwIDIxLjY5IDE0OS41NSAzMy41MEMxNDkuNjMgNTUuNTQgMTQ5LjYzIDU1LjExIDE0OS44NiA1NS41MUMxNTAuMTQgNTUuOTggMTUwLjgzIDU2LjMzIDE1Mi4yNSA1Ni43MEMxNTQuNDEgNTcuMjcgMTU0LjM0IDU3LjE3IDE1NC4zMiA2MC4xNkMxNTQuMzEgNjIuNDcgMTU0LjI3IDYyLjcxIDE1My44OSA2My4wN0MxNTMuNDEgNjMuNTEgMTUzLjc2IDYzLjUwIDEzNy4wMiA2My41MEMxMjEuOTIgNjMuNTAgMTIwLjkzIDYzLjQ5IDEyMC42MSA2My4zMkMxMTkuODggNjIuOTUgMTE5Ljg1IDYyLjg2IDExOS44MiA2MC4yOEMxMTkuNzkgNTcuNzkgMTE5LjgyIDU3LjU0IDEyMC4yOSA1Ny4yMUMxMjAuNTkgNTcuMDAgMTIyLjQzIDU2LjQxIDEyMy43NSA1Ni4xMEMxMjQuNzMgNTUuODcgMTI1LjAxIDU1LjczIDEyNS4yNyA1NS4zNEMxMjUuNzUgNTQuNjAgMTI1Ljg3IDQzLjg4IDEyNS40MCA0My4wMEMxMjUuMTMgNDIuNDkgMTI0LjYxIDQzLjA2IDEyNC4yNCA0NC4yOEMxMjIuNTggNDkuODcgMTE5LjY0IDU0LjIwIDExNS4wMCA1Ny44OUMxMTIuMTAgNjAuMjAgMTA2LjI3IDYzLjIzIDEwMy4xNSA2NC4wNEMxMDIuODIgNjQuMTIgMTAyLjIxIDY0LjMxIDEwMS44MCA2NC40NUMxMDEuMzkgNjQuNTkgMTAwLjM4IDY0Ljg0IDk5LjU3IDY1LjAxQzk4LjEwIDY1LjMwIDk3LjM0IDY1LjU3IDk3LjIzIDY1Ljg1Qzk3LjE5IDY1Ljk4IDk2LjM5IDY2LjAwIDkxLjYxIDY2LjAwQzg2LjA1IDY1Ljk5IDg2LjA1IDY1Ljk5IDg1Ljc1IDY1Ljc1Wk0wLjAwIDYwLjQxQzAuMDAgNTcuNTIgMC4wMCA1Ny41MiAwLjI5IDU3LjQwQzAuNDUgNTcuMzQgMC42NyA1Ny4xOCAwLjc5IDU3LjA2QzEuMDkgNTYuNzQgMy4yOCA1My42MiA0LjAwIDUyLjUwQzQuMzMgNTEuOTggNS4xMiA1MC44MyA1Ljc1IDQ5Ljk1QzYuOTggNDguMjIgOC4wMyA0Ni43MCA5LjQxIDQ0LjY1QzkuODkgNDMuOTQgMTAuNTkgNDIuOTIgMTAuOTcgNDIuMzlDMTEuMzQgNDEuODcgMTEuODkgNDEuMTAgMTIuMTggNDAuNjlDMTIuNDcgNDAuMjggMTMuMDUgMzkuNDMgMTMuNDcgMzguODBDMTMuODggMzguMTcgMTQuNTkgMzcuMTQgMTUuMDQgMzYuNTJDMTYuMjcgMzQuODEgMTcuNTkgMzIuODkgMTguNTAgMzEuNTBDMTguOTUgMzAuODEgMTkuNzIgMjkuNzEgMjAuMjEgMjkuMDVDMjAuNjkgMjguMzkgMjEuMzUgMjcuNDUgMjEuNjcgMjYuOTdDMjIuMjcgMjYuMDcgMjMuNzUgMjMuOTIgMjUuMTggMjEuOTBDMjYuMzYgMjAuMjMgMjYuOTQgMTkuMzggMjcuNzEgMTguMjBDMjguMDkgMTcuNjIgMjguOTAgMTYuNDUgMjkuNTEgMTUuNjBDMzAuMTEgMTQuNzUgMzEuMDQgMTMuNDIgMzEuNTYgMTIuNjVDMzIuMDggMTEuODggMzIuODAgMTAuODMgMzMuMTYgMTAuMzFDMzMuNzQgOS40OCAzMy44MSA5LjMzIDMzLjc4IDguOTZDMzMuNzIgOC4xNiAzNC4xNyA4LjIwIDI1LjAwIDguMjBDMjAuMDQgOC4yMCAxNi44MiA4LjI0IDE2LjYxIDguMzBDMTUuNzkgOC41MyAxNS40MCA5LjIwIDE1LjA1IDExLjAwQzE0LjkwIDExLjc0IDE0LjY1IDEyLjc2IDE0LjQ5IDEzLjI5QzE0LjMzIDEzLjgxIDE0LjExIDE0Ljc0IDE0LjAwIDE1LjM1QzEzLjg5IDE1Ljk1IDEzLjY5IDE2Ljc5IDEzLjU1IDE3LjIwQzEzLjQxIDE3LjYxIDEzLjE3IDE4LjYxIDEzLjAxIDE5LjQyQzEyLjUxIDIxLjk1IDEyLjI4IDIyLjEzIDkuNTUgMjIuMDRDMS40MCAyMS43OSAxLjQxIDIxLjc5IDEuMDYgMjEuMTlDMC43NiAyMC42OCAwLjk2IDE1LjU2IDEuNjUgNS43NUMxLjg2IDIuNzMgMS45OCAyLjQ4IDMuMjIgMi4zNUMzLjU3IDIuMzIgMTYuMjUgMi4zMCAzMS40MCAyLjMyQzU3LjUzIDIuMzUgNTguOTcgMi4zNiA1OS4yMyAyLjUzQzU5Ljc5IDIuOTAgNTkuODUgMy4wOSA1OS44OCA0Ljk0QzU5LjkwIDUuODcgNTkuODkgNi44MiA1OS44NSA3LjA2QzU5Ljc5IDcuNDYgNTguNDcgOS42NiA1Ny4zNiAxMS4yMkM1Ny4xMyAxMS41MyA1Ni41OSAxMi4zMyA1Ni4xNSAxMy4wMEM1NS43MSAxMy42NyA1NC45NyAxNC44MCA1NC41MCAxNS41MEM1NC4wMyAxNi4yMCA1My4yOSAxNy4zMyA1Mi44NSAxOC4wMEM1Mi40MSAxOC42NyA1MS44MCAxOS41NyA1MS41MCAyMC4wMEM1MS4yMCAyMC40MyA1MC41OSAyMS4zMyA1MC4xNSAyMi4wMEM0OS43MSAyMi42NyA0OC45NyAyMy44MCA0OC41MCAyNC41MEM0OC4wMyAyNS4yMCA0Ny4yOSAyNi4zMyA0Ni44NSAyNy4wMEM0Ni40MSAyNy42NyA0NS44MCAyOC41NyA0NS41MCAyOS4wMEM0NS4yMCAyOS40MyA0NC41OSAzMC4zMyA0NC4xNSAzMS4wMEM0My43MSAzMS42NyA0Mi45NyAzMi44MCA0Mi41MCAzMy41MEM0Mi4wMyAzNC4yMCA0MS4zMSAzNS4yOSA0MC45MCAzNS45MUM0MC40OSAzNi41NCAzOS45NiAzNy4zMiAzOS43MyAzNy42NUMzOS41MCAzNy45OCAzOS4xNyAzOC41MCAzOC45OSAzOC44MEMzOC44MSAzOS4xMCAzNi43MiA0Mi4yNyAzNC4zNSA0NS44NUMyOC45MyA1NC4wMSAyNy44NCA1NS42OCAyNy43MSA1Ni4wM0MyNy41MiA1Ni41MSAyNy41OCA1Ni44NyAyNy44NiA1Ny4wOUMyOC4yNiA1Ny40MCA0NC4zOCA1Ny40MiA0NS4wNyA1Ny4xMUM0NS42MSA1Ni44NiA0NS44MiA1Ni40NSA0Ni4wOSA1NS4wN0M0Ni4yMSA1NC40OCA0Ni40MiA1My42NCA0Ni41NSA1My4yMEM0Ni42OSA1Mi43NyA0Ni44OSA1MS45MyA0Ny4wMCA1MS4zM0M0Ny4xMSA1MC43NCA0Ny4zMSA0OS44NyA0Ny40NSA0OS40MEM0Ny41OSA0OC45MyA0Ny44NiA0Ny44MyA0OC4wNSA0Ni45NUM0OC40NyA0NC45OSA0OC45MSA0My4zNiA0OS4xNCA0Mi45M0M0OS41MCA0Mi4yMiA0OS4yNyA0Mi4yNSA1NC45MSA0Mi4yNUM1OS45MCA0Mi4yNSA1OS45OSA0Mi4yNSA2MC4yNyA0Mi40NkM2MC44NiA0Mi45MCA2MC44NyA0My4wOCA2MC41MiA0Ny44NUM2MC4yMSA1Mi4wMCA2MC4xMiA1My41NiA1OS45MCA1OC44MEM1OS43NCA2Mi41NCA1OS42OSA2Mi43MyA1OC45MCA2My4xMkM1OC41NyA2My4yOSA1Ni45NSA2My4zMCAyOS4yNyA2My4zMEwwLjAwIDYzLjMwTDAuMDAgNjAuNDFaTTM0MS43MiA2My4xMEMzNDEuMTYgNjIuNzUgMzQxLjA4IDYyLjQxIDM0MS4xMiA2MC4zNkMzNDEuMTYgNTguMTggMzQxLjEzIDU4LjI1IDM0Mi42MSA1Ni4yMkMzNDMuMTggNTUuNDMgMzQ0LjAzIDU0LjIxIDM0NC41MCA1My41MEMzNDUuNjkgNTEuNzAgMzQ2Ljk3IDQ5LjgzIDM0Ny44NCA0OC42NEMzNDguMjUgNDguMDkgMzQ4Ljk3IDQ3LjA1IDM0OS40NCA0Ni4zNEMzNDkuOTEgNDUuNjMgMzUwLjUzIDQ0LjcyIDM1MC44MiA0NC4zMUMzNTEuMTEgNDMuOTAgMzUxLjY2IDQzLjEzIDM1Mi4wMyA0Mi42MUMzNTIuNDEgNDIuMDggMzUzLjExIDQxLjA2IDM1My41OSA0MC4zNUMzNTUuMDQgMzguMTkgMzU2LjA1IDM2LjczIDM1Ny4yNSAzNS4wNUMzNTcuODggMzQuMTcgMzU4LjY3IDMzLjAyIDM1OS4wMCAzMi41MEMzNTkuMzMgMzEuOTggMzYwLjEyIDMwLjgzIDM2MC43NSAyOS45NUMzNjEuOTggMjguMjIgMzYzLjAzIDI2LjcwIDM2NC40MSAyNC42NUMzNjQuODkgMjMuOTMgMzY1LjU5IDIyLjkyIDM2NS45NyAyMi4zOUMzNjYuMzQgMjEuODcgMzY2Ljg5IDIxLjEwIDM2Ny4xOCAyMC42OUMzNjcuNDcgMjAuMjggMzY4LjA1IDE5LjQzIDM2OC40NyAxOC44MEMzNjguODggMTguMTcgMzY5LjU5IDE3LjE0IDM3MC4wNCAxNi41MkMzNzEuMzEgMTQuNzYgMzcyLjYxIDEyLjg3IDM3My41MCAxMS41MEMzNzMuOTQgMTAuODEgMzc0LjQ0IDEwLjA3IDM3NC42MCA5Ljg1QzM3NS4wMyA5LjI3IDM3NS4wOCA4LjkwIDM3NC43NyA4LjU0QzM3NC41MiA4LjI1IDM3NC41MiA4LjI1IDM2Ni4zMyA4LjIyQzM2MS44MyA4LjIwIDM1OC4wMSA4LjIyIDM1Ny44MyA4LjI1QzM1Ny4wNSA4LjM5IDM1Ni40OSA5LjUwIDM1Ni4wMCAxMS44NUMzNTUuODMgMTIuNjggMzU1LjU2IDEzLjgwIDM1NS40MCAxNC4zNUMzNTUuMjQgMTQuOTAgMzU1LjA0IDE1Ljc2IDM1NC45NSAxNi4yN0MzNTQuODcgMTYuNzggMzU0LjY3IDE3LjYxIDM1NC41MSAxOC4xMkMzNTQuMzUgMTguNjMgMzU0LjEzIDE5LjUyIDM1NC4wMSAyMC4xMEMzNTMuNjUgMjEuOTAgMzUzLjQxIDIyLjA2IDM1MS4xNSAyMi4wM0MzNDYuNzggMjEuOTcgMzQyLjk1IDIxLjc5IDM0Mi42MCAyMS42MkMzNDEuODggMjEuMjcgMzQxLjg2IDIwLjYzIDM0Mi4zNSAxMi41MEMzNDIuNjUgNy42MiAzNDIuODAgNS4wNCAzNDIuODUgNC4zMkMzNDIuOTEgMy40NSAzNDMuMTcgMi43OSAzNDMuNTYgMi41M0MzNDMuODMgMi4zNiAzNDQuODYgMi4zNSAzNzEuOTYgMi4zNUM0MDAuMDkgMi4zNSA0MDAuMDkgMi4zNSA0MDAuMzcgMi41NkM0MDAuODggMi45NCA0MDAuOTUgMy4yMCA0MDAuOTggNS4wMkM0MDEuMDMgNy41OCA0MDEuMTAgNy40MiAzOTguMjEgMTEuNjdDMzk3LjkwIDEyLjEzIDM5Ny40MCAxMi44OCAzOTcuMTAgMTMuMzRDMzk2LjUzIDE0LjIzIDM5NS4yMCAxNi4yMSAzOTQuMDAgMTguMDBDMzkyLjEzIDIwLjc3IDM5MS41NyAyMS42MSAzOTEuMTAgMjIuMzVDMzkwLjYzIDIzLjA4IDM4OS45OCAyNC4wNiAzODguMDAgMjcuMDBDMzg2LjAwIDI5Ljk2IDM4NS41NyAzMC42MSAzODUuMTAgMzEuMzVDMzg0LjYzIDMyLjA4IDM4My45OCAzMy4wNiAzODIuMDAgMzYuMDBDMzgxLjYxIDM2LjU4IDM4MC45MSAzNy42MSAzODAuNDUgMzguMzBDMzc5Ljk5IDM4Ljk5IDM3OS4zMiA0MC4wMiAzNzguOTcgNDAuNjBDMzc4LjYxIDQxLjE4IDM3Ni4yNCA0NC43OCAzNzMuNjkgNDguNjBDMzcxLjE1IDUyLjQyIDM2OC45NyA1NS43NiAzNjguODYgNTYuMDJDMzY4LjYzIDU2LjU4IDM2OC43MSA1Ni45NyAzNjkuMTAgNTcuMTdDMzY5LjQ4IDU3LjM2IDM4NS43NyA1Ny4zNiAzODYuMjMgNTcuMTZDMzg2LjcwIDU2Ljk3IDM4Ni44OCA1Ni42MyAzODcuMTUgNTUuNDRDMzg3LjI4IDU0Ljg3IDM4Ny41MCA1NC4wMSAzODcuNjQgNTMuNTNDMzg3Ljc4IDUzLjA0IDM4Ny45NiA1Mi4yNCAzODguMDUgNTEuNzNDMzg4LjEzIDUxLjIyIDM4OC4zMyA1MC4zOSAzODguNDkgNDkuODdDMzg4LjY1IDQ5LjM2IDM4OC44NSA0OC41NCAzODguOTQgNDguMDRDMzg5LjAzIDQ3LjU1IDM4OS4yNCA0Ni42OCAzODkuNDAgNDYuMTBDMzg5LjU2IDQ1LjUyIDM4OS43OCA0NC42NCAzODkuOTAgNDQuMTVDMzkwLjE0IDQzLjA5IDM5MC4zNiA0Mi42OCAzOTAuODIgNDIuNDNDMzkxLjEyIDQyLjI2IDM5MS41NyA0Mi4yNSAzOTYuNTcgNDIuMjJMNDAyLjAwIDQyLjE5TDQwMi4wMCA0Ni40OUM0MDIuMDAgNTAuNzkgNDAyLjAwIDUwLjc5IDQwMS43NSA1MS41OUM0MDEuMzYgNTIuODIgNDAxLjIxIDU0LjM2IDQwMS4wMCA1OS4xNUM0MDAuODggNjEuOTUgNDAwLjg1IDYyLjI3IDQwMC41OSA2Mi43MEM0MDAuMTkgNjMuMzUgNDAyLjU0IDYzLjMwIDM3MC44OCA2My4zMEMzNDIuMTQgNjMuMzAgMzQyLjA1IDYzLjMwIDM0MS43MiA2My4xMFpNODYuMzQgMjkuNTNDODYuNzkgMjkuMzQgODcuNTMgMjkuMDcgODguMDAgMjguOTNDOTAuMDkgMjguMzIgOTIuODUgMjYuOTMgOTMuNzYgMjYuMDNDOTQuODUgMjQuOTQgOTUuMDUgMjQuMzkgOTUuMDUgMjIuNDVDOTUuMDQgMjAuMjkgOTQuOTMgMTkuODUgOTMuMzggMTUuOTdDOTEuOTYgMTIuNDIgODkuNTYgOS41OCA4Ny40MiA4LjkzQzg2LjYzIDguNjkgODQuODUgOC42OSA4NC4wOCA4LjkzQzgzLjEzIDkuMjIgODEuODggMTAuNDMgODEuNDMgMTEuNDlDODAuNzEgMTMuMTkgODAuNzkgMTcuOTMgODEuNjAgMjEuMDRDODEuNzYgMjEuNjUgODEuOTQgMjIuNDkgODIuMDEgMjIuOTBDODIuMDcgMjMuMzEgODIuMjcgMjQuMDYgODIuNDUgMjQuNTdDODIuNjQgMjUuMDcgODIuODggMjUuOTUgODMuMDAgMjYuNTJDODMuMjQgMjcuNjUgODMuNjggMjguOTAgODQuMDMgMjkuNDFDODQuNTAgMzAuMTEgODQuOTkgMzAuMTMgODYuMzQgMjkuNTNaIi8+PC9zdmc+)}
+/* ============ calm homepage ============ */
+:root{--z-paper:#FFFFFF;--z-mist:#F3F4F8;--z-ink:#14142B;--z-slate:#56597A;--z-rule:#E1E3EC;--z-blue:#321EDC;--z-blue-d:#2616B8;--z-link:#321EDC;--z-on:#22A06B;
+ --font:'Schibsted Grotesk','Helvetica Neue',Arial,sans-serif;--brand:#321EDC;--navy:#321EDC}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--z-paper:#0F1022;--z-mist:#16172E;--z-ink:#ECEDF7;--z-slate:#A5A8C4;--z-rule:#282A46;--z-link:#9C92FF}}
+:root[data-theme="dark"]{--z-paper:#0F1022;--z-mist:#16172E;--z-ink:#ECEDF7;--z-slate:#A5A8C4;--z-rule:#282A46;--z-link:#9C92FF}
+.z{background:var(--z-paper);color:var(--z-ink);font:16px/1.6 var(--font);-webkit-font-smoothing:antialiased}
+.z *{box-sizing:border-box}
+.z .w{max-width:1160px;margin:0 auto;padding:0 32px}
+.z h1,.z h2,.z h3{font-family:var(--font);color:var(--z-ink);margin:0}
+.z p{margin:0}
+.z a{color:var(--z-link)}
+.z :focus-visible{outline:3px solid var(--z-blue);outline-offset:3px;border-radius:4px}
+.zlogo{display:block;width:110px;height:18px;background:var(--z-logo,var(--z-blue));-webkit-mask:var(--logo-mask) left center/contain no-repeat;mask:var(--logo-mask) left center/contain no-repeat}
+.ob-side .zlogo{--z-logo:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .z .zlogo{--z-logo:#ECEDF7}}
+
+/* buttons */
+.zb{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 22px;border-radius:10px;font:600 15.5px var(--font);border:1.5px solid transparent;cursor:pointer;text-decoration:none;white-space:nowrap}
+.zb.p{background:var(--z-blue);color:#fff}
+.zb.p:hover{background:var(--z-blue-d)}
+.zb.s{background:transparent;color:var(--z-ink);border-color:var(--z-rule)}
+.zb.s:hover{border-color:var(--z-ink)}
+.zb.sm{height:40px;padding:0 16px;font-size:14.5px}
+
+/* nav */
+.znav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--z-paper) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--z-rule);padding-top:env(safe-area-inset-top,0px)}
+.znav .w{display:flex;align-items:center;gap:36px;height:68px}
+.znav .lk{display:flex;gap:28px}
+.znav .lk button,.znav .si{background:none;border:0;padding:0;font:500 15px var(--font);color:var(--z-slate);cursor:pointer}
+.znav .lk button:hover,.znav .si:hover{color:var(--z-ink)}
+.znav .r{margin-left:auto;display:flex;gap:18px;align-items:center}
+.znav .bg{display:none;background:none;border:0;color:var(--z-ink);width:40px;height:40px;place-items:center;margin-right:-8px}
+.zmm{display:none;border-top:1px solid var(--z-rule);padding:8px 20px 16px}
+.zmm button{display:block;width:100%;text-align:left;background:none;border:0;padding:12px 0;font:500 17px var(--font);color:var(--z-ink);border-bottom:1px solid var(--z-rule)}
+.zmm.open{display:block}
+
+/* hero */
+.zhero{padding:88px 0 96px}
+.zhero .w{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.zhero h1{font-size:clamp(40px,5.2vw,64px);line-height:1.04;letter-spacing:-.035em;font-weight:700;max-width:12ch}
+.zhero .lede{font-size:19px;line-height:1.55;color:var(--z-slate);margin:22px 0 32px;max-width:34em}
+.zhero .ctas{display:flex;gap:12px;flex-wrap:wrap}
+.zhero .fine{margin-top:16px;font-size:14px;color:var(--z-slate)}
+
+/* product frame: one screen, legible */
+.zframe{border:1px solid var(--z-rule);border-radius:16px;background:var(--z-paper);box-shadow:0 1px 0 var(--z-rule),0 30px 60px -40px rgba(20,20,43,.45);overflow:hidden;font-size:14px}
+.zframe .hd{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--z-rule)}
+.zframe .mk{width:34px;height:34px;border-radius:9px;background:var(--z-blue);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px}
+.zframe .hd b{display:block;font-size:15px}
+.zframe .hd small{color:var(--z-slate);font-size:12.5px}
+.zframe .st{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--z-on);display:flex;gap:6px;align-items:center}
+.zframe .st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.zframe .kp{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--z-rule)}
+.zframe .kp div{padding:18px 20px;border-left:1px solid var(--z-rule)}
+.zframe .kp div:first-child{border-left:0}
+.zframe .kp b{display:block;font-size:26px;letter-spacing:-.03em;font-weight:700;line-height:1.1}
+.zframe .kp span{color:var(--z-slate);font-size:12.5px}
+.zframe .qs{padding:8px 20px 12px}
+.zframe .qs h4{margin:10px 0 4px;font-size:13px;color:var(--z-slate);font-weight:500}
+.zframe .row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--z-rule)}
+.zframe .row:first-of-type{border-top:0}
+.zframe .row b{font-weight:600}
+.zframe .row small{display:block;color:var(--z-slate);font-size:12.5px;font-weight:400}
+.ztog{width:40px;height:24px;border-radius:99px;background:var(--z-rule);position:relative;flex:none}
+.ztog::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.ztog.on{background:var(--z-blue)}
+.ztog.on::after{left:19px}
+
+/* clients */
+.zcl{border-top:1px solid var(--z-rule);border-bottom:1px solid var(--z-rule)}
+.zcl .w{display:flex;align-items:center;gap:20px 44px;flex-wrap:wrap;padding-top:28px;padding-bottom:28px}
+.zcl p{color:var(--z-slate);font-size:14px;max-width:15em}
+.zcl .n{display:flex;gap:14px 40px;flex-wrap:wrap;flex:1}
+.zcl .n span{font-weight:700;font-size:17px;color:var(--z-slate);letter-spacing:-.01em;opacity:.8}
+
+/* sections */
+.zs{padding:112px 0}
+.zs.m{background:var(--z-mist)}
+.zs .hdg{max-width:620px;margin-bottom:56px}
+.zs h2{font-size:clamp(30px,3.4vw,42px);line-height:1.12;letter-spacing:-.03em;font-weight:700}
+.zs .hdg p{color:var(--z-slate);font-size:18px;margin-top:14px}
+
+/* how: three step cards */
+.zhow{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;list-style:none;margin:0;padding:0;counter-reset:none}
+.zstep{background:var(--z-mist);border:1px solid var(--z-rule);border-radius:18px;padding:32px 28px;display:flex;flex-direction:column}
+.zstep .top{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+.zstep .ic{width:52px;height:52px;border-radius:14px;background:var(--z-blue);color:#fff;display:grid;place-items:center;flex:none}
+.zstep .n{font-size:14px;font-weight:600;color:var(--z-slate)}
+.zstep h3{font-size:22px;letter-spacing:-.02em;line-height:1.25;margin-bottom:10px}
+.z .zstep p{color:var(--z-slate);margin-bottom:22px}
+.zstep ul{list-style:none;margin:auto 0 0;padding:20px 0 0;border-top:1px solid var(--z-rule);display:flex;flex-direction:column;gap:10px}
+.zstep ul li{display:flex;gap:10px;align-items:center;font-size:14.5px;font-weight:500}
+.zstep ul svg{color:var(--z-blue);flex:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .zstep ul svg{color:var(--z-link)}}
+
+/* who: plain list */
+.zwho{display:grid;grid-template-columns:1fr 1.35fr;gap:72px;align-items:start}
+.zwho .hdg{margin:0;position:sticky;top:108px}
+.zwho ul{list-style:none;margin:0;padding:0;border-top:1px solid var(--z-rule)}
+.zwho li{display:grid;grid-template-columns:1fr 1.3fr;gap:24px;padding:24px 0;border-bottom:1px solid var(--z-rule)}
+.zwho li b{font-size:18px;letter-spacing:-.01em;font-weight:600}
+.zwho li span{color:var(--z-slate)}
+
+/* pricing */
+.zpr{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--z-rule);border-radius:16px;background:var(--z-paper);overflow:hidden}
+.zpr > div{padding:32px;border-left:1px solid var(--z-rule);display:flex;flex-direction:column;gap:14px}
+.zpr > div:first-child{border-left:0}
+.zpr h3{font-size:18px;font-weight:600}
+.z .zpr .pr{color:var(--z-ink);font-size:36px;font-weight:700;letter-spacing:-.035em;line-height:1}
+.zpr .pr{overflow-wrap:break-word}
+.zpr .pr small{font-size:15px;font-weight:500;color:var(--z-slate);letter-spacing:0}
+.zpr p{color:var(--z-slate);font-size:15px;flex:1}
+.zpr .zb{align-self:flex-start}
+.z .zpnote{margin-top:18px;color:var(--z-slate);font-size:14.5px}
+
+/* faq */
+.zfaq{display:grid;grid-template-columns:1fr 1.35fr;gap:72px}
+.zfaq details{border-bottom:1px solid var(--z-rule);padding:22px 0}
+.zfaq details:first-child{border-top:1px solid var(--z-rule)}
+.zfaq summary{cursor:pointer;font-size:18px;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:16px}
+.zfaq summary::-webkit-details-marker{display:none}
+.zfaq summary::after{content:"+";font-weight:400;font-size:24px;line-height:1;color:var(--z-slate)}
+.zfaq details[open] summary::after{content:"−"}
+.zfaq details p{color:var(--z-slate);margin-top:10px;max-width:40em}
+
+/* footer: kept from the original design */
+footer.zft{margin:0;border:0;padding-top:0;background:#321EDC;color:#fff;overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}
+.zft .w{display:grid;grid-template-columns:1fr auto;gap:48px;padding-top:80px;padding-bottom:40px}
+.zft .cols{display:flex;gap:56px;flex-wrap:wrap}
+.zft h4{margin:0 0 14px;font-size:14px;font-weight:600;color:rgba(255,255,255,.62)}
+.zft .cols button{display:block;background:none;border:0;padding:0;margin:0 0 10px;color:#fff;font:400 15px var(--font);cursor:pointer;text-align:left}
+.zft .cols button:hover{text-decoration:underline}
+.zft .dm{max-width:400px;min-width:0}
+.zft .w > *{min-width:0}
+.zft .dm h2{color:#fff;font-size:44px;line-height:1.02;letter-spacing:-.035em;font-weight:700;margin-bottom:22px}
+.zft form{display:flex;background:#fff;border-radius:12px;padding:5px;gap:6px}
+.zft input{flex:1;min-width:0;width:100%;border:0;background:none;padding:0 12px;font:15px var(--font);color:#14142B;outline:0}
+.zft form .zb{height:44px;background:#321EDC;color:#fff}
+.zft form:focus-within{box-shadow:0 0 0 3px rgba(255,255,255,.5)}
+.zft .err{color:#FFD4D4;font-size:13.5px;margin-top:8px;display:none}
+.zft .dm.bad .err{display:block}
+.zft .legal{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13.5px;color:rgba(255,255,255,.62);padding-top:0}
+.zft .big{display:block;width:104%;margin:28px -2% -3.6vw;aspect-ratio:402/66;background:#F3F4F8;-webkit-mask:var(--logo-mask) center/100% 100% no-repeat;mask:var(--logo-mask) center/100% 100% no-repeat}
+
+/* onboarding shell in the same identity */
+.ob-side{background:#321EDC}
+.ob-side .logo{font-size:0}
+.ob-side blockquote{border-color:rgba(255,255,255,.3)}
+.ob-step .d{border-color:rgba(255,255,255,.35)}
+.ob-step{color:rgba(255,255,255,.7)}
+.ob-step.done .d{background:#fff;color:#321EDC;border-color:#fff}
+
+/* responsive */
+@media (max-width:980px){
+ .zhero .w,.zwho,.zfaq{grid-template-columns:1fr;gap:40px}
+ .zwho .hdg{position:static}
+ .zhow{grid-template-columns:1fr;gap:14px}
+ .zpr{grid-template-columns:1fr}.zpr > div{border-left:0;border-top:1px solid var(--z-rule)}.zpr > div:first-child{border-top:0}
+ .zft .w{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+ .z .w{padding:0 20px}
+ .znav .lk,.znav .si,.znav .r .zb.s{display:none}
+ .znav .bg{display:grid}
+ .znav .w{height:60px;gap:12px}
+ .zhero{padding:48px 0 64px}
+ .zhero .lede{font-size:17px;margin:16px 0 26px}
+ .zhero .ctas .zb{flex:1}
+ .zframe .qs .row:nth-of-type(3){display:none}
+ .zframe .kp b{font-size:21px}.zframe .kp div{padding:14px}
+ .zs{padding:72px 0}
+ .zs .hdg{margin-bottom:36px}
+ .zs .hdg p{font-size:16.5px}
+ .zstep{padding:24px 22px}.zstep .top{margin-bottom:18px}.zstep .ic{width:46px;height:46px}
+ .zwho li{grid-template-columns:1fr;gap:4px;padding:18px 0}
+ .zcl .w{flex-direction:column;align-items:flex-start;gap:12px}.zcl p{max-width:none}.zcl .n{gap:8px 22px}.zcl .n span{font-size:15px}
+ .zft form .zb{padding:0 14px}
+ .zft .w{padding-top:56px}
+ .zft .dm h2{font-size:36px}
+ .zft .big{margin-bottom:-4vw}
+}
+/* motion: hover feedback + one reveal per section */
+.zb,.zstep,.zpr > div,.zfaq summary::after,.znav .lk button,.znav .si,.zft .cols button{transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease,box-shadow .22s ease}
+.zb.p:hover{transform:translateY(-1px);box-shadow:0 8px 18px -8px rgba(50,30,220,.6)}
+.zb.s:hover{transform:translateY(-1px)}
+.zb:active{transform:translateY(0)}
+.zstep:hover{transform:translateY(-3px);box-shadow:0 18px 34px -24px rgba(20,20,43,.45);border-color:var(--z-rule)}
+.zpr > div:hover{background:var(--z-mist)}
+.zwho li{transition:background-color .18s ease}
+.zwho li:hover{background:color-mix(in srgb,var(--z-blue) 5%,transparent)}
+.zfaq details[open] p{animation:zfade .28s ease both}
+@keyframes zfade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.js-anim .reveal{opacity:0;transform:translateY(16px)}
+.js-anim .reveal.in{opacity:1;transform:none;transition:opacity .6s ease,transform .6s cubic-bezier(.22,.7,.3,1)}
+.js-anim .zstep.reveal.in{transition-delay:var(--d,0s)}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal,.js-anim .reveal.in{opacity:1;transform:none;transition:none}.zb:hover,.zstep:hover{transform:none}.zfaq details[open] p{animation:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const DASH='https://claude.ai/artifact/Y97NVvrXFpjcH2pGVqcvbV',SITE='https://claude.ai/artifact/HHJGDGhadCsqxg1ykSrpF1',PLAY='https://claude.ai/artifact/7a8abnebQ9U6dUCM6XFnM6';
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const P={check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',back:'<path d="M19 12H5M11 6l-6 6 6 6"/>',menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',chev:'<path d="m6 9 6 6 6-6"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',ext:'<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>',plus:'<path d="M12 5v14M5 12h14"/>',party:'<path d="M4 20 9 7l8 8-13 5Z"/><path d="M14 4v2M19 9h2M17 6l1.5-1.5M12 9c2-2 2-4 1-5M15 12c2-2 4-2 5-1"/>',scan:'<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/>',tool:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-2.5Z"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'};
+const I=(n,s)=>`<svg class="i" viewBox="0 0 24 24" ${s?`style="width:${s}px;height:${s}px"`:''} aria-hidden="true">${P[n]}</svg>`;
+const toast=m=>{$$('.toast').forEach(x=>x.remove());const e=document.createElement('div');e.className='toast';e.setAttribute('role','status');e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)};
+const lum=h=>{const n=parseInt(h.slice(1),16);return [n>>16&255,n>>8&255,n&255].map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0)};
+const cr=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+const textOn=bg=>cr(bg,'#FFFFFF')>=cr(bg,'#0D0B2E')?'#FFFFFF':'#0D0B2E';
+Object.assign(P,{heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/>',music:'<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',brief:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/>',grid:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',book:'<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2Z"/><path d="M4 19V5M8 7h7"/>',star:'<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/>',ticket:'<path d="M3 9.5a2 2 0 0 0 0 4V18a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-4.5a2 2 0 0 1 0-4V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1Z"/><path d="M14 6.5v2M14 12v2M14 17.5v1"/>',play:'<path d="m9 7 9 5-9 5Z"/>',photo:'<rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 17-5-5-9 8"/>'});
+
+/* ============ event types ============ */
+const TY={
+ conference:{l:'Conference',ic:'mic',c:'#C2410C',d:'Talks, workshops and panels. Paid tickets, session check-in and certificates of attendance.',ex:'Design, tech, academic and industry conferences',after:'Certificates',afterD:'Certificates of attendance'},
+ medical:{l:'Medical conference',ic:'heart',c:'#B3122E',d:'Everything a conference has, plus CME points from time in the room, accredited certificates and a KIMS-style evaluation.',ex:'Congresses, CME meetings, grand rounds',after:'CME & certificates',afterD:'CME points and accredited certificates'},
+ summit:{l:'Summit or business event',ic:'brief',c:'#0E5E4E',d:'Founder, investor and exhibitor tickets, session check-in and recordings for people who came.',ex:'Entrepreneur summits, forums, investor days',after:'After the event',afterD:'Recordings, slides and photos'},
+ concert:{l:'Concert or festival',ic:'music',c:'#6D28D9',d:'Ticket tiers, e-tickets, gate scanning with pass-outs and live headcounts, then an after-show page.',ex:'Concerts, festivals, club nights, shows',after:'Gates & after-show',afterD:'Gates, pass-outs and an after-show page'},
+ workshop:{l:'Workshop or training',ic:'book',c:'#0B5CFF',d:'Small groups with limited seats, attendance tracking and certificates of completion.',ex:'Courses, bootcamps, masterclasses',after:'Certificates',afterD:'Certificates of completion'},
+ exhibition:{l:'Exhibition or trade show',ic:'grid',c:'#0F766E',d:'Visitor badges, exhibitor passes, entrance scanning and daily footfall.',ex:'Expos, trade fairs, open days',after:'After the event',afterD:'Visitor reports and follow-up'},
+ gala:{l:'Gala, launch or party',ic:'star',c:'#A16207',d:'Invitations or tickets, guest list check-in at the door, and a raffle on the night.',ex:'Galas, awards nights, product launches',after:'After the event',afterD:'Photos and a thank-you page'}};
+const base=t=>t==='medical'?'medical':t==='concert'?'concert':t==='summit'||t==='exhibition'||t==='gala'?'summit':'conference';
+/* the four demo sites */
+const DEMO={
+ medical:{tab:'Medical conference',name:'5th Gulf Heart Summit',when:'22–23 Sep 2026 · Kuwait',c:'#B3122E',h:'radial-gradient(400px 200px at 10% 10%,rgba(179,18,46,.55),transparent),#101631',nav:['Faculty','Sessions','Venue'],open:'Registration',after:'Certificates',
+  openP:'<b>Registration</b><i></i><i></i><i></i><span class="btn2">Register now</span>',afterP:'<b>Certificate</b>Enter your registration ID<i style="margin-top:6px"></i><span class="btn2">Claim certificate</span>',
+  capOpen:'Visitors see the <b>registration form</b>. Each sign-up gets a unique ID.',capAfter:'Attendees <b>claim certificates with their CME points</b>. No-shows are turned away.'},
+ conference:{tab:'Design conference',name:'Form Week 2026',when:'21–22 Sep 2026 · Dubai',c:'#C2410C',h:'linear-gradient(135deg,#1a1a1a,#3b2518)',nav:['Speakers','Agenda','Tickets'],open:'Ticket sales',after:'Certificates',
+  openP:'<b>Get tickets</b><span class="tkl"><span>Standard</span><span>AED 650</span></span><span class="tkl"><span>Student</span><span>AED 150</span></span><span class="btn2">Continue</span>',afterP:'<b>Certificate</b>Enter your ticket ID<i style="margin-top:6px"></i><span class="btn2">Claim certificate</span>',
+  capOpen:'Visitors <b>buy tickets</b> and pay by card or Apple Pay.',capAfter:'People who came download a <b>certificate of attendance</b>.'},
+ summit:{tab:'Founders summit',name:'Majlis Founders Summit',when:'15–16 Sep 2026 · Abu Dhabi',c:'#0E5E4E',h:'radial-gradient(400px 200px at 90% 10%,rgba(201,162,39,.35),transparent),#0B2620',nav:['Speakers','Agenda','Tickets'],open:'Ticket sales',after:'After-event page',
+  openP:'<b>Get tickets</b><span class="tkl"><span>Founder</span><span>AED 395</span></span><span class="tkl"><span>Investor</span><span>AED 1,200</span></span><span class="btn2">Continue</span>',afterP:'<b>Recordings</b>Enter your ticket ID<i style="margin-top:6px"></i><span class="btn2">Unlock</span>',
+  capOpen:'Founder, investor and exhibitor <b>tickets on sale</b>.',capAfter:'Attendees unlock <b>recordings and slides</b> with their ticket ID.'},
+ concert:{tab:'Concert',name:'Nocturne Live',when:'Tonight · doors 19:00',c:'#7C3AED',h:'radial-gradient(300px 200px at 80% 20%,rgba(124,58,237,.7),transparent),radial-gradient(260px 180px at 10% 90%,rgba(244,114,182,.45),transparent),#07040E',nav:['Line-up','Set times','Tickets'],open:'Ticket sales',after:'After-show page',
+  openP:'<b>Tickets</b><span class="tkl"><span>General</span><span>AED 195</span></span><span class="tkl"><span>VIP lounge</span><span>AED 750</span></span><span class="btn2">Continue</span>',afterP:'<b>Thanks for coming</b><span class="ph3"><i style="background:#6D28D9"></i><i style="background:#DB2777"></i><i style="background:#4338CA"></i></span><span class="btn2">Two-minute survey</span>',
+  capOpen:'Fans pick a tier and get <b>e-tickets with barcodes</b> straight away.',capAfter:'The homepage turns into an <b>after-show page</b> with photos and a survey.'}};
+
+const S={route:'home',yearly:false,menu:false,demo:{t:'concert',reg:true,cert:false,maint:false},after:'medical',ob:{step:0,d:{name:'',email:'',pw:'',org:'',otype:'',country:'United Arab Emirates',etype:'',ev:'',start:'',end:'',venue:'',size:'250–500',tz:'Asia/Dubai',paid:'paid',tickets:[],acc:'yes',prov:'KIMS',act:'',credits:'7',rule:'duration',certOn:true,certMin:'1',rec:true,photos:true,survey:true,gates:'3',passout:true,fields:{},logo:null,color:'#0B5CFF',invites:[{e:'',r:'Check-in staff'}],plan:'event'}}};
+const d0=()=>S.ob.d;
+const bt=()=>base(d0().etype||'conference');
+function steps(){return ['Your account','Verify email','Organisation','Type of event','Your event',d0().paid==='free'?'Registration':'Tickets',(TY[d0().etype]||TY.conference).after,'Form fields','Brand','Team','Plan']}
+function defaultTickets(t){return ({medical:[['Healthcare professional','0'],['Industry representative','50']],concert:[['General admission','195'],['Front standing','350'],['VIP lounge','750']],summit:[['Founder','395'],['Investor','1200'],['Student','95']],exhibition:[['Visitor','0'],['Exhibitor pass','850']],gala:[['Guest','450'],['Table of 10','4200']],workshop:[['Seat','350']],conference:[['Standard','650'],['Student','150']]})[t].map(([n,p])=>({n,p}))}
+function defaultFields(t){const b=base(t);return b==='medical'?{title:true,spec:true,hosp:true,mob:true,lic:false,diet:false}:b==='concert'?{mob:true,city:true,dob:true,gender:false}:b==='summit'?{company:true,role:true,stage:false,mob:true,linkedin:false}:{company:true,job:true,mob:false,diet:false,access:true}}
+const FIELDL={title:'Title (Dr, Prof, Mr…)',spec:'Speciality',hosp:'Hospital / centre',mob:'Mobile number',lic:'Medical licence number',diet:'Dietary requirements',city:'City',dob:'Date of birth (for 18+ events)',gender:'Gender',company:'Company or organisation',role:'Role (founder, investor…)',stage:'Company stage',linkedin:'LinkedIn profile',job:'Job title',access:'Accessibility needs'};
+
+Object.assign(P,{form:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',scan:'<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/>',award:'<circle cx="12" cy="9" r="6"/><path d="m8.5 14-1.5 7 5-3 5 3-1.5-7"/>'});
+function nav(){return `<header class="znav"><div class="w"><button data-go="home" aria-label="Zemmz Live home" style="background:none;border:0;padding:0;cursor:pointer"><span class="zlogo" role="img" aria-label="zemmz"></span></button>
+ <nav class="lk" aria-label="Main"><button data-scroll="how">How it works</button><button data-scroll="who">Who it’s for</button><button data-scroll="pricing">Pricing</button></nav>
+ <div class="r"><button class="si" data-go="login">Sign in</button><button class="zb s sm" data-go="signup">Start free trial</button><button class="zb p sm" data-go="contact">Book a demo</button><button class="bg" data-a="menu" aria-label="Menu" aria-expanded="${S.menu}">${I(S.menu?'x':'menu',24)}</button></div></div>
+ <div class="zmm ${S.menu?'open':''}"><button data-scroll="how">How it works</button><button data-scroll="who">Who it’s for</button><button data-scroll="pricing">Pricing</button><button data-go="login">Sign in</button><button data-go="signup">Start free trial</button></div></header>`}
+function footer(){return `<footer class="zft"><div class="w"><div class="cols">
+ <div><h4>Product</h4><button data-scroll="how">How it works</button><button data-scroll="pricing">Pricing</button><button data-a="ext" data-u="${SITE}">Example event sites</button><button data-a="ext" data-u="${PLAY}">Zemmz Play</button></div>
+ <div><h4>Company</h4><button data-a="soon">About</button><button data-a="soon">Careers</button><button data-go="contact">Contact us</button></div>
+ <div><h4>Legal</h4><button data-a="soon">Terms and conditions</button><button data-a="soon">Privacy policy</button></div></div>
+ <div class="dm" id="dm"><h2>Request a demo</h2><form data-f="demo" novalidate><label class="sr" for="dme">Work email</label><input id="dme" type="email" autocomplete="email" placeholder="Your work email"><button class="zb">Request demo</button></form><p class="err" role="alert">Enter a valid email address.</p></div></div>
+ <div class="w legal" style="display:flex"><span>© 2026 zemmz</span><span>hello@zemmz.com</span></div>
+ <span class="big" role="img" aria-label="zemmz"></span></footer>`}
+function home(){const who=[
+ ['Government and public sector','Forums, national events and public registrations, with roles for every team and a record of every change.'],
+ ['Hospitals and medical societies','CME points from time spent in each session, accredited certificates and a KIMS-style evaluation.'],
+ ['Universities and associations','Conferences, graduations and member events, with certificates of attendance.'],
+ ['Companies and summits','Paid ticket tiers, session check-in and recordings for the people who came.'],
+ ['Concerts and cultural events','E-tickets, scanning at every gate with pass-outs, and an after-show page.']];
+ return `<div class="z">${nav()}<main>
+ <section class="zhero"><div class="w"><div>
+  <h1>Your event, run properly.</h1>
+  <p class="lede">Registration or ticketing, check-in at the door, and certificates or follow-up afterwards. One system your team can run without training.</p>
+  <div class="ctas"><button class="zb p" data-go="contact">Book a demo</button><button class="zb s" data-go="signup">Start free trial</button></div>
+  <p class="fine">Free for your first 50 attendees.</p></div>
+ <div class="zframe" aria-label="Example of the organiser dashboard"><div class="hd"><span class="mk">NHF</span><span><b>National Health Forum 2026</b><small>Abu Dhabi National Exhibition Centre</small></span><span class="st">Live</span></div>
+  <div class="kp"><div><b>1,248</b><span>Registered</span></div><div><b>986</b><span>Checked in</span></div><div><b>612</b><span>Certificates</span></div></div>
+  <div class="qs"><h4>What the event website shows</h4>
+   <div class="row"><span><b>Registration</b><small>Closed after the last session</small></span><span class="ztog"></span></div>
+   <div class="row"><span><b>Certificates</b><small>Only people who checked in can claim</small></span><span class="ztog on"></span></div>
+   <div class="row"><span><b>Maintenance mode</b><small>Hides the website while you edit</small></span><span class="ztog"></span></div></div></div></div></section>
+ <div class="zcl"><div class="w"><p>Trusted by organisations across the Gulf</p><div class="n"><span>Department of Culture and Tourism</span><span>stc</span><span>zain</span><span>Boubyan</span><span>Michelin</span></div></div></div>
+ <section class="zs reveal" id="how"><div class="w"><div class="hdg"><h2>How it works</h2><p>The same three stages for every event, controlled from one dashboard.</p></div>
+  <ol class="zhow">${[
+   ['form','Before','Open registration or start selling tickets.','Everyone gets an ID and a confirmation email. Your website holds the programme, speakers and venue.',['Free or paid','Your form, your fields','Arabic and English']],
+   ['scan','On the day','Check people in at every door.','Staff scan a badge or e-ticket from a phone or scanner. You see who is in each room as it happens.',['Badges and e-tickets','Session and gate scanning','Live headcounts']],
+   ['award','After','Close the event properly.','Switch the website to certificates, recordings or a thank-you page. Only people who attended get access.',['Certificates and CME points','Recordings and slides','Feedback reports']]].map(([ic,n,h,p,it],i)=>`<li class="zstep reveal" style="--d:${i*.09}s"><div class="top"><span class="ic">${I(ic,26)}</span><span class="n">Step ${i+1} · ${n}</span></div><h3>${h}</h3><p>${p}</p><ul>${it.map(x=>`<li>${I('check',16)}${x}</li>`).join('')}</ul></li>`).join('')}</ol></div></section>
+ <section class="zs m reveal" id="who"><div class="w zwho"><div class="hdg"><h2>Built for organisations that can’t get it wrong</h2><p>Choose the type of event when you set up. Zemmz Live switches on the right tools and uses the right words.</p></div>
+  <ul>${who.map(([a,b])=>`<li><b>${a}</b><span>${b}</span></li>`).join('')}</ul></div></section>
+ <section class="zs reveal" id="pricing"><div class="w"><div class="hdg"><h2>Pricing</h2><p>Every plan includes the event website, registration, check-in and certificates. Prices in AED, billed in your currency.</p></div>
+  <div class="zpr">${[
+   ['Single event','AED 7,500','per event','One conference, forum or show, up to 1,000 attendees.','Start free trial','signup'],
+   ['Season','AED 29,000','per year','Up to six events a year, with SMS and priority support on event days.','Start free trial','signup'],
+   ['Government and enterprise','AED 75,000+','a year','Unlimited events, your own domain, single sign-on and on-site support.','Talk to us','contact']].map(([n,p,u,d,c,g],i)=>`<div><h3>${n}</h3><p class="pr">${p}${u?` <small>${u}</small>`:''}</p><p>${d}</p><button class="zb ${i===2?'p':'s'} sm" data-go="${g}">${c}</button></div>`).join('')}</div>
+  <p class="zpnote">Free registration costs nothing per attendee. Paid tickets add 2.5% plus AED 2 a ticket, capped at AED 25, so an expensive ticket never costs you more than a cheap one. Card fees are charged by your payment provider.</p></div></section>
+ <section class="zs m reveal" id="faq"><div class="w zfaq"><div class="hdg" style="margin:0"><h2>Questions</h2><p>Anything else, <button class="linkbtn" data-go="contact" style="font-size:inherit">get in touch</button>.</p></div><div>${[
+  ['Can you handle government and medical events?','Yes. Admins, content editors and check-in staff each get their own role, and every change is recorded in an activity log. For medical events, Zemmz Live calculates CME points and prints them on each certificate. Your accrediting body still accredits the activity.'],
+  ['What do we need at the door?','A phone, tablet or laptop at each entrance. Any barcode scanner works, phones can scan with the camera, and staff can type an ID if a badge is damaged.'],
+  ['Can the website be in Arabic?','Yes. Event websites and emails can be in Arabic, English or both.'],
+  ['Do you support us on the day?','Every plan includes support on event days. Government and enterprise plans can have our team on site.'],
+  ['How does pricing work for free events?','If registration is free, you pay the licence and nothing per attendee, however many people come. Paid tickets add 2.5% plus AED 2 a ticket, capped at AED 25, which you can absorb or pass to the buyer at checkout.']].map(([q,a],i)=>`<details ${i?'':'open'}><summary>${q}</summary><p>${a}</p></details>`).join('')}</div></div></section>
+ </main>${footer()}</div>`}
+function shell(inner){return `<div class="ob"><aside class="ob-side"><button data-go="home" aria-label="Zemmz Live home" style="background:none;border:0;padding:0;text-align:left;cursor:pointer"><span class="zlogo" style="--z-logo:#fff"></span></button><blockquote>“Registration, the doors and the certificates, all in one place. Our team learned it in an afternoon.”</blockquote><div class="foot">Need help? hello@zemmz.com</div></aside><main class="ob-main"><div class="ob-card">${inner}</div></main></div>`}
+function login(){return shell(`<h1>Welcome back</h1><p class="lead">Sign in to manage your events.</p><form data-f="login" novalidate>
+ <div class="fld" id="f-le"><label for="le">Work email</label><input id="le" class="inp" type="email" autocomplete="email" placeholder="name@organisation.com"><span class="err">Enter a valid email address.</span></div>
+ <div class="fld" id="f-lp"><label for="lp" style="display:flex;justify-content:space-between">Password <button type="button" class="linkbtn" data-a="forgot" style="font-size:13px">Forgot password?</button></label><input id="lp" class="inp" type="password" autocomplete="current-password"><span class="err">Enter your password.</span></div>
+ <button class="btn primary" style="width:100%">Sign in</button><div class="or">or</div><button type="button" class="btn ghost" style="width:100%" data-a="sso">Continue with Microsoft</button>
+ <p style="text-align:center;color:var(--muted);font-size:14px;margin:20px 0 0">New to Zemmz Live? <button type="button" class="linkbtn" data-go="signup">Start a free trial</button></p></form>`)}
+function contact(){return shell(`<h1>Talk to us</h1><p class="lead">Tell us about your events and we’ll reply within one working day.</p><form data-f="contact" novalidate>
+ <div class="row2"><div class="fld" id="f-cn"><label for="cn">Name</label><input id="cn" class="inp" autocomplete="name"><span class="err">Enter your name.</span></div><div class="fld" id="f-ce"><label for="ce">Work email</label><input id="ce" class="inp" type="email" autocomplete="email"><span class="err">Enter a valid email.</span></div></div>
+ <div class="fld"><label for="co">Organisation</label><input id="co" class="inp" autocomplete="organization"></div><div class="fld"><label for="cm">What kind of events, and how many a year?<span class="opt">(optional)</span></label><textarea id="cm" class="inp" style="height:100px;padding:12px 14px"></textarea></div><button class="btn primary" style="width:100%">Send message</button></form>`)}
+
+const DDO={country:['United Arab Emirates','Saudi Arabia','Kuwait','Qatar','Bahrain','Oman','Egypt','Jordan','Other'].map(x=>[x,x]),size:['Under 100','100–250','250–500','500–1,000','1,000–5,000','5,000+'].map(x=>[x,x]),tz:[['Asia/Dubai','UTC+4 Dubai, Abu Dhabi, Muscat'],['Asia/Kuwait','UTC+3 Kuwait, Riyadh, Doha'],['Africa/Cairo','UTC+3 Cairo']],prov:[['KIMS','Kuwait Institute for Medical Specialization (KIMS)'],['SCFHS','Saudi Commission for Health Specialties'],['DHA','Dubai Health Authority'],['DOH','Department of Health Abu Dhabi'],['Other','Another accrediting body']],role:[['Admin','Admin'],['Check-in staff','Check-in staff'],['Content editor','Content editor']],certMin:[['1','At least 1 session'],['2','At least 2 sessions'],['3','At least 3 sessions'],['all','Every session']],gates:[['1','1 entrance'],['2','2 gates'],['3','3 gates'],['4','4 or more gates']]};
+function dd(id,val,opts){return `<div class="dd" id="${id}"><button type="button" class="dd-btn" data-a="dd" data-id="${id}" aria-haspopup="listbox" aria-expanded="false"><span>${esc((opts.find(o=>o[0]===val)||opts[0])[1])}</span>${I('chev',16)}</button></div>`}
+function chips(k,opts,val){return `<div class="chips" role="group">${opts.map(([v,l])=>`<button type="button" class="chip" data-a="set" data-k="${k}" data-v="${v}" aria-pressed="${val===v}">${l}</button>`).join('')}</div>`}
+const radios=(k,opts,val)=>`<div class="plan-pick" style="margin-top:4px">${opts.map(([v,n,s])=>`<button type="button" data-a="set" data-k="${k}" data-v="${v}" aria-pressed="${val===v}"><span class="r"></span><span><b>${n}</b><small>${s}</small></span></button>`).join('')}</div>`;
+const toggle=(k,l,s)=>`<div style="cursor:pointer" data-a="tog" data-k="${k}" role="checkbox" aria-checked="${!!d0()[k]}" tabindex="0"><span class="ck ${d0()[k]?'y':'n'}">${d0()[k]?I('check',14):''}</span><span><b style="font-weight:600">${l}</b>${s?`<br><span style="color:var(--muted);font-size:13px">${s}</span>`:''}</span></div>`;
+function pwScore(p){let s=0;if(p.length>=8)s++;if(/\d/.test(p))s++;if(/[A-Z]/.test(p)&&/[a-z]/.test(p))s++;if(/[^\w]/.test(p)||p.length>=12)s++;return p?Math.max(1,s):0}
+function afterStep(){const d=d0(),t=d.etype,b=bt();
+ if(b==='medical')return `<h1>CME and certificates</h1><p class="lead">Because this is a medical event, we’ll calculate CME points and put them on each certificate. Everything can be changed later.</p>
+  <div class="fld"><span class="lbl">Is the event accredited for CME/CPD?</span>${chips('acc',[['yes','Yes'],['pending','Applied, waiting'],['no','No, attendance certificate only']],d.acc)}</div>
+  ${d.acc!=='no'?`<div class="fld"><span class="lbl">Accrediting body</span>${dd('prov',d.prov,DDO.prov)}</div><div class="row2"><div class="fld"><label for="o-act">Activity number<span class="opt">(optional)</span></label><input id="o-act" class="inp" data-k="act" value="${esc(d.act)}" placeholder="e.g. 002398/CAR1/Sep26"></div><div class="fld"><label for="o-cr">Total credits</label><input id="o-cr" class="inp" type="number" min="0" step="0.5" data-k="credits" value="${esc(d.credits)}"></div></div>
+  <div class="fld"><span class="lbl">Award points for</span>${radios('rule',[['duration','Time in the room','Delegates scan in and out. Points if they stay at least 75% of a session.'],['checkin','Checking in','Full points for each session as soon as they scan in.']],d.rule)}</div>`:`<p class="hintnote">Delegates who check in will get a certificate of attendance without CME points.</p>`}`;
+ if(b==='concert')return `<h1>Gates and the after-show page</h1><p class="lead">How people get in on the night, and what they see once it’s over.</p>
+  <div class="fld"><span class="lbl">How many entrances?</span>${dd('gates',d.gates,DDO.gates)}<span class="help">Each gate gets its own check-in screen. We’ll match gates to ticket tiers for you.</span></div>
+  <div class="check" style="margin-top:6px">${toggle('passout','Allow pass-outs','Guests can scan out and back in with the same e-ticket.')}${toggle('photos','Show photos after the show','The homepage becomes a gallery once you switch it on.')}${toggle('survey','Send a two-minute survey','On the after-show page and by email the next morning.')}</div>`;
+ if(b==='summit')return `<h1>After the event</h1><p class="lead">What attendees get once it’s over. Only people who checked in can open it with their ticket ID.</p>
+  <div class="check" style="margin-top:0">${toggle('rec','Session recordings','Upload after the event, or link your video host.')}${toggle('photos','Photo gallery','Official photos from each day.')}${toggle('survey','Feedback survey','Five questions, and a report you can export.')}${toggle('certOn','Certificates of participation','Optional. Some attendees need them for expenses.')}</div>`;
+ return `<h1>${t==='workshop'?'Certificates of completion':'Certificates of attendance'}</h1><p class="lead">People who came can download a certificate with their name and the sessions they attended.${t==='conference'?' If you need CME points, choose Medical conference instead.':''}</p>
+  <div class="check" style="margin-top:0">${toggle('certOn',t==='workshop'?'Issue certificates of completion':'Issue certificates of attendance','Switched on from the dashboard when the event ends.')}${toggle('survey','Ask for feedback first','A short survey before the download.')}</div>
+  ${d.certOn?`<div class="fld"><span class="lbl">Who can claim one?</span>${dd('certMin',d.certMin,DDO.certMin)}</div>`:''}`}
+function onboarding(){const o=S.ob,d=o.d,st=o.step,STEPS=steps();let body='';const T=TY[d.etype];
+ if(st===0)body=`<h1>Create your account</h1><p class="lead">Start free. Your first 50 attendees cost nothing.</p><button type="button" class="btn ghost" style="width:100%" data-a="ssoUp">Sign up with Microsoft</button><div class="or">or with email</div>
+  <div class="fld" id="f-name"><label for="o-name">Full name</label><input id="o-name" class="inp" data-k="name" value="${esc(d.name)}" autocomplete="name"><span class="err">Enter your name.</span></div>
+  <div class="fld" id="f-email"><label for="o-email">Work email</label><input id="o-email" class="inp" type="email" data-k="email" value="${esc(d.email)}" autocomplete="email" placeholder="name@organisation.com"><span class="err">Enter a valid email address.</span></div>
+  <div class="fld" id="f-pw"><label for="o-pw">Password</label><div class="pw"><input id="o-pw" class="inp" type="password" data-k="pw" value="${esc(d.pw)}" autocomplete="new-password"><button type="button" data-a="showpw">Show</button></div><div class="meter s${pwScore(d.pw)}" id="pwm" aria-hidden="true"><i></i><i></i><i></i><i></i></div><span class="help">At least 8 characters, with a number.</span><span class="err">Use at least 8 characters, including a number.</span></div>`;
+ if(st===1)body=`<h1>Check your email</h1><p class="lead">We sent a 6-digit code to <b>${esc(d.email||'your email')}</b>.</p><div class="otp" role="group" aria-label="Verification code">${[0,1,2,3,4,5].map(i=>`<input inputmode="numeric" maxlength="1" data-otp="${i}" aria-label="Digit ${i+1}">`).join('')}</div><p style="font-size:14px;color:var(--muted);margin:0"><button type="button" class="linkbtn" data-a="resend">Send a new code</button>. Any 6 digits work in this demo.</p>`;
+ if(st===2)body=`<h1>Your organisation</h1><p class="lead">Who runs your events?</p><div class="fld" id="f-org"><label for="o-org">Organisation name</label><input id="o-org" class="inp" data-k="org" value="${esc(d.org)}" placeholder="e.g. Zawaya Events"><span class="err">Enter your organisation’s name.</span></div>
+  <div class="fld" id="f-otype"><span class="lbl">What best describes you?</span>${chips('otype',['Event company or agency','Promoter','Company','Association or society','University','Hospital or medical body','Venue','Government'].map(x=>[x,x]),d.otype)}<span class="err">Choose one.</span></div><div class="fld"><span class="lbl">Country</span>${dd('country',d.country,DDO.country)}</div>`;
+ if(st===3)body=`<h1>What kind of event is it?</h1><p class="lead">This sets up the right tools and the right words. You can run different types of events from the same account.</p>
+  <div class="fld" id="f-etype" style="margin:0"><div class="plan-pick">${Object.entries(TY).map(([k,t])=>`<button type="button" class="typecard" data-a="etype" data-v="${k}" aria-pressed="${d.etype===k}"><span class="emo" style="background:${t.c}">${I(t.ic,20)}</span><span><b>${t.l}</b><small>${t.d}</small></span></button>`).join('')}</div><span class="err">Choose the type that fits best.</span></div>`;
+ if(st===4){const ph={medical:['e.g. 6th Gulf Heart Summit','e.g. The Regency, Kuwait'],concert:['e.g. Nocturne Live: Winter','e.g. The Waterfront Amphitheatre'],summit:['e.g. Majlis Founders Summit 2027','e.g. Manarat Al Saadiyat'],conference:['e.g. Form Week 2027','e.g. Dubai Design District'],workshop:['e.g. Product Design Bootcamp','e.g. Studio 2, Hub71'],exhibition:['e.g. Gulf Home Expo','e.g. ADNEC Hall 5'],gala:['e.g. Annual Awards Night','e.g. Emirates Palace']}[d.etype||'conference'];
+  body=`<h1>Tell us about your ${T?T.l.toLowerCase():'event'}</h1><p class="lead">You can add more events later.</p><div class="fld" id="f-ev"><label for="o-ev">Event name</label><input id="o-ev" class="inp" data-k="ev" value="${esc(d.ev)}" placeholder="${ph[0]}"><span class="err">Name your event.</span></div>
+  <div class="row2"><div class="fld" id="f-start"><label for="o-start">${bt()==='concert'?'Date':'First day'}</label><input id="o-start" class="inp" type="date" data-k="start" value="${d.start}"><span class="err">Choose the date.</span></div><div class="fld" id="f-end"><label for="o-end">Last day</label><input id="o-end" class="inp" type="date" data-k="end" value="${d.end}"><span class="err">Must be on or after the first day.</span></div></div>
+  <div class="fld"><label for="o-venue">Venue<span class="opt">(optional)</span></label><input id="o-venue" class="inp" data-k="venue" value="${esc(d.venue)}" placeholder="${ph[1]}"></div>
+  <div class="row2"><div class="fld"><span class="lbl">Expected attendance</span>${dd('size',d.size,DDO.size)}</div><div class="fld"><span class="lbl">Timezone</span>${dd('tz',d.tz,DDO.tz)}</div></div>`}
+ if(st===5)body=`<h1>${d.paid==='free'?'Registration':'Tickets'}</h1><p class="lead">We’ve suggested ticket types for a ${T.l.toLowerCase()}. Rename them, change prices or add more.</p>
+  <div class="fld"><span class="lbl">Is it free or paid?</span>${chips('paid',[['free','Free registration'],['paid','Paid tickets'],['mixed','Both']],d.paid)}</div>
+  <div class="fld" style="margin-bottom:6px"><span class="lbl">${d.paid==='free'?'Registration types':'Ticket types'}</span></div>
+  ${d.tickets.map((t,i)=>`<div class="tkrow"><div class="fld" style="margin:0" id="f-tk${i}"><label class="sr" for="tk${i}">Name</label><input id="tk${i}" class="inp" data-tk="${i}" data-f="n" value="${esc(t.n)}" placeholder="Ticket name"><span class="err">Name it or remove it.</span></div><div class="fld" style="margin:0"><label class="sr" for="tp${i}">Price</label><input id="tp${i}" class="inp" type="number" min="0" data-tk="${i}" data-f="p" value="${d.paid==='free'?'0':esc(t.p)}" ${d.paid==='free'?'disabled':''} aria-label="Price in AED"></div><button type="button" class="iconbtn" data-a="rmTk" data-i="${i}" aria-label="Remove" ${d.tickets.length<2?'disabled':''}>${I('x')}</button></div>`).join('')}
+  <button type="button" class="btn ghost sm" data-a="addTk">${I('plus',16)} Add ${d.paid==='free'?'type':'ticket type'}</button><p class="hintnote">Prices in AED. ${d.paid==='free'?'Free registration has no per-attendee fee.':'Buyers pay by card or Apple Pay. Paid tickets add 2.5% plus AED 2, capped at AED 25 a ticket, plus card fees.'}</p>`;
+ if(st===6)body=afterStep();
+ if(st===7){const F=d.fields;body=`<h1>What should people fill in?</h1><p class="lead">First name, last name and email are always included. They’re needed for ${bt()==='concert'?'e-tickets':'badges'}, emails and ${bt()==='concert'?'entry':'certificates'}.</p><div class="check" style="margin-top:0">${['First name','Last name','Email'].map(x=>`<div><span class="ck y">${I('check',14)}</span>${x}<small>Always included</small></div>`).join('')}${Object.keys(F).map(k=>`<div style="cursor:pointer" data-a="fld" data-k="${k}" role="checkbox" aria-checked="${F[k]}" tabindex="0"><span class="ck ${F[k]?'y':'n'}">${F[k]?I('check',14):''}</span>${FIELDL[k]}</div>`).join('')}</div><p class="hintnote">Suggested for a ${T.l.toLowerCase()}. Add your own fields later in Website → ${d.paid==='free'?'Registration form':'Checkout form'}.</p>`}
+ if(st===8){const tx=textOn(d.color),name=d.ev||'Your event',navL=bt()==='concert'?'Line-up · Set times · Venue':bt()==='medical'?'Faculty · Sessions · Venue':'Speakers · Agenda · Venue';body=`<h1>Make it look like your event</h1><p class="lead">Upload your logo and pick your event colour.</p>
+  <div class="fld"><span class="lbl">Logo<span class="opt">(optional)</span></span><div class="upload"><div class="lg">${d.logo?`<img src="${d.logo}" alt="Your logo">`:'No logo yet'}</div><div><b style="font-size:14px">${d.logo?'Replace logo':'Upload your logo'}</b><div style="font-size:12.5px;color:var(--muted)">PNG or SVG</div></div><input type="file" accept="image/*" id="o-logo" aria-label="Upload logo"></div></div>
+  <div class="fld"><span class="lbl">Event colour</span><div class="colorrow"><label class="sw" style="background:${d.color}"><input type="color" id="o-col" value="${d.color.toLowerCase()}" aria-label="Pick event colour"></label><input class="inp" id="o-hex" value="${d.color}" maxlength="7" style="width:140px;text-transform:uppercase" aria-label="Hex value">${['#B3122E','#C2410C','#0E5E4E','#6D28D9','#F2B233'].map(c=>`<button type="button" data-a="col" data-v="${c}" style="width:32px;height:32px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line-2);background:${c}" aria-label="Use ${c}"></button>`).join('')}</div>
+  <p class="hintnote" id="cnote">${tx==='#0D0B2E'?`This colour is light, so button text will be dark (${cr(d.color,'#0D0B2E').toFixed(1)}:1) to stay readable.`:`Buttons will use white text (${cr(d.color,'#FFFFFF').toFixed(1)}:1 contrast).`}</p></div>
+  <div class="mini" id="mini"><div class="n" style="background:#fff;color:${d.color};border-bottom:1px solid var(--line)">${d.logo?`<img src="${d.logo}" alt="" style="height:18px">`:esc(name)}<span style="color:var(--muted);font-weight:500">${navL}</span></div><div class="h" style="background:#101631;color:#fff;display:flex;gap:12px;align-items:center;justify-content:space-between"><span><b style="font-size:16px">${esc(name)}</b><br><span style="opacity:.7">${d.venue?esc(d.venue):'Your venue'}</span></span><span class="b" id="minib" style="background:${d.color};color:${tx};padding:8px 14px;border-radius:6px;font-weight:700">${d.paid==='free'?'Register now':'Get tickets'}</span></div></div>`;}
+ if(st===9)body=`<h1>Invite your team</h1><p class="lead">Check-in staff can only scan ${bt()==='concert'?'tickets at the gates':'badges and print IDs'}. Add them now or later.</p>
+  <div class="invites">${d.invites.map((v,i)=>`<div class="inv"><div class="fld" style="margin:0" id="f-inv${i}"><label class="sr" for="inv${i}">Email ${i+1}</label><input id="inv${i}" class="inp" type="email" data-inv="${i}" value="${esc(v.e)}" placeholder="colleague@organisation.com"><span class="err">Enter a valid email or remove this row.</span></div>${dd('role'+i,v.r,DDO.role)}<button type="button" class="iconbtn" data-a="rmInv" data-i="${i}" aria-label="Remove row" ${d.invites.length<2?'disabled':''}>${I('x')}</button></div>`).join('')}</div><button type="button" class="btn ghost sm" data-a="addInv">${I('plus',16)} Add another</button>`;
+ if(st===10)body=`<h1>Choose how to pay after the trial</h1><p class="lead">Nothing is charged today. Your first 50 attendees are free.</p><div class="plan-pick">${[['event','Single event','1 event, up to 1,000 people','AED 7,500'],['season','Season','Up to 6 events a year, SMS included','AED 29,000/yr'],['ent','Government and enterprise','Unlimited events, SSO, on-site support','From AED 75,000']].map(([k,n,s,p])=>`<button type="button" data-a="set" data-k="plan" data-v="${k}" aria-pressed="${d.plan===k}"><span class="r"></span><span><b>${n}</b><small>${s}</small></span><span class="pr">${p}</span></button>`).join('')}</div>`;
+ if(st===11){const name=d.ev||'Your event',slug=(name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'your-event'),b=bt();
+  const afterLine=b==='medical'?`CME: ${d.acc==='no'?'attendance certificate only':`${d.credits} credits, ${d.rule==='duration'?'by time in the room':'by checking in'}`}`:b==='concert'?`${DDO.gates.find(g=>g[0]===d.gates)[1]}${d.passout?', pass-outs on':''}, after-show page ready`:b==='summit'?`After-event page: ${[d.rec&&'recordings',d.photos&&'photos',d.survey&&'survey'].filter(Boolean).join(', ')||'set up later'}`:`Certificates ${d.certOn?'on':'off'}${d.survey?', feedback survey on':''}`;
+  const todo=b==='concert'?[['Add the line-up and set times',0,'About 10 minutes'],['Assign staff to each gate',0,'Needed on the night'],['Write the e-ticket email',0,'Template ready']]:[[`Add ${b==='medical'?'faculty':'speakers'}`,0,'About 20 minutes'],[`Build the ${b==='medical'?'session schedule':'agenda'}`,0,'Needed for check-in'],['Write your confirmation email',0,'Template ready']];
+  return `<div class="ob"><aside class="ob-side"><button data-go="home" aria-label="Zemmz Live home" style="background:none;border:0;padding:0;text-align:left;cursor:pointer"><span class="zlogo" style="--z-logo:#fff"></span></button><div class="ob-steps">${STEPS.map(s=>`<div class="ob-step done"><span class="d">${I('check',14)}</span>${s}</div>`).join('')}</div></aside>
+  <main class="ob-main"><div class="ob-card"><div class="done-hero">${I('party',34)}</div><h1>${esc(name)} is set up</h1><p class="lead">Your ${T.l.toLowerCase()} website is ready at <b>${esc(slug)}.zemmz.live</b>, with ${d.paid==='free'?'registration open':'ticket sales ready to switch on'}. Here’s what’s left.</p>
+  <div class="check">${[['Create your account',1],[`${T.l}: ${d.tickets.length} ${d.paid==='free'?'registration':'ticket'} type${d.tickets.length>1?'s':''}`,1],[afterLine,1],['Choose your event colour',1],['Invite your team',d.invites.some(v=>v.e),d.invites.filter(v=>v.e).length?`${d.invites.filter(v=>v.e).length} invited`:'Skipped'],...todo].map(([t,y,s])=>`<div><span class="ck ${y?'y':'n'}">${y?I('check',14):''}</span>${esc(t)}${s?`<small>${s}</small>`:''}</div>`).join('')}</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn primary" href="${DASH}" target="_blank" rel="noopener">Go to your dashboard ${I('ext',16)}</a><a class="btn ghost" href="${SITE}#${({medical:'ghs',concert:'noct',summit:'mfs',conference:'form'})[b]}" target="_blank" rel="noopener">See a similar event site ${I('ext',16)}</a></div>
+  <p class="hintnote" style="margin-top:18px">The dashboard demo has a sample event of each type. Switch between them from the event menu.</p></div></main></div>`;}
+ return `<div class="ob"><aside class="ob-side"><button data-go="home" aria-label="Zemmz Live home" style="background:none;border:0;padding:0;text-align:left;cursor:pointer"><span class="zlogo" style="--z-logo:#fff"></span></button><div class="ob-steps">${STEPS.map((s,i)=>`<div class="ob-step ${i<st?'done':i===st?'cur':''}" ${i===st?'aria-current="step"':''}><span class="d">${i<st?I('check',14):i+1}</span>${s}</div>`).join('')}</div><div class="foot">Already have an account? <button class="linkbtn" data-go="login" style="color:#fff">Sign in</button></div></aside>
+ <main class="ob-main"><div class="ob-top"><span>Step ${st+1} of ${STEPS.length}</span><span class="prog" aria-hidden="true"><i style="width:${Math.round(st/STEPS.length*100)}%"></i></span></div>
+ <form class="ob-card" data-f="ob" novalidate>${body}<div class="ob-nav">${st>0&&st!==2?`<button type="button" class="btn ghost" data-a="obBack">${I('back',16)} Back</button>`:st===0?`<button type="button" class="btn ghost" data-go="home">Cancel</button>`:''}<span class="sp"></span>${st===9?`<button type="button" class="btn ghost" data-a="skip">Skip for now</button>`:''}<button class="btn primary">${st===10?'Finish setup':st===1?'Verify':'Continue'} ${I('arrow',16)}</button></div></form></main></div>`;
+}
+
+function reveal(){document.documentElement.classList.add('js-anim');const els=$$('.reveal');if(!('IntersectionObserver'in window)){els.forEach(e=>e.classList.add('in'));return}
+ const io=new IntersectionObserver((es,o)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');o.unobserve(e.target)}}),{rootMargin:'0px 0px -12% 0px',threshold:.08});
+ els.forEach(e=>{if(e.getBoundingClientRect().top<innerHeight*.9)e.classList.add('in');else io.observe(e)})}
+function render(){$('#app').innerHTML=({home,login,contact,signup:onboarding})[S.route]();requestAnimationFrame(reveal);document.title=S.route==='home'?'Zemmz Live — registration, check-in and certificates for events':'Zemmz Live — '+({login:'Sign in',contact:'Talk to us',signup:'Start your free trial'})[S.route]}
+function go(r){S.route=r;S.menu=false;render();window.scrollTo(0,0);setTimeout(()=>{if(r!=='home')$('.ob-card .inp')?.focus({preventScroll:true})},40)}
+const bad=(id,on)=>{const e=$('#'+id);if(e)e.classList.toggle('bad',on);return on};
+function validate(){const o=S.ob,d=o.d;let err=false;
+ if(o.step===0)err=bad('f-name',!d.name.trim())|bad('f-email',!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))|bad('f-pw',!(d.pw.length>=8&&/\d/.test(d.pw)));
+ if(o.step===1&&$$('[data-otp]').map(i=>i.value).join('').length<6){toast('Enter all 6 digits');err=true}
+ if(o.step===2)err=bad('f-org',!d.org.trim())|bad('f-otype',!d.otype);
+ if(o.step===3)err=bad('f-etype',!d.etype);
+ if(o.step===4)err=bad('f-ev',!d.ev.trim())|bad('f-start',!d.start)|bad('f-end',bt()!=='concert'&&(!d.end||d.end<d.start));
+ if(o.step===5)d.tickets.forEach((t,i)=>{if(bad('f-tk'+i,!t.n.trim()))err=true});
+ if(o.step===9)d.invites.forEach((v,i)=>{if(v.e&&bad('f-inv'+i,!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.e)))err=true});
+ if(err)$('.fld.bad input, .fld.bad button')?.focus();return !err}
+function obGo(n){S.ob.step=n;render();window.scrollTo(0,0);setTimeout(()=>{(S.ob.step===1?$('[data-otp="0"]'):$('.ob-card .inp'))?.focus({preventScroll:true})},40)}
+function closeDD(){$$('.dd-list').forEach(l=>{l.previousElementSibling?.setAttribute('aria-expanded','false');l.remove()})}
+document.addEventListener('click',e=>{
+ if(!e.target.closest('.dd'))closeDD();
+ const sc=e.target.closest('[data-scroll]');if(sc){if(S.route!=='home')S.route='home';S.menu=false;render();setTimeout(()=>document.getElementById(sc.dataset.scroll)?.scrollIntoView(),30);return}
+ const g=e.target.closest('[data-go]');if(g){if(g.dataset.plan)S.ob.d.plan=g.dataset.plan;if(g.dataset.go==='signup'&&S.route!=='signup')S.ob.step=0;go(g.dataset.go);return}
+ const opt=e.target.closest('[data-opt]');if(opt){const id=opt.dataset.dd,v=opt.dataset.opt,d=S.ob.d;if(id.startsWith('role'))d.invites[+id.slice(4)].r=v;else d[id]=v;closeDD();const b=$(`#${id} .dd-btn`);b.querySelector('span').textContent=opt.textContent;b.focus();return}
+ const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a,d=S.ob.d;
+ if(k==='menu'){S.menu=!S.menu;render()}
+ if(k==='demoT'){S.demo.t=a.dataset.v;$('.ctrl').outerHTML=demoPanel();$(`[data-a="demoT"][data-v="${a.dataset.v}"]`).focus()}
+ if(k==='afterT'){S.after=a.dataset.v;$('#aftermock').innerHTML=afterMock();$(`[data-a="afterT"][data-v="${a.dataset.v}"]`).focus()}
+ if(k==='bill'){S.yearly=a.dataset.v==='y';const y=window.scrollY;render();window.scrollTo(0,y)}
+ if(k==='ext')window.open(a.dataset.u,'_blank','noopener');
+ if(k==='soon')toast('This page isn’t part of the prototype');
+ if(k==='sso'){toast('Signed in. Opening your dashboard');setTimeout(()=>window.open(DASH,'_blank','noopener'),500)}
+ if(k==='ssoUp'){d.name=d.name||'Nabil Alhaj';d.email=d.email||'nabil@zawaya.me';toast('Microsoft account connected');obGo(2)}
+ if(k==='forgot')toast('We’ve sent a reset link if that email has an account');
+ if(k==='showpw'){const i=$('#o-pw');i.type=i.type==='password'?'text':'password';a.textContent=i.type==='password'?'Show':'Hide'}
+ if(k==='resend')toast('New code sent');
+ if(k==='obBack')obGo(Math.max(0,S.ob.step-1));
+ if(k==='skip'){d.invites=[{e:'',r:'Check-in staff'}];obGo(S.ob.step+1)}
+ if(k==='etype'){const t=a.dataset.v,changed=d.etype!==t;d.etype=t;if(changed){d.tickets=defaultTickets(t);d.fields=defaultFields(t);d.paid=t==='medical'||t==='exhibition'?'free':'paid';if(t==='medical'&&d.color==='#0B5CFF')d.color='#B3122E';d.certOn=t!=='summit'}
+  a.parentElement.querySelectorAll('[aria-pressed]').forEach(b=>b.setAttribute('aria-pressed',b===a));a.closest('.fld')?.classList.remove('bad');
+  $('.ob-steps').innerHTML=steps().map((s,i)=>`<div class="ob-step ${i<3?'done':i===3?'cur':''}"><span class="d">${i<3?I('check',14):i+1}</span>${s}</div>`).join('')}
+ if(k==='set'){d[a.dataset.k]=a.dataset.v;if(['acc','paid'].includes(a.dataset.k)){render();return}a.parentElement.querySelectorAll('[aria-pressed]').forEach(b=>b.setAttribute('aria-pressed',b===a));a.closest('.fld')?.classList.remove('bad')}
+ if(k==='tog'){d[a.dataset.k]=!d[a.dataset.k];render();$(`[data-a="tog"][data-k="${a.dataset.k}"]`)?.focus()}
+ if(k==='fld'){d.fields[a.dataset.k]=!d.fields[a.dataset.k];render();$(`[data-a="fld"][data-k="${a.dataset.k}"]`)?.focus()}
+ if(k==='addTk'){d.tickets.push({n:'',p:'0'});render();$(`#tk${d.tickets.length-1}`)?.focus()}
+ if(k==='rmTk'){d.tickets.splice(+a.dataset.i,1);render()}
+ if(k==='col'){d.color=a.dataset.v;render()}
+ if(k==='addInv'){d.invites.push({e:'',r:'Check-in staff'});render();$(`#inv${d.invites.length-1}`)?.focus()}
+ if(k==='rmInv'){d.invites.splice(+a.dataset.i,1);render()}
+ if(k==='dd'){const open=a.getAttribute('aria-expanded')==='true';closeDD();if(open)return;const id=a.dataset.id,key=id.startsWith('role')?'role':id,cur=id.startsWith('role')?d.invites[+id.slice(4)].r:d[id];
+  a.setAttribute('aria-expanded','true');a.insertAdjacentHTML('afterend',`<div class="dd-list" role="listbox">${DDO[key].map(([v,l])=>`<button type="button" role="option" data-dd="${id}" data-opt="${esc(v)}" aria-selected="${v===cur}">${esc(l)}${v===cur?I('check',15):''}</button>`).join('')}</div>`);($('.dd-list [aria-selected="true"]')||$('.dd-list button')).focus()}
+});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.dataset.demo){const k=t.dataset.demo,dm=S.demo;dm[k]=t.checked;if(k==='cert'&&t.checked)dm.reg=false;if(k==='reg'&&t.checked)dm.cert=false;$('.ctrl').outerHTML=demoPanel();$(`[data-demo="${k}"]`).focus()}
+ if(t.id==='o-logo'){const f=t.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{S.ob.d.logo=r.result;render()};r.readAsDataURL(f)}
+ if(t.dataset.k&&t.type==='date'){S.ob.d[t.dataset.k]=t.value;t.closest('.fld')?.classList.remove('bad')}});
+document.addEventListener('input',e=>{const t=e.target,d=S.ob.d;
+ if(t.dataset.k&&t.type!=='date'){d[t.dataset.k]=t.value;t.closest('.fld')?.classList.remove('bad');if(t.dataset.k==='pw')$('#pwm').className='meter s'+pwScore(t.value)}
+ if(t.dataset.tk!=null){d.tickets[+t.dataset.tk][t.dataset.f]=t.value;t.closest('.fld')?.classList.remove('bad')}
+ if(t.dataset.inv!=null){d.invites[+t.dataset.inv].e=t.value.trim();t.closest('.fld')?.classList.remove('bad')}
+ if(t.dataset.otp!=null&&t.value){t.value=t.value.replace(/\D/g,'').slice(-1);$(`[data-otp="${+t.dataset.otp+1}"]`)?.focus()}
+ if(t.id==='o-col'||t.id==='o-hex'){let v=t.value.trim();if(!v.startsWith('#'))v='#'+v;if(/^#[0-9a-f]{6}$/i.test(v)){d.color=v.toUpperCase();const tx=textOn(d.color);$('.colorrow .sw').style.background=d.color;if(t.id==='o-col')$('#o-hex').value=d.color;$('#minib').style.background=d.color;$('#minib').style.color=tx;$('#mini .n').style.color=d.color;
+  $('#cnote').textContent=tx==='#0D0B2E'?`This colour is light, so button text will be dark (${cr(d.color,'#0D0B2E').toFixed(1)}:1) to stay readable.`:`Buttons will use white text (${cr(d.color,'#FFFFFF').toFixed(1)}:1 contrast).`}}});
+document.addEventListener('keydown',e=>{
+ if(e.key==='Backspace'&&e.target.dataset.otp!=null&&!e.target.value)$(`[data-otp="${+e.target.dataset.otp-1}"]`)?.focus();
+ if((e.key==='Enter'||e.key===' ')&&['fld','tog'].includes(e.target.dataset.a)){e.preventDefault();e.target.click()}
+ if(e.key==='Escape')closeDD();
+ if(['ArrowDown','ArrowUp'].includes(e.key)&&$('.dd-list')){e.preventDefault();const bs=$$('.dd-list button'),i=bs.indexOf(document.activeElement);bs[(i+(e.key==='ArrowDown'?1:-1)+bs.length)%bs.length].focus()}});
+document.addEventListener('submit',e=>{e.preventDefault();const f=e.target.dataset.f;
+ if(f==='ob'){if(!validate())return;if(S.ob.step===1)toast('Email verified');if(S.ob.step===10)toast('Your event is ready');obGo(S.ob.step+1)}
+ if(f==='login'){const a=!bad('f-le',!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($('#le').value)),b=!bad('f-lp',!$('#lp').value);if(a&&b){toast('Signed in. Opening your dashboard');setTimeout(()=>window.open(DASH,'_blank','noopener'),500)}}
+ if(f==='demo'){const v=$('#dme').value.trim(),ok=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);$('#dm').classList.toggle('bad',!ok);if(!ok){$('#dme').focus();return}toast('Thanks. We’ll email you within one working day to book a time');$('#dme').value=''}
+ if(f==='contact'){const a=!bad('f-cn',!$('#cn').value.trim()),b=!bad('f-ce',!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($('#ce').value));if(a&&b){toast('Thanks — we’ll be in touch within one working day');go('home')}}});
+render();
+</script>
+</body>
+</html>
