@@ -6,7 +6,7 @@ import { prisma, type Role } from '@zemmz/db';
 import { emailSchema } from '@zemmz/shared';
 import { can, requireUser, ROLE_LABEL } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
-import { sendInvitation } from '@/lib/accounts';
+import { platformEmail, queuePlatformEmail, sendInvitation } from '@/lib/accounts';
 import { done, failed, type ActionState } from '@/lib/action-state';
 
 const ROLES = ['OWNER', 'ADMIN', 'EDITOR', 'CHECKIN'] as const;
@@ -101,4 +101,20 @@ export async function saveOrganisation(_p: ActionState, fd: FormData): Promise<A
   await logActivity(user, null, 'edited the organisation details');
   revalidatePath('/', 'layout');
   return done('Saved.');
+}
+
+export async function requestActivation(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await manager();
+  const plan = z.enum(['EVENT', 'SEASON', 'ENTERPRISE']).safeParse(fd.get('plan'));
+  if (!plan.success) return failed('Choose a plan.');
+  await prisma.organisation.update({ where: { id: user.organisationId }, data: { plan: plan.data } });
+  // The organisation ID in the message lets the admin page link the request to the account.
+  await prisma.contactRequest.create({ data: { kind: 'UPGRADE', name: user.name, email: user.email, organisation: user.organisationName, plan: plan.data, message: `Activate ${plan.data} for organisation ${user.organisationId}` } });
+  await queuePlatformEmail({ email: process.env.SALES_EMAIL || 'hello@zemmz.com' }, `Plan request: ${user.organisationName}`, platformEmail({
+    heading: `${user.organisationName} wants the ${plan.data.toLowerCase()} plan`,
+    paragraphs: [`${user.name} (${user.email}) asked to activate the plan. Send the invoice, then activate it in /admin.`],
+  }));
+  await logActivity(user, null, `asked to activate the ${plan.data.toLowerCase()} plan`);
+  revalidatePath('/organisation');
+  return done('Thanks. We’ll email the invoice within one working day.');
 }

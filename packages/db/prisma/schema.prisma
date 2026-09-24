@@ -204,6 +204,8 @@ model Event {
   registrationOpen Boolean    @default(true)
   afterEventOn     Boolean    @default(false)
   maintenance      Boolean    @default(false)
+  /// Gates only: guests can scan out and back in with the same e-ticket.
+  allowPassOut     Boolean    @default(true)
   /// Built-in website pages left out of the menu: people, programme, venue.
   navHidden        String[]   @default([])
 

@@ -32,6 +32,8 @@ export async function login(_prev: LoginState, form: FormData): Promise<LoginSta
   await createSession(user.id);
   await prisma.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } });
   const membership = await prisma.membership.findFirst({ where: { userId: user.id }, orderBy: { createdAt: 'asc' } });
+  // Part-way through signing up: verify the email or name the organisation.
+  if (!membership || !user.emailVerifiedAt) redirect('/signup');
 
   const next = String(form.get('next') ?? '');
   if (next.startsWith('/') && !next.startsWith('//')) redirect(next);

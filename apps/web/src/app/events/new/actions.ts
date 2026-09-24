@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { prisma } from '@zemmz/db';
-import { newEventSchema } from '@zemmz/shared';
+import { evaluationTemplate, eventType, newEventSchema } from '@zemmz/shared';
 import { can, requireUser } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { defaultsFor } from '@/lib/event-defaults';
@@ -37,6 +37,7 @@ export async function createEvent(_p: NewEventState, fd: FormData): Promise<NewE
       templates: { create: def.template },
       ...(def.certificate ? { certificate: { create: def.certificate } } : {}),
       ...(def.afterPage ? { afterPage: { create: def.afterPage } } : {}),
+      evalQuestions: { create: evaluationTemplate(eventType(d.type)).map((q, i) => ({ text: q.text, kind: q.kind, groupName: q.group, required: q.required, sortOrder: i })) },
     },
   });
   await logActivity(user, event.id, `created ${event.name}`);

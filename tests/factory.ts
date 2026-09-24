@@ -9,8 +9,8 @@ export async function resetDb() {
   await prisma.outboundMessage.deleteMany();
 }
 
-export async function makeEvent(opts: { type?: EventType; tickets?: { name: string; priceMinor?: number; capacity?: number | null }[] } = {}) {
-  const org = await prisma.organisation.create({ data: { name: 'Test org', slug: `org-${Math.random().toString(36).slice(2, 8)}` } });
+export async function makeEvent(opts: { type?: EventType; trial?: boolean; tickets?: { name: string; priceMinor?: number; capacity?: number | null }[] } = {}) {
+  const org = await prisma.organisation.create({ data: { name: 'Test org', slug: `org-${Math.random().toString(36).slice(2, 8)}`, planStatus: opts.trial ? 'TRIAL' : 'ACTIVE' } });
   const user = await prisma.user.create({ data: { name: 'Door staff', email: `door-${Math.random().toString(36).slice(2, 8)}@test`, passwordHash: 'x', memberships: { create: { organisationId: org.id, role: 'CHECKIN' } } } });
   const event = await prisma.event.create({
     data: {

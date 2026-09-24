@@ -49,6 +49,7 @@ export async function performScan(opts: { event: Event; sessionId: string; mode:
       intervals,
       inRoomCount,
       creditPolicy: { rule: event.creditRule, thresholdPct: event.creditThresholdPct },
+      passOuts: event.allowPassOut,
       now,
       formatTime: tf,
     });

@@ -101,6 +101,7 @@ async function When({ slug, event, canEdit }: { slug: string; event: Event; canE
               {orders > 0 && <span className="help">Fixed after the first order.</span>}
             </div>
           </div>
+          {TY.gates && <label className="switch mt-4"><input type="checkbox" name="allowPassOut" defaultChecked={event.allowPassOut} /> Allow pass-outs: guests can scan out and back in with the same e-ticket</label>}
         </section>
       </SimpleForm>
       {canEdit && (

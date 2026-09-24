@@ -2,8 +2,9 @@ import Link from 'next/link';
 import type { Event, Role } from '@zemmz/db';
 import { eventType, formatDateRange } from '@zemmz/shared';
 import { prisma } from '@zemmz/db';
-import { can, ROLE_LABEL, type CurrentUser } from '@/lib/auth';
+import { can, isPlatformAdmin, ROLE_LABEL, type CurrentUser } from '@/lib/auth';
 import { kfmt } from '@/lib/format';
+import { TRIAL_ATTENDEES } from '@/lib/plans';
 import { Avatar } from '../avatar';
 import { Icon } from '../icon';
 import { DrawerToggle, Sidebar, type NavItem, type SwitcherEvent } from './sidebar';
@@ -41,7 +42,11 @@ export function toSwitcher(e: Event): SwitcherEvent {
 }
 
 export async function DashboardShell({ user, event, children }: { user: CurrentUser; event?: Event; children: React.ReactNode }) {
-  const events = await prisma.event.findMany({ where: { organisationId: user.organisationId, archivedAt: null }, orderBy: { startsOn: 'desc' } });
+  const [events, org] = await Promise.all([
+    prisma.event.findMany({ where: { organisationId: user.organisationId, archivedAt: null }, orderBy: { startsOn: 'desc' } }),
+    prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId }, select: { planStatus: true } }),
+  ]);
+  const trialUsed = org.planStatus === 'TRIAL' ? await prisma.registration.count({ where: { status: 'CONFIRMED', event: { organisationId: user.organisationId } } }) : 0;
   let groups: [string, NavItem[]][];
   if (event) {
     const [regs, live] = await Promise.all([
@@ -56,6 +61,7 @@ export async function DashboardShell({ user, event, children }: { user: CurrentU
         ...(can.seeDashboard(user.role) ? [{ href: '/organisation', icon: 'users' as const, label: 'People and plan' }] : []),
         { href: '/account', icon: 'user', label: 'Your account' },
         ...(process.env.MESSAGING_PROVIDER !== 'sendgrid' ? [{ href: '/outbox', icon: 'inbox' as const, label: 'Email outbox' }] : []),
+        ...(isPlatformAdmin(user.email) ? [{ href: '/admin', icon: 'lock' as const, label: 'zemmz admin' }] : []),
       ]],
     ];
   }
@@ -88,6 +94,17 @@ export async function DashboardShell({ user, event, children }: { user: CurrentU
           </div>
         </header>
         <main id="main" className="view" tabIndex={-1}>
+          {org.planStatus === 'TRIAL' && can.seeDashboard(user.role) && (
+            <div className={`notice ${trialUsed >= TRIAL_ATTENDEES ? 'err' : trialUsed >= TRIAL_ATTENDEES * 0.8 ? 'warn' : 'info'} no-print mb-5 items-center`} role="status">
+              <span className="flex-1">
+                {trialUsed >= TRIAL_ATTENDEES
+                  ? `Your free trial is full (${TRIAL_ATTENDEES} attendees), so new registrations are paused.`
+                  : `Free trial: ${trialUsed} of ${TRIAL_ATTENDEES} attendees.`}
+              </span>
+              <Link href="/organisation?tab=plan" className="btn secondary sm">{trialUsed >= TRIAL_ATTENDEES ? 'Activate your plan' : 'Choose a plan'}</Link>
+            </div>
+          )}
+          {org.planStatus === 'SUSPENDED' && <div className="notice err no-print mb-5" role="alert">This account is paused, so registrations are closed on your event websites. Email hello@zemmz.com to reactivate it.</div>}
           {children}
         </main>
       </div>

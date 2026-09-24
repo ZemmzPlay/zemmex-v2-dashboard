@@ -1,6 +1,7 @@
 import 'server-only';
 import { prisma, Prisma, type Event, type FormField, type RegistrationSource } from '@zemmz/db';
 import { renderConfirmation } from './email';
+import { TRIAL_ATTENDEES } from './plans';
 
 export interface PersonInput {
   ticketTypeId: string | null;
@@ -74,6 +75,21 @@ export async function createRegistrations(opts: {
     const [row] = await tx.$queryRaw<{ nextPublicId: number }[]>`
       UPDATE "Event" SET "nextPublicId" = "nextPublicId" + ${n} WHERE id = ${opts.event.id} RETURNING "nextPublicId"`;
     const first = row.nextPublicId - n;
+
+    // The free trial covers a set number of confirmed attendees across the organisation.
+    const org = await tx.organisation.findUniqueOrThrow({ where: { id: opts.event.organisationId }, select: { planStatus: true } });
+    if (org.planStatus !== 'ACTIVE') {
+      const organiser = opts.source === 'DASHBOARD';
+      if (org.planStatus === 'SUSPENDED') {
+        throw new RegistrationError(organiser ? 'This account is paused. Contact zemmz to reactivate it.' : 'Registration for this event is paused. Contact the organiser.');
+      }
+      const used = await tx.registration.count({ where: { status: 'CONFIRMED', event: { organisationId: opts.event.organisationId } } });
+      if (used + n > TRIAL_ATTENDEES) {
+        throw new RegistrationError(organiser
+          ? `Your free trial covers ${TRIAL_ATTENDEES} attendees and you have ${used}. Choose a plan under Organisation, Plan to add more.`
+          : 'Registration for this event is paused for now. Contact the organiser.');
+      }
+    }
 
     const wanted = new Map<string, number>();
     for (const p of opts.people) if (p.ticketTypeId) wanted.set(p.ticketTypeId, (wanted.get(p.ticketTypeId) ?? 0) + 1);

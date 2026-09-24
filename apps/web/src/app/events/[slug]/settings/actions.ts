@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { prisma } from '@zemmz/db';
+import { eventType } from '@zemmz/shared';
 import { can, requirePermission, requireUser } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 
@@ -60,7 +61,8 @@ export async function saveWhen(slug: string, _p: SettingsState, fd: FormData): P
     if (orders) return { error: 'The currency can’t change after the first order.' };
     currency = d.currency;
   }
-  await prisma.event.update({ where: { id: event.id }, data: { startsOn, endsOn, timezone: d.timezone, currency } });
+  const gates = eventType(event.type).gates;
+  await prisma.event.update({ where: { id: event.id }, data: { startsOn, endsOn, timezone: d.timezone, currency, ...(gates ? { allowPassOut: fd.get('allowPassOut') === 'on' } : {}) } });
   await logActivity(user, event.id, 'changed the event dates and timezone');
   revalidatePath(`/events/${slug}`, 'layout');
   revalidatePath(`/e/${slug}`, 'layout');
