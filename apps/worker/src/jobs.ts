@@ -2,6 +2,13 @@ import { prisma, type OutboundMessage } from '@zemmz/db';
 import { PermanentSendError, type Provider } from './providers';
 
 const MAX_ATTEMPTS = 5;
+
+/*
+ * Prisma stores UTC in `timestamp without time zone` columns. In raw SQL a JS
+ * Date arrives as timestamptz, and Postgres would compare using the server's
+ * TimeZone setting (Asia/Dubai on a local Windows install): four hours off.
+ * Every raw comparison therefore converts the parameter to UTC wall time.
+ */
 const BATCH = 50;
 
 /**
@@ -28,26 +35,35 @@ export async function transitionSessions(now = new Date()) {
 /**
  * Claims due messages with SKIP LOCKED, so several workers can run without
  * sending anything twice.
+ *
+ * The locking SELECT sits in a MATERIALIZED CTE so it runs exactly once per
+ * claim. jobs.int.test.ts runs three workers against one queue and checks
+ * that every message is sent exactly once.
  */
 async function claim(now: Date): Promise<OutboundMessage[]> {
   return prisma.$queryRaw<OutboundMessage[]>`
-    UPDATE "OutboundMessage" SET status = 'SENDING', attempts = attempts + 1
-    WHERE id IN (
+    WITH due AS MATERIALIZED (
       SELECT id FROM "OutboundMessage"
-      WHERE status = 'QUEUED' AND "sendAfter" <= ${now}
+      WHERE status = 'QUEUED' AND "sendAfter" <= (${now}::timestamptz AT TIME ZONE 'UTC')
       ORDER BY "sendAfter" ASC
       LIMIT ${BATCH}
       FOR UPDATE SKIP LOCKED
     )
-    RETURNING *`;
+    UPDATE "OutboundMessage" m SET status = 'SENDING', attempts = m.attempts + 1, "claimedAt" = (${now}::timestamptz AT TIME ZONE 'UTC')
+    FROM due WHERE m.id = due.id
+    RETURNING m.*`;
 }
 
-/** Messages stuck in SENDING (worker died mid-send) go back to the queue. */
+/**
+ * Messages stuck in SENDING (a worker died mid-send) go back to the queue.
+ * Judged by when they were claimed, not when they were due: after a backlog a
+ * message can be due long ago and still be in the middle of sending.
+ */
 async function releaseStuck(now: Date) {
   const cutoff = new Date(now.getTime() - 10 * 60_000);
   await prisma.$executeRaw`
     UPDATE "OutboundMessage" SET status = 'QUEUED'
-    WHERE status = 'SENDING' AND "sendAfter" < ${cutoff}`;
+    WHERE status = 'SENDING' AND "claimedAt" < (${cutoff}::timestamptz AT TIME ZONE 'UTC')`;
 }
 
 export async function dispatchOutbox(provider: Provider, now = new Date()) {

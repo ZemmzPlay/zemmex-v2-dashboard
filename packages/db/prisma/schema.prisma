@@ -451,6 +451,8 @@ model OutboundMessage {
   provider          String?
   providerMessageId String?
   sendAfter         DateTime       @default(now())
+  /// When a worker took it. SENDING rows claimed long ago are released for retry.
+  claimedAt         DateTime?
   sentAt            DateTime?
   createdAt         DateTime       @default(now())
 
