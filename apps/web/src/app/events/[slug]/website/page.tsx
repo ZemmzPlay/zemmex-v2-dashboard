@@ -9,7 +9,7 @@ import { ActionSwitch } from '@/components/action-switch';
 import { ConfirmButton } from '@/components/confirm-button';
 import { FormDialog } from '@/components/form-dialog';
 import { Icon } from '@/components/icon';
-import { SimpleForm } from './simple-form';
+import { SimpleForm } from '@/components/simple-form';
 import { PageEditor } from './page-editor';
 import { ThemeForm } from './theme-form';
 import {

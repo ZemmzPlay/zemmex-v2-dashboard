@@ -12,7 +12,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   const TY = eventType(event.type);
   const sp = Object.fromEntries(new URL(req.url).searchParams);
   const rows = await prisma.registration.findMany({
-    where: registrationWhere(event.id, sp),
+    where: registrationWhere(event.id, sp, event.timezone),
     orderBy: { publicId: 'asc' },
     include: { ticketType: { select: { name: true } }, attendance: { select: { sessionId: true } } },
   });

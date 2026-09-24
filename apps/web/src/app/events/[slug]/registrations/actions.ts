@@ -112,3 +112,10 @@ export async function markPrinted(slug: string, publicId: number) {
   const { event } = await requirePermission(slug, can.checkIn);
   await prisma.registration.updateMany({ where: { eventId: event.id, publicId, badgePrintedAt: null }, data: { badgePrintedAt: new Date() } });
 }
+
+export async function markPrintedMany(slug: string, publicIds: number[]) {
+  const { user, event } = await requirePermission(slug, can.checkIn);
+  const ids = publicIds.filter((n) => Number.isSafeInteger(n)).slice(0, 200);
+  const r = await prisma.registration.updateMany({ where: { eventId: event.id, publicId: { in: ids }, badgePrintedAt: null }, data: { badgePrintedAt: new Date() } });
+  if (r.count) await logActivity(user, event.id, `printed ${r.count} ${eventType(event.type).badge}s`);
+}

@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react';
 import type { ActionState } from '@/lib/action-state';
+import { keepValues } from '@/lib/use-keep-values';
 
 /**
  * A button that opens a dialog holding a form. The dialog closes when the
@@ -39,7 +40,7 @@ export function FormDialog({
         {label}
       </button>
       <dialog ref={ref} className={`modal ${wide ? '!w-[min(720px,calc(100%-32px))]' : ''}`} aria-label={title}>
-        <form key={key} action={formAction} onSubmit={() => setFresh(false)}>
+        <form key={key} action={formAction} onSubmit={(e) => { setFresh(false); keepValues(formAction)(e); }}>
           <div className="modal-h"><h2>{title}</h2></div>
           <div className="modal-b text-left">
             {state.error && !fresh && !pending && <div className="notice err mb-4" role="alert">{state.error}</div>}

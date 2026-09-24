@@ -6,7 +6,7 @@ import { can, requirePermission } from '@/lib/auth';
 import { mergeValuesFor } from '@/lib/email';
 import { AUDIENCES, audienceWhere, type Audience } from '@/lib/audiences';
 import { fmt } from '@/lib/format';
-import { sendBroadcast, saveTemplate } from './actions';
+import { sendBroadcast, saveTemplate, sendTest } from './actions';
 import { TemplateEditor } from './template-editor';
 
 export const metadata: Metadata = { title: 'Messages' };
@@ -47,6 +47,7 @@ export default async function MessagesPage({ params, searchParams }: { params: P
             sample={sampleValues}
             accent={event.accentColour}
             withKicker
+            testAction={sendTest.bind(null, slug, 'confirmation')}
             submitLabel="Save confirmation email"
           />
         </>
@@ -68,6 +69,7 @@ async function SendTab({ slug, eventId, accent, sample }: { slug: string; eventI
       sample={sample}
       accent={accent}
       submitLabel="Send message"
+      testAction={sendTest.bind(null, slug, 'broadcast')}
       confirmText="Send this message now? It can’t be recalled once it’s sent."
     >
       <fieldset className="m-0 mb-3.5 border-0 p-0">

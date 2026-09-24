@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { textOn } from '@zemmz/shared';
 import { Icon, type IconName } from '@/components/icon';
 import type { ActionState } from '@/lib/action-state';
+import { keepValues } from '@/lib/use-keep-values';
 
 interface Values { showRecordings: boolean; showSlides: boolean; showPhotos: boolean; showSurvey: boolean; attendeesOnly: boolean; message: string }
 
@@ -28,7 +29,7 @@ export function AfterEditor({ action, initial, gates, unit, idName, eventName, d
 
   return (
     <div className="grid items-start gap-4 xl:grid-cols-2">
-      <form action={formAction}>
+      <form action={formAction} onSubmit={keepValues(formAction)}>
         {state.error && <div className="notice err mb-4" role="alert">{state.error}</div>}
         {state.ok && !pending && <div className="notice ok mb-4" role="status">{state.ok}</div>}
         <fieldset disabled={!canEdit} className="m-0 border-0 p-0">

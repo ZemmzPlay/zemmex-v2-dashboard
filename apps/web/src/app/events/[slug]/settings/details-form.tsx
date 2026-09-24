@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useActionState } from 'react';
 import type { SettingsState } from './actions';
+import { keepValues } from '@/lib/use-keep-values';
 
 interface Values { name: string; shortName: string; organiserName: string }
 
@@ -23,7 +24,7 @@ export function DetailsForm({ action, initial, canEdit, links }: {
   );
 
   return (
-    <form action={formAction} className="max-w-[760px]">
+    <form action={formAction} onSubmit={keepValues(formAction)} className="max-w-[760px]">
       {state.error && <div className="notice err mb-4" role="alert">{state.error}</div>}
       {state.ok && <div className="notice ok mb-4" role="status">{state.ok}</div>}
       <fieldset disabled={!canEdit} className="m-0 border-0 p-0">

@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState } from 'react';
 import { ConfirmButton } from '@/components/confirm-button';
 import type { ActionState } from '@/lib/action-state';
+import { keepValues } from '@/lib/use-keep-values';
 
 type Cmd = [string, string, string?];
 const INLINE: [string, string, React.CSSProperties][] = [['bold', 'B', { fontWeight: 700 }], ['italic', 'I', { fontStyle: 'italic' }], ['underline', 'U', { textDecoration: 'underline' }]];
@@ -40,7 +41,7 @@ export function PageEditor({ action, deleteAction, pageId, initial, canEdit }: {
 
   return (
     <div className="card min-w-0 overflow-hidden">
-      <form id={`pg-${pageId}`} action={formAction}>
+      <form id={`pg-${pageId}`} action={formAction} onSubmit={(e) => { sync(); keepValues(formAction)(e); }}>
       <div className="flex flex-wrap items-end gap-3 border-b border-line p-3.5">
         <div className="fld !mb-0 min-w-[220px] flex-1">
           <label htmlFor="pg-title">Page title</label>

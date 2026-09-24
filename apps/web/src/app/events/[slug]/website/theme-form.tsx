@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { contrastLevel, contrastRatio, isHexColour, textOn } from '@zemmz/shared';
 import type { ThemeState } from './actions';
+import { keepValues } from '@/lib/use-keep-values';
 
 /** The event colour, with the button text contrast shown as it changes. */
 export function ThemeForm({ action, initial, canEdit }: { action: (p: ThemeState, fd: FormData) => Promise<ThemeState>; initial: string; canEdit: boolean }) {
@@ -14,7 +15,7 @@ export function ThemeForm({ action, initial, canEdit }: { action: (p: ThemeState
   const dark = ink !== '#FFFFFF';
 
   return (
-    <form action={formAction} className="max-w-[760px]">
+    <form action={formAction} onSubmit={keepValues(formAction)} className="max-w-[760px]">
       {state.error && <div className="notice err mb-4" role="alert">{state.error}</div>}
       {state.ok && !pending && <div className="notice ok mb-4" role="status">{state.ok}</div>}
       {state.warn && !pending && <div className="notice warn mb-4" role="status">{state.warn}</div>}

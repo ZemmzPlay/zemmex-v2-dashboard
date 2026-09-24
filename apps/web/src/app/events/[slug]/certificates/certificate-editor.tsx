@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { CertificateView, type CertificateTemplateText } from '@/components/certificate-view';
 import type { ActionState } from '@/lib/action-state';
+import { keepValues } from '@/lib/use-keep-values';
 
 export interface Sample { publicId: number; name: string; profile: string; credits: number; sessionsText: string; label: string }
 
@@ -27,7 +28,7 @@ export function CertificateEditor({ action, initial, samples, cme, accent, organ
 
   return (
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-      <form action={formAction} className="fsec !mb-0">
+      <form action={formAction} onSubmit={keepValues(formAction)} className="fsec !mb-0">
         <h2>Certificate template</h2>
         <p className="hint">{cme ? '{credits} becomes each delegate’s points. {provider} becomes the accrediting body.' : `{sessions} becomes the ${units} each person attended.`}</p>
         {state.error && <div className="notice err mb-4" role="alert">{state.error}</div>}
