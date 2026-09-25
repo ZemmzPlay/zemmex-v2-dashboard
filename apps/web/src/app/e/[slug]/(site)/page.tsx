@@ -20,7 +20,7 @@ export default async function EventHome({ params }: { params: Promise<{ slug: st
     getPublicPages(event.id),
     prisma.person.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, take: 6, include: { photo: { select: { key: true } } } }),
     prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }] }),
-    prisma.ticketType.findMany({ where: { eventId: event.id, onSale: true }, orderBy: { sortOrder: 'asc' }, include: { _count: { select: { registrations: { where: { status: 'CONFIRMED' } } } } } }),
+    prisma.ticketType.findMany({ where: { eventId: event.id, onSale: true }, orderBy: { sortOrder: 'asc' }, include: { _count: { select: { registrations: { where: { status: { in: ['CONFIRMED', 'PENDING'] } } } } } } }),
   ]);
   const paid = tickets.some((t) => t.priceMinor > 0);
   const welcome = pages[0];

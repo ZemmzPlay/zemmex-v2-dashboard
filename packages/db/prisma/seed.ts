@@ -210,7 +210,7 @@ async function seedEvent(e: SeedEvent, orgId: string) {
 
     regs.push({
       id, eventId: event.id, publicId, title: t, firstName: f, lastName: l, email, mobile, field1, field2,
-      ticketTypeId: ticket?.id ?? null, orderId, source: 'WEBSITE', createdAt,
+      ticketTypeId: ticket?.id ?? null, orderId, paidMinor: orderId ? ticket!.priceMinor : 0, source: 'WEBSITE', createdAt,
       badgePrintedAt: printed ? new Date(Math.min(createdAt.getTime() + DAY, nowMin)) : null,
     });
   }

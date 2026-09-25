@@ -8,6 +8,7 @@ import { logActivity } from '@/lib/activity';
 import { sendInvitation } from '@/lib/accounts';
 import { defaultsFor } from '@/lib/event-defaults';
 import { fieldOptions } from '@/lib/onboarding';
+import { paymentsReady } from '@/lib/payments';
 
 const schema = z.object({
   type: z.enum(EVENT_TYPE_KEYS),
@@ -94,8 +95,8 @@ export async function finishOnboarding(input: OnboardingData): Promise<FinishRes
         organisationId: user.organisationId, type: d.type, name: d.name, shortName: short, slug, timezone: d.timezone,
         startsOn: new Date(`${d.start}T00:00:00Z`), endsOn: new Date(`${TY.gates && d.end < d.start ? d.start : d.end}T00:00:00Z`),
         currency, venueName: d.venue, organiserName: user.organisationName, accentColour: d.colour.toUpperCase(),
-        // Free registration can open straight away; paid tickets wait for a payment provider.
-        registrationOpen: prices.every((p) => p === 0),
+        // Free registration opens straight away; paid tickets once card payments are set up.
+        registrationOpen: prices.every((p) => p === 0) || paymentsReady(),
         creditRule: d.rule, requireEvaluation: TY.credits || TY.cert === 'attendance' ? d.evaluationFirst : false,
         allowPassOut: d.passOut,
         formFields: { create: fields },

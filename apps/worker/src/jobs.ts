@@ -103,3 +103,23 @@ export async function dispatchOutbox(provider: Provider, now = new Date()) {
   }
   return { claimed: batch.length, sent, failed };
 }
+
+/**
+ * Releases seats held for buyers who never finished paying. The web app holds
+ * them for 45 minutes (Stripe's page expires at 35); this gives 15 more for a
+ * slow return or webhook. A payment that still lands later is confirmed by the
+ * webhook anyway (lib/orders.ts, markOrderPaid).
+ */
+export const RELEASE_AFTER_MINUTES = 60;
+
+export async function releaseHeldOrders(now = new Date()) {
+  const cutoff = new Date(now.getTime() - RELEASE_AFTER_MINUTES * 60_000);
+  const stale = await prisma.order.findMany({ where: { status: 'PENDING', createdAt: { lt: cutoff } }, select: { id: true }, take: 200 });
+  if (!stale.length) return 0;
+  const ids = stale.map((o) => o.id);
+  await prisma.$transaction([
+    prisma.order.updateMany({ where: { id: { in: ids }, status: 'PENDING' }, data: { status: 'FAILED' } }),
+    prisma.registration.updateMany({ where: { orderId: { in: ids }, status: 'PENDING' }, data: { status: 'CANCELLED' } }),
+  ]);
+  return ids.length;
+}

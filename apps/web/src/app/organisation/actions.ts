@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { normaliseIban, validIban } from '@/lib/payouts';
 import { prisma, type Role } from '@zemmz/db';
 import { emailSchema } from '@zemmz/shared';
 import { can, requireUser, ROLE_LABEL } from '@/lib/auth';
@@ -91,6 +92,8 @@ const orgSchema = z.object({
   name: z.string().trim().min(2, 'Enter your organisation’s name').max(120),
   kind: z.string().trim().max(60).default(''),
   country: z.string().trim().max(60).default(''),
+  legalName: z.string().trim().max(160).default(''),
+  vatNumber: z.string().trim().max(30).regex(/^[A-Za-z0-9 -]*$/, 'VAT numbers have only letters, digits and spaces').default(''),
 });
 
 export async function saveOrganisation(_p: ActionState, fd: FormData): Promise<ActionState> {
@@ -117,4 +120,19 @@ export async function requestActivation(_p: ActionState, fd: FormData): Promise<
   await logActivity(user, null, `asked to activate the ${plan.data.toLowerCase()} plan`);
   revalidatePath('/organisation');
   return done('Thanks. We’ll email the invoice within one working day.');
+}
+
+export async function savePayoutAccount(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await manager();
+  const g = (k: string) => String(fd.get(k) ?? '').trim();
+  const iban = normaliseIban(g('iban'));
+  if (!g('accountName')) return failed('Enter the name on the bank account');
+  if (!g('bankName')) return failed('Enter the bank’s name');
+  if (!validIban(iban)) return failed('That IBAN doesn’t check out. Copy it from a bank statement, for example AE07 0331 2345 6789 0123 456');
+  const swift = g('swift').toUpperCase();
+  if (swift && !/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(swift)) return failed('A SWIFT code has 8 or 11 letters and digits, for example EBILAEAD');
+  await prisma.organisation.update({ where: { id: user.organisationId }, data: { payoutAccountName: g('accountName').slice(0, 120), payoutBankName: g('bankName').slice(0, 120), payoutIban: iban, payoutSwift: swift } });
+  await logActivity(user, null, `changed the payout bank account to one ending ${iban.slice(-4)}`);
+  revalidatePath('/organisation');
+  return done('Bank details saved. Payouts go to this account from now on.');
 }

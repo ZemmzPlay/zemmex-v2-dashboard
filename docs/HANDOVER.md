@@ -28,7 +28,9 @@ limitation.
 | **Registrations** | Search as you type across name, ID, email and mobile; filters; sort; pagination; CSV export (formula-injection safe); record page with attendance per session, minutes and CME points; edit; resend confirmation; cancel and restore with a confirm dialog; add someone; printable badge or e-ticket with a Code 39 barcode; filter by the type's first profile field or by registered today; tick several to print their badges together. |
 | **Check-in** | Add, edit and delete sessions or gates (times, room, chairs, CME points, capacity, the ticket a gate accepts; gates may close after midnight). Export attendance with in and out times. Sessions or gates by day with live counts. Console: a large scan field for keyboard-wedge scanners, in/out modes, colour-and-words feedback, capacity limits, wrong-gate refusals with directions, pass-outs, recent scans from the database, demo simulate buttons (hidden in production). |
 | **Messages** | Confirmation email editor with merge tags and live preview; send to an audience (everyone, checked in, not checked in, in a session now) by email or SMS; sent log with delivery status; send me a test. |
-| **Tickets** | Ticket types with price, capacity, sold and a progress bar; on-sale switches; add, edit, and delete while unsold; capacity can't drop below what's sold. Promo codes with a percentage, optional use limit and an on/off switch. Payments tab shows the provider's real state and the ticket fee. |
+| **Tickets** | Ticket types with price, capacity, sold and a progress bar; on-sale switches; add, edit, and delete while unsold; capacity can't drop below what's sold. Promo codes with a percentage, optional use limit and an on/off switch. Payments: VAT (added as its own line, with tax invoices), pass the booking fee on or absorb it, and online refunds up to a set number of hours before the start. Orders: search, status, CSV for the accounts, and per-order pages to refund a whole order or single tickets. |
+| **Card payments** | zemmz is the merchant. Buyers pay on the provider's hosted page (`PAYMENT_PROVIDER=stripe` for Stripe Checkout, `tap` for Tap Payments with KNET, mada and Benefit; `mock` is a local test page). Seats are held as PENDING while the buyer pays and confirmed by the return page or the webhook, whichever is first; the provider is always asked for the status. The worker releases unpaid holds after an hour. Refunds go back through the provider and email the buyer; buyers can cancel their own tickets inside the refund window. Receipts and tax invoices at `/e/<slug>/order/<token>/receipt`. |
+| **Payouts** | Organisation → Payouts: what zemmz owes per currency (tickets and VAT, less refunds, card processing at `CARD_PROCESSING_BPS`, and absorbed fees), money ready after 7 days, IBAN-checked bank details, payout history. zemmz staff record bank transfers at `/admin` → Payouts, which emails the owners. |
 | **Certificates & CME / Certificates** | Issuing switch, eligible and not eligible counts, downloads. Medical: how points are earned (time in the room with a threshold, or checking in). Others: minimum sessions. Optional evaluation first. Points or sessions distribution. Certificate template editor with a live preview per eligible person, using the same component as the printed certificate. |
 | **After-event / After-show page** | Summit, concert, gala and exhibition: what to show (recordings, slides, photos, survey), who can open it, the message, and a live preview. |
 | **Evaluation / Feedback** | Report from real answers: responses, averages per rating, tick-box counts, latest comments, CSV export. Form builder: add, edit, reorder, delete questions; reset to the KIMS (medical) or standard template while nobody has answered. |
@@ -49,16 +51,13 @@ Everything designed in the Live prototypes is built. What's left is outside
 them, or waits on a decision:
 
 1. **zemmz Play**: all three prototypes. It shares the website builder, theming, roles and messaging but little else (docs/prototype/08).
-2. **A real payment provider** (and refunds). The checkout uses a stand-in that never takes card details; see section 6.
 3. **Card billing for plans.** Plans are invoiced and activated by zemmz staff at `/admin`. Online subscription billing needs the payment provider first.
 4. **Single sign-on** ("Continue with Microsoft" in the prototype) and **custom domains per event**. Both are listed on the enterprise plan; neither is designed.
 5. **Bilingual organiser content.** Arabic sites translate the interface; an event's own text (name, pages, biographies) is in whichever language the organiser writes it. Separate English and Arabic versions of that text would be the next step.
 6. **An offline mode for check-in** (docs/prototype/09, task 12).
 7. **Uploading video files.** Recordings are links to a video host, as the prototype's onboarding offers.
 
-Left out on purpose from the prototype's Tickets → Payments tab: the VAT,
-"pass the fee on" and refund-window switches. Nothing behind them exists yet,
-so a switch would promise something the product doesn't do. From the marketing
+From the marketing
 prototype: the client-logo row and the testimonial, which docs/prototype/07
 lists as unconfirmed.
 
@@ -92,12 +91,17 @@ lists as unconfirmed.
   certificates are HMAC-signed, and claiming after the event needs the email too.
 - **Emails go through an outbox table.** The web app only inserts rows; the
   worker delivers them. A registration and its email commit or fail together.
-- **The payment provider is a stand-in.** It collects no card data: the buyer
-  chooses approve or decline. In production it refuses to take money until a
-  real provider is configured. Seats are taken and the charge made in one
-  transaction, so a decline releases everything. With a real provider that
-  transaction shouldn't wait on a network call: reserve seats with an expiry,
-  redirect to the provider's hosted page, confirm on its webhook.
+- **Payments hold seats, then redirect.** No transaction waits on the provider:
+  the order and PENDING registrations commit, the buyer goes to the hosted
+  page, and `markOrderPaid` confirms under a row lock, so the return page, the
+  webhook and a retry can all arrive at once and only one confirms. Webhooks
+  are only a prompt: the status is always fetched from the provider with our
+  secret key. A payment that lands after its hold was released still confirms,
+  even past a ticket limit, because the buyer has paid.
+- **zemmz is the merchant of record**, with a payout ledger rather than
+  Stripe Connect or Tap marketplace accounts. It works the same with either
+  provider and needs no onboarding from organisers beyond an IBAN. Refunds
+  return what the ticket cost including VAT; the booking fee isn't refunded.
 - **The prototype's demo "simulate" buttons are kept** on the check-in console
   in development only.
 - **Screens that edit the same thing live in one place.** The prototype had
@@ -181,12 +185,11 @@ lists as unconfirmed.
 ## 6. Open questions (new, plus the prototype's still open)
 
 New:
-- **Payment provider** for the Gulf (hosted card fields, Apple Pay, KNET for
-  Kuwait?). Needed before any paid ticket is sold.
+- **Which payment provider** to sign with: Stripe and Tap both work. Tap covers
+  KNET (Kuwait), mada (Saudi) and Benefit (Bahrain); Stripe doesn't. Set the
+  real card processing rate in `CARD_PROCESSING_BPS`.
 - **SMS provider.** SMS rows are queued and fail with "No SMS provider
   configured" when SendGrid is the email provider.
-- **Refunds.** Cancelling a paid registration doesn't refund; the organiser is
-  told to handle it with the provider.
 - **One organisation per user** is assumed. Agencies running events for several
   clients will need an organisation switcher.
 - **Custom domains per event** (`events.client.com`): Caddy can issue the
@@ -206,7 +209,7 @@ ownership; the traced wordmark.
 
 ## 7. Before going live
 
-- [ ] Real payment provider, then remove `PAYMENT_PROVIDER=mock`
+- [ ] `PAYMENT_PROVIDER=stripe` or `tap` with its secret key; for Stripe, the webhook at `/api/payments/stripe` and `STRIPE_WEBHOOK_SECRET`; `CARD_PROCESSING_BPS` at the signed rate
 - [ ] `MESSAGING_PROVIDER=sendgrid`, a verified sender domain (SPF, DKIM)
 - [ ] `SESSION_SECRET`, `APP_URL`, `DATABASE_URL` set in the host's `.env`
 - [ ] Postgres timezone UTC; automated backups on RDS

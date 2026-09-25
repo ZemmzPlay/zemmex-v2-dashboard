@@ -43,7 +43,7 @@ export async function performScan(opts: { event: Event; sessionId: string; mode:
       session: { id: session.id, title: session.title, startsAt: session.startsAt, endsAt: session.endsAt, capacity: session.capacity, credits: session.credits, gateTicketTypeId: session.gateTicketTypeId },
       gateForTicket: (tid) => gates.find((g) => g.gateTicketTypeId === tid)?.title,
       registration: reg
-        ? { id: reg.id, publicId: reg.publicId, name: fullName(reg), detail: reg.field1 || reg.ticketType?.name || TY.guest, ticketTypeId: reg.ticketTypeId, ticketTypeName: reg.ticketType?.name ?? null, cancelled: reg.status === 'CANCELLED' }
+        ? { id: reg.id, publicId: reg.publicId, name: fullName(reg), detail: reg.field1 || reg.ticketType?.name || TY.guest, ticketTypeId: reg.ticketTypeId, ticketTypeName: reg.ticketType?.name ?? null, cancelled: reg.status !== 'CONFIRMED' }
         : null,
       rawInput: opts.input.trim().slice(0, 24) || '—',
       intervals,

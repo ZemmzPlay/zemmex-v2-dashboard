@@ -2,12 +2,13 @@
  * zemmz worker. Plain Node, no framework. Every tick (20 s by default):
  *   1. moves sessions between upcoming, live and ended
  *   2. delivers queued emails and SMS from the outbox
+ *   3. releases tickets held for buyers who didn't finish paying
  *
  *   npm run dev -w @zemmz/worker        watch mode
  *   npm run once -w @zemmz/worker       a single tick, then exit
  */
 import { prisma } from '@zemmz/db';
-import { dispatchOutbox, transitionSessions } from './jobs';
+import { dispatchOutbox, releaseHeldOrders, transitionSessions } from './jobs';
 import { providerFromEnv } from './providers';
 
 const TICK_MS = Number(process.env.WORKER_TICK_MS ?? 20_000);
@@ -22,6 +23,8 @@ async function tick() {
   try {
     const s = await transitionSessions();
     const o = await dispatchOutbox(provider);
+    const released = await releaseHeldOrders();
+    if (released) console.log(`[tick] released ${released} unpaid ${released === 1 ? 'order' : 'orders'}`);
     const changed = s.live + s.ended + s.upcoming;
     if (changed || o.claimed) {
       console.log(

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { prisma } from '@zemmz/db';
-import { formatShortDateTime } from '@zemmz/shared';
+import { formatMoney, formatShortDateTime } from '@zemmz/shared';
 import { can, requireUser, ROLE_LABEL } from '@/lib/auth';
 import { ROLE_NOTE } from '@/lib/accounts';
 import { relativeTime } from '@/lib/format';
@@ -12,7 +12,8 @@ import { FormDialog } from '@/components/form-dialog';
 import { Icon } from '@/components/icon';
 import { SimpleForm } from '@/components/simple-form';
 import { DashboardShell } from '@/components/shell/dashboard-shell';
-import { changeRole, invite, removeMember, resendInvite, revokeInvite, saveOrganisation } from './actions';
+import { changeRole, invite, removeMember, resendInvite, revokeInvite, saveOrganisation, savePayoutAccount } from './actions';
+import { balances, formatIban, PAYOUT_DELAY_DAYS } from '@/lib/payouts';
 import { RoleSelect } from './role-select';
 import { PlanTab } from './plan-tab';
 
@@ -27,7 +28,7 @@ export default async function OrganisationPage({ searchParams }: { searchParams:
   const { tab = 'team' } = await searchParams;
   const manage = can.manageEvent(user.role);
   const org = await prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId } });
-  const tabs: [string, string][] = [['team', 'People with access'], ['plan', 'Plan'], ['details', 'Details'], ['log', 'Activity']];
+  const tabs: [string, string][] = [['team', 'People with access'], ['plan', 'Plan'], ['payouts', 'Payouts'], ['details', 'Details'], ['log', 'Activity']];
 
   return (
     <DashboardShell user={user}>
@@ -48,8 +49,17 @@ export default async function OrganisationPage({ searchParams }: { searchParams:
               <div className="fld !mb-0"><label htmlFor="o-country">Country</label><select id="o-country" name="country" className="sel" defaultValue={org.country}><option value="">Not set</option>{COUNTRIES.map((k) => <option key={k}>{k}</option>)}</select></div>
             </div>
           </section>
+          <section className="fsec">
+            <h2>Tax invoices</h2>
+            <p className="hint">Ticket buyers get a tax invoice from you when an event adds VAT. Leave empty if you aren’t registered for VAT.</p>
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <div className="fld !mb-0"><label htmlFor="o-legal">Legal name<span className="opt">optional</span></label><input id="o-legal" name="legalName" className="inp" defaultValue={org.legalName} maxLength={160} placeholder={org.name} /></div>
+              <div className="fld !mb-0"><label htmlFor="o-vat">VAT number (TRN)<span className="opt">optional</span></label><input id="o-vat" name="vatNumber" className="inp" defaultValue={org.vatNumber} maxLength={30} /></div>
+            </div>
+          </section>
         </SimpleForm>
       )}
+      {tab === 'payouts' && <Payouts organisationId={user.organisationId} manage={manage} timezone={DEFAULT_TZ} />}
       {tab === 'log' && <OrgLog organisationId={user.organisationId} />}
     </DashboardShell>
   );
@@ -157,6 +167,63 @@ async function OrgLog({ organisationId }: { organisationId: string }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+const DEFAULT_TZ = 'Asia/Dubai';
+
+async function Payouts({ organisationId, manage, timezone }: { organisationId: string; manage: boolean; timezone: string }) {
+  const [org, bals, history] = await Promise.all([
+    prisma.organisation.findUniqueOrThrow({ where: { id: organisationId } }),
+    balances(organisationId),
+    prisma.payout.findMany({ where: { organisationId }, orderBy: { createdAt: 'desc' }, take: 50 }),
+  ]);
+  return (
+    <div className="max-w-[860px]">
+      <p className="mt-0 text-[13.5px] text-muted">
+        Buyers pay zemmz, and zemmz pays your share into your bank account every week: ticket prices and VAT, less refunds, card processing at cost, and the booking fee on events where you absorb it. Money from each order is held {PAYOUT_DELAY_DAYS} days first, so refunds come out of it.
+      </p>
+      {bals.length === 0 ? (
+        <div className="card mb-6 p-6 text-center text-muted">No paid tickets yet. Your balance shows here after the first sale.</div>
+      ) : (
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          {bals.map((b) => (
+            <div className="card kpi" key={b.currency}>
+              <div className="l">{b.currency} owed to you</div>
+              <div className="v">{formatMoney(b.balanceMinor, b.currency)}</div>
+              <div className="d">{formatMoney(b.availableMinor, b.currency)} ready for the next payout · {formatMoney(b.paidOutMinor, b.currency)} paid so far</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <SimpleForm action={savePayoutAccount} submitLabel="Save bank details" canEdit={manage}>
+        <section className="fsec">
+          <h2>Bank account</h2>
+          <p className="hint">{org.payoutIban ? `Payouts go to the account ending ${org.payoutIban.slice(-4)}.` : 'Add the account payouts should go to. Nothing can be paid out until you do.'}</p>
+          <div className="grid gap-x-4 sm:grid-cols-2">
+            <div className="fld"><label htmlFor="p-name">Name on the account</label><input id="p-name" name="accountName" className="inp" defaultValue={org.payoutAccountName || org.legalName || org.name} maxLength={120} /></div>
+            <div className="fld"><label htmlFor="p-bank">Bank</label><input id="p-bank" name="bankName" className="inp" defaultValue={org.payoutBankName} maxLength={120} /></div>
+            <div className="fld !mb-0"><label htmlFor="p-iban">IBAN</label><input id="p-iban" name="iban" className="inp font-mono" defaultValue={formatIban(org.payoutIban)} maxLength={42} autoComplete="off" /></div>
+            <div className="fld !mb-0"><label htmlFor="p-swift">SWIFT code<span className="opt">optional</span></label><input id="p-swift" name="swift" className="inp font-mono uppercase" defaultValue={org.payoutSwift} maxLength={11} autoComplete="off" /></div>
+          </div>
+        </section>
+      </SimpleForm>
+      <h2 className="mb-2 mt-8 text-[15px] font-semibold">Payouts</h2>
+      {history.length === 0 ? (
+        <p className="text-muted">None yet.</p>
+      ) : (
+        <div className="card overflow-x-auto">
+          <table className="tbl">
+            <thead><tr><th>Date</th><th className="num">Amount</th><th>Reference</th></tr></thead>
+            <tbody>
+              {history.map((p) => (
+                <tr key={p.id}><td>{formatShortDateTime(p.createdAt, timezone)}</td><td className="num">{formatMoney(p.amountMinor, p.currency)}</td><td>{p.reference || '—'}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

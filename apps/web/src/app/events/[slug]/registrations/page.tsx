@@ -118,7 +118,7 @@ export default async function RegistrationsPage({ params, searchParams }: { para
                     <td>{r.field1 || <span className="muted">—</span>}</td>
                     <td className="max-w-[220px] truncate">{tickets.length > 1 && TY.f1 !== 'Ticket' ? r.ticketType?.name ?? '—' : r.field2 || '—'}</td>
                     <td>
-                      {r.status === 'CANCELLED' ? <span className="badge b-danger">Cancelled</span>
+                      {r.status !== 'CONFIRMED' ? <span className="badge b-danger">{r.refundedAt ? 'Refunded' : r.status === 'PENDING' ? 'Awaiting payment' : 'Cancelled'}</span>
                         : r._count.attendance > 0 ? <span className="badge b-ok">{TY.gates ? 'Came in' : `${r._count.attendance} ${r._count.attendance === 1 ? TY.unit.toLowerCase() : TY.units}`}</span>
                         : <span className="badge b-neutral">Not yet</span>}
                     </td>

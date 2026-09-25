@@ -1,6 +1,7 @@
 import 'server-only';
 import { prisma, type Event } from '@zemmz/db';
 import { dayKey } from '@zemmz/shared';
+import { TAKEN, ticketTakings } from './orders';
 
 export async function eventStats(event: Event) {
   const now = new Date();
@@ -15,7 +16,7 @@ export async function eventStats(event: Event) {
       SELECT COUNT(DISTINCT a."registrationId") AS n FROM "Attendance" a
       JOIN "Session" s ON s.id = a."sessionId" WHERE s."eventId" = ${event.id}`,
     prisma.attendance.count({ where: { outAt: null, session: { eventId: event.id, status: 'LIVE' } } }),
-    prisma.order.aggregate({ where: { eventId: event.id, status: 'PAID' }, _sum: { subtotalMinor: true, discountMinor: true } }),
+    prisma.order.aggregate({ where: { eventId: event.id, status: { in: [...TAKEN] } }, _sum: { subtotalMinor: true, discountMinor: true, vatMinor: true, refundedMinor: true } }),
     prisma.certificateIssue.count({ where: { registration: { eventId: event.id } } }),
     prisma.afterEventPage.findUnique({ where: { eventId: event.id } }),
   ]);
@@ -26,7 +27,7 @@ export async function eventStats(event: Event) {
     prev24h,
     checkedIn: Number(checkedInRows[0]?.n ?? 0),
     inRoom,
-    revenueMinor: (revenue._sum.subtotalMinor ?? 0) - (revenue._sum.discountMinor ?? 0),
+    revenueMinor: ticketTakings(revenue._sum),
     certificates: certs,
     afterViews: afterPage?.views ?? 0,
   };

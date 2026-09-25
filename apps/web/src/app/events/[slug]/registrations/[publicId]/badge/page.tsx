@@ -22,7 +22,7 @@ export default async function BadgePage({ params }: { params: Promise<{ slug: st
     where: { eventId_publicId: { eventId: event.id, publicId: Number(pid) || 0 } },
     include: { ticketType: { include: { gates: { select: { title: true } } } } },
   });
-  if (!reg || reg.status === 'CANCELLED') notFound();
+  if (!reg || reg.status !== 'CONFIRMED') notFound();
 
   return (
     <>

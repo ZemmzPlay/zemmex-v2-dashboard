@@ -110,7 +110,7 @@ export default async function Home() {
                 </div>
               ))}
             </div>
-            <p className="zpnote">Free registration costs nothing per attendee. Paid tickets add {TICKET_FEE.rate * 100}% plus AED {aed.fixed} a ticket, capped at AED {aed.cap}, so an expensive ticket never costs you more than a cheap one. Card fees are charged by your payment provider.</p>
+            <p className="zpnote">Free registration costs nothing per attendee. Paid tickets add {TICKET_FEE.rate * 100}% plus AED {aed.fixed} a ticket, capped at AED {aed.cap}, so an expensive ticket never costs you more than a cheap one. Buyers pay by card on a secure page and we pay you out every week; card processing comes out of the payout at cost.</p>
           </div>
         </section>
 

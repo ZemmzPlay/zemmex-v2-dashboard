@@ -44,7 +44,17 @@ model Organisation {
   planStatus  PlanStatus     @default(TRIAL)
   activatedAt DateTime?
   createdAt   DateTime       @default(now())
+  /// Shown on tax invoices to ticket buyers.
+  legalName   String         @default("")
+  /// VAT registration number (TRN in the UAE). Empty when not registered.
+  vatNumber   String         @default("")
+  /// Where ticket money is paid out to (zemmz collects, then pays out weekly).
+  payoutAccountName String   @default("")
+  payoutBankName    String   @default("")
+  payoutIban        String   @default("")
+  payoutSwift       String   @default("")
   memberships Membership[]
+  payouts     Payout[]
   events      Event[]
   activity    ActivityLog[]
   invitations Invitation[]
@@ -214,6 +224,12 @@ model Event {
   siteLanguage     SiteLanguage @default(EN)
   /// Gates only: guests can scan out and back in with the same e-ticket.
   allowPassOut     Boolean    @default(true)
+  /// VAT added to paid tickets, in basis points (500 = 5%). 0 for none.
+  vatBps           Int        @default(0)
+  /// The booking fee is added to what the buyer pays; otherwise it comes out of the takings.
+  feePassedOn      Boolean    @default(true)
+  /// Buyers can cancel and be refunded until this many hours before the start. Null: no self-service refunds.
+  refundHours      Int?
   /// Built-in website pages left out of the menu: people, programme, venue.
   navHidden        String[]   @default([])
 
@@ -287,6 +303,8 @@ model PromoCode {
 enum RegistrationStatus {
   CONFIRMED
   CANCELLED
+  /// Seat held while the buyer pays. Becomes CONFIRMED or CANCELLED.
+  PENDING
 }
 
 enum RegistrationSource {
@@ -317,6 +335,10 @@ model Registration {
   consentMarketing Boolean         @default(false)
   /// The website language they registered in; their emails use it too.
   locale        String             @default("en")
+  /// What the buyer paid for this ticket, VAT included, booking fee excluded.
+  /// This is what a refund of this ticket returns.
+  paidMinor     Int                @default(0)
+  refundedAt    DateTime?
   badgePrintedAt DateTime?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
@@ -340,6 +362,7 @@ enum OrderStatus {
   PAID
   FAILED
   REFUNDED
+  PARTIALLY_REFUNDED
 }
 
 model Order {
@@ -354,19 +377,71 @@ model Order {
   feeMinor      Int         @default(0)
   /// Whether the buyer pays the fee on top, or the organiser absorbs it.
   feePassedOn   Boolean     @default(true)
+  /// VAT on the tickets, at the event's rate when the order was placed.
+  vatMinor      Int         @default(0)
+  vatBps        Int         @default(0)
   totalMinor    Int
+  /// The provider's card processing charge (CARD_PROCESSING_BPS of the total), deducted from the payout.
+  processingMinor Int       @default(0)
+  refundedMinor Int         @default(0)
   promoCodeId   String?
   status        OrderStatus @default(PENDING)
   provider      String
+  /// The provider's payment (Stripe payment intent, Tap charge) once known.
   providerRef   String?
+  /// The provider's checkout (Stripe checkout session, Tap charge) while paying.
+  providerSession String?
+  locale        String      @default("en")
   createdAt     DateTime    @default(now())
   paidAt        DateTime?
+  refunds       Refund[]
 
   event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   promoCode     PromoCode?  @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
   registrations Registration[]
 
   @@index([eventId, status])
+  @@index([status, createdAt])
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model Refund {
+  id             String       @id @default(cuid())
+  orderId        String
+  /// The tickets this refund cancelled.
+  registrationIds String[]
+  amountMinor    Int
+  status         RefundStatus @default(PENDING)
+  providerRef    String?
+  failure        String       @default("")
+  /// "organiser" or "buyer" (self-service within the refund window).
+  requestedBy    String
+  byLabel        String       @default("")
+  createdAt      DateTime     @default(now())
+
+  order          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+/// Money zemmz has transferred to an organisation from ticket sales.
+model Payout {
+  id             String       @id @default(cuid())
+  organisationId String
+  currency       String
+  amountMinor    Int
+  reference      String       @default("")
+  byLabel        String       @default("")
+  createdAt      DateTime     @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, currency])
 }
 
 // ---------------------------------------------------------------------------
