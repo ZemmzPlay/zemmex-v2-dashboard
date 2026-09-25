@@ -33,19 +33,28 @@ docs/             HANDOVER.md, and the prototype specs and HTML under prototype/
 Needs Node 22 and PostgreSQL 16 (native, or `docker compose up -d db`).
 
 ```bash
-cp .env.example .env          # then set DATABASE_URL
 npm install
-npm run db:migrate            # creates tables
-npm run db:seed               # four sample events, ~2,700 registrations
 npm run dev                   # web on http://localhost:3000 + worker
 ```
 
-On Windows right after installing Node, `scripts\dev-windows.cmd` does the last
-step without needing a new terminal.
+That's all, on macOS, Linux and Windows alike. Before starting, `npm run dev`
+(and `npm start`) runs `scripts/prepare.mjs`, which:
 
-Sign in at `/login` with `owner@zemmz.test`, `editor@zemmz.test` or
-`desk@zemmz.test` (check-in staff). The seed prints the password. Emails are not
-sent locally; read them at `/outbox`.
+- creates `.env` from `.env.example` the first time, with a random `SESSION_SECRET`;
+- applies any new database migrations, so pulling new code never needs a manual step;
+- adds the four sample events (~2,700 registrations) when the database is empty.
+
+If your PostgreSQL password isn't `zemmz_local`, change it in `DATABASE_URL`
+in `.env` and run `npm run dev` again. Set `AUTO_SEED=false` to start from an
+empty database. `npm run db:seed` resets the sample data at any time. On
+Windows, right after installing Node, `scripts\dev-windows.cmd` does the same
+without needing a new terminal.
+
+Open http://localhost:3000 for the marketing site. Sign in at `/login` with
+`owner@zemmz.test`, `editor@zemmz.test` or `desk@zemmz.test` (check-in staff);
+the seed prints the password. Or start from `/signup` to go through onboarding
+as a new organisation: the email code arrives in `/outbox`, like every email
+locally. Add your email to `PLATFORM_ADMIN_EMAILS` to open `/admin`.
 
 `SEED_CLOCK=demo npm run db:seed` shifts every event so the current moment is
 the one the prototype showed (medical session 3 running, concert doors open).

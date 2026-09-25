@@ -19,7 +19,11 @@ export const INPUT_NAME: Record<string, string> = {
 const AUTOCOMPLETE: Record<string, string> = { first: 'given-name', last: 'family-name', email: 'email', mob: 'tel', title: 'honorific-prefix' };
 const PLACEHOLDER: Record<string, string> = { email: 'name@example.com', mob: '+971 50 123 4567' };
 
-export function FieldInput({ f, value, error, tickets, showAll, namePrefix = '' }: { f: FieldDef; value: string; error?: string; tickets?: { id: string; label: string }[]; showAll?: boolean; namePrefix?: string }) {
+/** Words around the organiser's fields; the public site passes Arabic ones. */
+export interface FieldText { optional: string; chooseTicket: string; chooseOne: string; notGiven: string; term: (s: string) => string }
+const EN_TEXT: FieldText = { optional: 'optional', chooseTicket: 'Choose a ticket', chooseOne: 'Choose one', notGiven: 'Not given', term: (s) => s };
+
+export function FieldInput({ f, value, error, tickets, showAll, namePrefix = '', text = EN_TEXT }: { f: FieldDef; value: string; error?: string; tickets?: { id: string; label: string }[]; showAll?: boolean; namePrefix?: string; text?: FieldText }) {
   if (!f.enabled && !showAll) return null;
   const name = namePrefix + (INPUT_NAME[f.key] ?? `a_${f.key}`);
   const id = `fld-${namePrefix}${f.key}`;
@@ -29,27 +33,27 @@ export function FieldInput({ f, value, error, tickets, showAll, namePrefix = '' 
   if (f.kind === 'TICKET') {
     control = (
       <select {...common} className="sel" defaultValue={value}>
-        <option value="">Choose a ticket</option>
+        <option value="">{text.chooseTicket}</option>
         {tickets?.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
       </select>
     );
   } else if (f.kind === 'DROPDOWN') {
     control = (
       <select {...common} className="sel" defaultValue={value} autoComplete={AUTOCOMPLETE[f.key]}>
-        <option value="">{f.required ? 'Choose one' : 'Not given'}</option>
-        {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
+        <option value="">{f.required ? text.chooseOne : text.notGiven}</option>
+        {f.options.map((o) => <option key={o} value={o}>{text.term(o)}</option>)}
         {value && !f.options.includes(value) && <option value={value}>{value}</option>}
       </select>
     );
   } else {
     const type = f.kind === 'EMAIL' ? 'email' : f.kind === 'PHONE' ? 'tel' : f.kind === 'DATE' ? 'date' : 'text';
-    control = <input {...common} className="inp" type={type} defaultValue={value} autoComplete={AUTOCOMPLETE[f.key]} placeholder={PLACEHOLDER[f.key]} inputMode={f.kind === 'PHONE' ? 'tel' : undefined} />;
+    control = <input {...common} className="inp" type={type} defaultValue={value} autoComplete={AUTOCOMPLETE[f.key]} placeholder={PLACEHOLDER[f.key]} inputMode={f.kind === 'PHONE' ? 'tel' : undefined} dir={f.kind === 'EMAIL' || f.kind === 'PHONE' ? 'ltr' : undefined} />;
   }
   return (
     <div className={`fld ${error ? 'invalid' : ''}`}>
       <label htmlFor={id}>
         {f.label}
-        {f.required ? <span className="req" aria-hidden="true">*</span> : <span className="opt">optional</span>}
+        {f.required ? <span className="req" aria-hidden="true">*</span> : <span className="opt">{text.optional}</span>}
       </label>
       {control}
       {error && <span className="err" id={errId}>{error}</span>}

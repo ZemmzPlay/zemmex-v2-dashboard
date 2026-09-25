@@ -90,6 +90,13 @@ describe('decideScan', () => {
       const o = decideScan(ctx({ type: EVENT_TYPES.concert, mode: 'out', session: gate, registration: { ...guest, ticketTypeId: 'ga' }, intervals: [{ inAt: T('13:01'), outAt: null }] }));
       expect(o.detail).toBe('Pass-out recorded. They can scan back in.');
     });
+    it('refuses coming back in when pass-outs are off', () => {
+      const g = { ...guest, ticketTypeId: 'ga' };
+      const back = ctx({ type: EVENT_TYPES.concert, session: gate, registration: g, intervals: [{ inAt: T('13:01'), outAt: T('13:20') }], now: T('13:40') });
+      expect(decideScan({ ...back, passOuts: false }).kind).toBe('err');
+      expect(decideScan({ ...back, passOuts: false }).detail).toBe('This event doesn’t allow pass-outs');
+      expect(decideScan(back).kind).toBe('ok');
+    });
   });
 });
 

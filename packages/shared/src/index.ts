@@ -7,3 +7,5 @@ export * from './attendance';
 export * from './merge-tags';
 export * from './sanitize';
 export * from './schemas';
+export * from './evaluation-templates';
+export * from './site-text';

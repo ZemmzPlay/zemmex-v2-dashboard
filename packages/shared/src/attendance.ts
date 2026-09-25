@@ -107,6 +107,8 @@ export interface ScanContext {
   /** People currently in the room (open intervals). */
   inRoomCount: number;
   creditPolicy: CreditPolicy;
+  /** Gates: whether guests may leave and come back in. Defaults to yes. */
+  passOuts?: boolean;
   now: Date;
   formatTime: (d: Date) => string;
 }
@@ -155,6 +157,9 @@ export function decideScan(c: ScanContext): ScanOutcome {
   const hadBefore = c.intervals.length > 0;
 
   if (mode === 'in') {
+    if (gates && hadBefore && !open && c.passOuts === false) {
+      return { kind: 'err', title: `${r.name} already came in and left`, detail: 'This event doesn’t allow pass-outs', action: none };
+    }
     if (open) {
       return { kind: 'warn', title: `${r.name} is already ${gates ? 'inside' : 'checked in'}`, detail: `Since ${c.formatTime(open.inAt)} · ID ${r.publicId}`, action: none };
     }
@@ -178,7 +183,7 @@ export function decideScan(c: ScanContext): ScanOutcome {
     return { kind: 'warn', title: `${r.name} already left`, detail: `At ${c.formatTime(last.outAt!)}`, action: none };
   }
   if (gates) {
-    return { kind: 'out', title: `Goodbye, ${r.name}`, detail: 'Pass-out recorded. They can scan back in.', action: { type: 'close' } };
+    return { kind: 'out', title: `Goodbye, ${r.name}`, detail: c.passOuts === false ? 'Scanned out. This event doesn’t allow coming back in.' : 'Pass-out recorded. They can scan back in.', action: { type: 'close' } };
   }
   const stayed = Math.round((c.now.getTime() - Math.max(open.inAt.getTime(), s.startsAt.getTime())) / 60000);
   let detail = `Stayed ${Math.max(0, stayed)} min`;

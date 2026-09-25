@@ -7,6 +7,8 @@
  * from the first day. `now` is the moment the prototype froze each event at.
  */
 
+import { KIMS_RATINGS, KIMS_STATEMENTS } from '@zemmz/shared';
+
 export type Rnd = () => number;
 
 export interface SeedSession {
@@ -68,7 +70,6 @@ export const FEM = ['Noura','Layla','Fatima','Mariam','Sara','Reem','Aisha','Dan
 
 const P = (n: string, c: string, h: string, o: number, b: string, x?: string): SeedPerson => ({ n, c, h, o, b, x });
 
-const KIMS_RATINGS = ['Provided objectives at the start so I knew what I was expected to learn','Presented the content in a coherent, understandable way','Gave an adequate amount of detail, neither superficial nor excessive','Demonstrated a thorough knowledge of the subject','Stimulated my interest in the subject','Used audiovisuals that complemented the presentation','Provided handouts that highlighted the important concepts','Presented content appropriate to my level of knowledge','Used an effective presentation style','Invited and encouraged audience participation','Used the time allotted efficiently','Used language that was easy to understand'];
 const KIMS_AVGS = [4.6,4.61,4.61,4.66,4.63,4.68,4.51,4.67,4.69,4.65,4.75,4.73];
 
 const ratings = (ts: string[], avgs: number[], reqFirst: number): SeedQuestion[] =>
@@ -98,7 +99,7 @@ export const EVENTS: SeedEvent[] = [
       tk: (rnd) => (rnd() < 0.06 ? 'Industry representative' : 'Healthcare professional'),
     },
     people: [P('Prof. Faisal Al-Rumaihi','International','dir',1,'Consultant interventional cardiologist and chairman of the Kuwait coronary registry. He has led the summit since its first edition.'),P('Prof. Elena Moreno','International','dir',2,'Professor of Cardiology at a university hospital in Valencia. Her research focuses on heart failure registries and quality of care.'),P('Dr Maryam Al-Kuwari','Regional','co',1,'Consultant cardiologist and head of cardiac rehabilitation at a tertiary hospital in Doha.'),P('Dr Salim Al-Harthy','Regional','co',2,'Senior consultant cardiologist in Muscat and past president of the Gulf Cardiac Society.'),P('Prof. Richard Hale','International','',3,'Professor of Cardiology in the United Kingdom, specialising in antiplatelet therapy.'),P('Prof. Martín Castro','International','',4,'Head of cardiology at a university hospital in northern Spain.'),P('Prof. Anna Lindqvist','International','',5,'Heart failure specialist at a university hospital in Stockholm.'),P('Dr Khalid Al-Mansoori','Regional','',3,'Consultant cardiologist in Dubai and lead investigator of the Gulf breathlessness registry.'),P('Dr Nadia Al-Sayegh','Regional','',4,'Heart failure consultant in Kuwait.'),P('Dr Turki Al-Shehri','Regional','',5,'Interventional cardiologist at a cardiac centre in Riyadh.'),P('Dr Hamad Al-Fadhli','Local','',1,'Electrophysiologist at a specialist chest hospital in Kuwait.'),P('Dr Yaqoub Al-Saleh','Local','',2,'Consultant cardiologist at a general hospital in Kuwait.'),P('Dr Fahad Al-Otaibi','Local','',3,'Cardiac imaging specialist at a regional hospital in Kuwait.'),P('Dr Reem Al-Hajri','Local','',4,'Consultant cardiologist and educator at a diabetes institute in Kuwait.')],
-    evalQs: [...ratings(KIMS_RATINGS, KIMS_AVGS, 99), ...checks('This programme…', [['Met the stated objectives',241],['Will change how I practise',145],['Won’t change how I practise, but confirmed I’m doing the right thing',41],['Will be relevant to my practice',128],['Made me wish I hadn’t attended',25],['Satisfied my expectations',139]]), { t: 'The facilities for presentations were', type: 'choice', req: true, avg: 4.52 }, { t: 'The illustrative material was', type: 'choice', req: true, avg: 4.58 }, { t: 'Other comments', type: 'text', req: false }, { t: 'Suggestions for future meetings, and would you recommend this programme?', type: 'text', req: false }],
+    evalQs: [...ratings(KIMS_RATINGS, KIMS_AVGS, 99), ...checks('This programme…', KIMS_STATEMENTS.map((t, i): [string, number] => [t, [241, 145, 41, 128, 25, 139][i]])), { t: 'The facilities for presentations were', type: 'choice', req: true, avg: 4.52 }, { t: 'The illustrative material was', type: 'choice', req: true, avg: 4.58 }, { t: 'Other comments', type: 'text', req: false }, { t: 'Suggestions for future meetings, and would you recommend this programme?', type: 'text', req: false }],
     evalResponses: 120,
     comments: ['The heart failure session was the best I have attended in the region. More case-based discussion please.','Excellent organisation, and scanning in and out was quick.','Please share the slides after the meeting.','The hall was cold in the afternoon.','Would recommend to colleagues. The imaging masterclass should be longer.'],
     cert: { title: 'Certificate of Attendance', activity: '002398/CAR1/Sep26', provider: 'Kuwait Institute for Medical Specialization', text: 'Under the authority of the above CPD provider accredited by the {provider} for conducting CME/CPD activities, we certify that the above participant is entitled to claim {credits} CME/CPD credits in Category 1 under the MPC Program.', signer: 'Prof. Faisal Al-Rumaihi', role: 'Organiser & Meeting Director', date: '23 September 2026', min: 1 },

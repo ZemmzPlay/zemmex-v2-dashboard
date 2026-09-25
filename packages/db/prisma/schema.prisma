@@ -17,14 +17,37 @@ datasource db {
 // Organisations, people who log in, roles
 // ---------------------------------------------------------------------------
 
+/// How the organisation pays (docs/prototype/05-pricing.md). Card billing isn't
+/// built: zemmz activates a plan after invoicing, from /admin.
+enum Plan {
+  EVENT
+  SEASON
+  ENTERPRISE
+}
+
+enum PlanStatus {
+  /// Free for the first TRIAL_ATTENDEES confirmed attendees across all events.
+  TRIAL
+  ACTIVE
+  /// Kept for records; public registration is paused.
+  SUSPENDED
+}
+
 model Organisation {
   id          String         @id @default(cuid())
   name        String
   slug        String         @unique
+  /// "Event company or agency", "Hospital or medical body"… from onboarding.
+  kind        String         @default("")
+  country     String         @default("")
+  plan        Plan           @default(EVENT)
+  planStatus  PlanStatus     @default(TRIAL)
+  activatedAt DateTime?
   createdAt   DateTime       @default(now())
   memberships Membership[]
   events      Event[]
   activity    ActivityLog[]
+  invitations Invitation[]
 }
 
 model User {
@@ -34,8 +57,75 @@ model User {
   passwordHash String
   createdAt    DateTime      @default(now())
   lastSeenAt   DateTime?
+  /// Set when the 6-digit code from signup is entered. Invited people are verified by accepting.
+  emailVerifiedAt DateTime?
   memberships  Membership[]
   sessions     AuthSession[]
+  resets       PasswordReset[]
+  emailCodes   EmailCode[]
+}
+
+/// Someone asked to join an organisation by email. Only the token's SHA-256 is stored.
+model Invitation {
+  id             String       @id @default(cuid())
+  organisationId String
+  email          String
+  role           Role
+  tokenHash      String       @unique
+  invitedById    String?
+  invitedByLabel String       @default("")
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, email])
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// The 6-digit code that proves a new account owns its email.
+model EmailCode {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+enum RequestKind {
+  DEMO
+  CONTACT
+  UPGRADE
+}
+
+/// "Book a demo", "Talk to us" and plan upgrade requests, for the zemmz team.
+model ContactRequest {
+  id           String      @id @default(cuid())
+  kind         RequestKind
+  name         String      @default("")
+  email        String
+  organisation String      @default("")
+  message      String      @default("")
+  plan         Plan?
+  handledAt    DateTime?
+  createdAt    DateTime    @default(now())
+
+  @@index([handledAt, createdAt])
 }
 
 /// Owner and Admin manage everything; Editor manages content and messages but
@@ -86,6 +176,13 @@ enum EventType {
   gala
 }
 
+/// Language of the public website's interface. BOTH adds a switch for visitors.
+enum SiteLanguage {
+  EN
+  AR
+  BOTH
+}
+
 enum CreditRule {
   duration
   checkin
@@ -114,6 +211,11 @@ model Event {
   registrationOpen Boolean    @default(true)
   afterEventOn     Boolean    @default(false)
   maintenance      Boolean    @default(false)
+  siteLanguage     SiteLanguage @default(EN)
+  /// Gates only: guests can scan out and back in with the same e-ticket.
+  allowPassOut     Boolean    @default(true)
+  /// Built-in website pages left out of the menu: people, programme, venue.
+  navHidden        String[]   @default([])
 
   // Medical only: how CME points are earned.
   creditRule         CreditRule @default(duration)
@@ -144,6 +246,10 @@ model Event {
   evalResponses  EvaluationResponse[]
   raffleDraws    RaffleDraw[]
   activity       ActivityLog[]
+  assets         Asset[]        @relation("EventAssets")
+  /// Shown in the website header, on badges and in emails.
+  logoAssetId    String?        @unique
+  logo           Asset?         @relation("EventLogo", fields: [logoAssetId], references: [id], onDelete: SetNull)
 
   @@index([organisationId])
 }
@@ -209,6 +315,8 @@ model Registration {
   status        RegistrationStatus @default(CONFIRMED)
   source        RegistrationSource @default(WEBSITE)
   consentMarketing Boolean         @default(false)
+  /// The website language they registered in; their emails use it too.
+  locale        String             @default("en")
   badgePrintedAt DateTime?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
@@ -293,6 +401,10 @@ model Session {
   /// Kept current by the worker so lists and notifications don't recompute.
   status           SessionStatus @default(UPCOMING)
   sortOrder        Int           @default(0)
+  /// After the event: a link to the recording on the organiser's video host.
+  recordingUrl     String        @default("")
+  slidesAssetId    String?       @unique
+  slides           Asset?        @relation("SessionSlides", fields: [slidesAssetId], references: [id], onDelete: SetNull)
 
   event            Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
   gateTicketType   TicketType?   @relation(fields: [gateTicketTypeId], references: [id], onDelete: SetNull)
@@ -333,6 +445,8 @@ model Person {
   highlight String  @default("")
   bio       String  @default("")
   photoUrl  String?
+  photoAssetId String? @unique
+  photo     Asset?  @relation("PersonPhoto", fields: [photoAssetId], references: [id], onDelete: SetNull)
   setTime   String  @default("")
   sortOrder Int     @default(0)
   event     Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -582,4 +696,37 @@ model ActivityLog {
 
   @@index([organisationId, createdAt])
   @@index([eventId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Files: logos, photos, slides. Bytes live in storage (disk or S3), rows here.
+// ---------------------------------------------------------------------------
+
+enum AssetKind {
+  LOGO
+  PERSON_PHOTO
+  GALLERY_PHOTO
+  SLIDES
+}
+
+model Asset {
+  id             String    @id @default(cuid())
+  organisationId String
+  eventId        String?
+  kind           AssetKind
+  /// Storage key, also the path under /files/.
+  key            String    @unique
+  name           String
+  contentType    String
+  size           Int
+  /// After-event photos and slides can be limited to people who came.
+  attendeesOnly  Boolean   @default(false)
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  event          Event?    @relation("EventAssets", fields: [eventId], references: [id], onDelete: Cascade)
+  logoOf         Event?    @relation("EventLogo")
+  photoOf        Person?   @relation("PersonPhoto")
+  slidesOf       Session?  @relation("SessionSlides")
+
+  @@index([eventId, kind])
 }

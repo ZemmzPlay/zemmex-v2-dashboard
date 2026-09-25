@@ -270,7 +270,7 @@ async function main() {
   await prisma.organisation.deleteMany();
   await prisma.user.deleteMany();
 
-  const org = await prisma.organisation.create({ data: { name: 'Demo organisation', slug: 'demo' } });
+  const org = await prisma.organisation.create({ data: { name: 'Demo organisation', slug: 'demo', kind: 'Event company or agency', country: 'United Arab Emirates', plan: 'SEASON', planStatus: 'ACTIVE', activatedAt: new Date() } });
 
   const password = process.env.SEED_PASSWORD ?? 'zemmz-demo-2026';
   const hash = await hashPassword(password);
@@ -280,7 +280,7 @@ async function main() {
     ['Registration desk', 'desk@zemmz.test', 'CHECKIN'],
   ];
   for (const [name, email, role] of users) {
-    await prisma.user.create({ data: { name, email, passwordHash: hash, memberships: { create: { organisationId: org.id, role } } } });
+    await prisma.user.create({ data: { name, email, passwordHash: hash, emailVerifiedAt: new Date(), memberships: { create: { organisationId: org.id, role } } } });
   }
 
   for (const e of EVENTS) {

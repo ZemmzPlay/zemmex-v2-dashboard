@@ -24,7 +24,9 @@
     "db:deploy": "npm run migrate:deploy -w @zemmz/db",
     "db:seed": "npm run seed -w @zemmz/db",
     "db:reset": "npm run reset -w @zemmz/db",
-    "db:studio": "npm run studio -w @zemmz/db"
+    "db:studio": "npm run studio -w @zemmz/db",
+    "predev": "node scripts/prepare.mjs",
+    "prestart": "node scripts/prepare.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",

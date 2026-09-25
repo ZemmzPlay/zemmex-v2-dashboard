@@ -1,11 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { prisma } from '@zemmz/db';
+import { prisma, type Registration } from '@zemmz/db';
 import { broadcastSchema, messageTemplateSchema, stripHtml } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
-import { renderBroadcast } from '@/lib/email';
+import { renderBroadcast, renderConfirmation } from '@/lib/email';
 import { AUDIENCES, audienceWhere } from '@/lib/audiences';
 
 export interface MsgState {
@@ -52,4 +52,19 @@ export async function sendBroadcast(slug: string, _p: MsgState, fd: FormData): P
   await logActivity(user, event.id, `sent “${subject}” to ${usable.length} ${usable.length === 1 ? 'person' : 'people'} by ${channel === 'sms' ? 'SMS' : 'email'}`);
   revalidatePath(`/events/${slug}/messages`);
   return { ok: `Queued for ${usable.length} ${usable.length === 1 ? 'person' : 'people'}. Delivery starts within 20 seconds.` };
+}
+
+/** Sends the message as written to the signed-in organiser, with sample values, marked as a test. */
+export async function sendTest(slug: string, kind: 'confirmation' | 'broadcast', _p: MsgState, fd: FormData): Promise<MsgState> {
+  const { user, event } = await requirePermission(slug, can.sendMessages);
+  const parsed = messageTemplateSchema.safeParse({ subject: fd.get('subject'), bodyHtml: fd.get('bodyHtml') });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const sample = await prisma.registration.findFirst({ where: { eventId: event.id, status: 'CONFIRMED' }, orderBy: { publicId: 'asc' } });
+  // A stand-in, so the test never carries a real person's ticket link.
+  const reg = { ...(sample ?? { firstName: 'Sara', lastName: 'Nasser', title: '', publicId: 1001, email: user.email, mobile: '' }), id: 'test' } as Registration;
+  const m = kind === 'confirmation'
+    ? renderConfirmation(event, { subject: parsed.data.subject, bodyHtml: parsed.data.bodyHtml, kicker: String(fd.get('kicker') ?? '').slice(0, 40) }, reg, null)
+    : renderBroadcast(event, parsed.data.subject, parsed.data.bodyHtml, reg);
+  await prisma.outboundMessage.create({ data: { eventId: event.id, channel: 'EMAIL', toAddress: user.email, toName: user.name, subject: `[Test] ${m.subject}`, html: m.html, text: m.text } });
+  return { ok: `Test sent to ${user.email}.` };
 }

@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useRef, useState } from 'react';
 import { applyMergeTags, MERGE_TAGS, sanitizeRichText, type MergeValues } from '@zemmz/shared';
 import type { MsgState } from './actions';
+import { keepValues } from '@/lib/use-keep-values';
 
 /**
  * Subject and body with merge tags, and a live preview using a sample
@@ -18,6 +19,7 @@ export function TemplateEditor({
   submitLabel,
   children,
   confirmText,
+  testAction,
 }: {
   action: (p: MsgState, fd: FormData) => Promise<MsgState>;
   initial: { subject: string; bodyHtml: string; kicker?: string };
@@ -27,8 +29,11 @@ export function TemplateEditor({
   submitLabel: string;
   children?: React.ReactNode;
   confirmText?: string;
+  testAction?: (p: MsgState, fd: FormData) => Promise<MsgState>;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  const [testState, testFormAction, testing] = useActionState<MsgState, FormData>(testAction ?? (async () => ({})), {});
+  const [last, setLast] = useState<'main' | 'test'>('main');
   const [subject, setSubject] = useState(initial.subject);
   const [body, setBody] = useState(initial.bodyHtml);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -51,12 +56,15 @@ export function TemplateEditor({
       action={formAction}
       className="grid items-start gap-4 xl:grid-cols-2"
       onSubmit={(e) => {
-        if (confirmText && !window.confirm(confirmText)) e.preventDefault();
+        const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+        const test = !!submitter?.hasAttribute('formaction');
+        if (confirmText && !test && !window.confirm(confirmText)) { e.preventDefault(); return; }
+        keepValues(test ? testFormAction : formAction)(e);
       }}
     >
       <div>
-        {state.error && <div className="notice err mb-4" role="alert">{state.error}</div>}
-        {state.ok && <div className="notice ok mb-4" role="status">{state.ok}</div>}
+        {(last === 'test' ? testState : state).error && <div className="notice err mb-4" role="alert">{(last === 'test' ? testState : state).error}</div>}
+        {(last === 'test' ? testState : state).ok && <div className="notice ok mb-4" role="status">{(last === 'test' ? testState : state).ok}</div>}
         <div className="fsec">
           {children}
           {withKicker && (
@@ -82,7 +90,10 @@ export function TemplateEditor({
             <span className="help">Paragraphs, bold, italic, links, lists and headings are kept. Anything else is removed before sending.</span>
           </div>
         </div>
-        <button className="btn primary" disabled={pending}>{pending ? 'Working…' : submitLabel}</button>
+        <div className="flex flex-wrap gap-2.5">
+          <button className="btn primary" disabled={pending || testing} onClick={() => setLast('main')}>{pending ? 'Working…' : submitLabel}</button>
+          {testAction && <button className="btn secondary" formAction={testFormAction} formNoValidate disabled={pending || testing} onClick={() => setLast('test')}>{testing ? 'Sending…' : 'Send me a test'}</button>}
+        </div>
       </div>
       <div className="sticky top-[84px]">
         <div className="mb-2 text-[12.5px] text-muted">Preview with a sample {sample.full_name ? `(${sample.full_name})` : ''}</div>

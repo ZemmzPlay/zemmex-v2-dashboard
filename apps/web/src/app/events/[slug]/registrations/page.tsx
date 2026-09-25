@@ -13,7 +13,7 @@ import { UrlSelect } from '@/components/url-select';
 export const metadata: Metadata = { title: 'Registrations' };
 const PAGE = 25;
 
-type SP = Promise<{ q?: string; show?: string; ticket?: string; sort?: string; page?: string }>;
+type SP = Promise<{ q?: string; show?: string; ticket?: string; f1?: string; sort?: string; page?: string }>;
 
 export default async function RegistrationsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: SP }) {
   const { slug } = await params;
@@ -22,9 +22,9 @@ export default async function RegistrationsPage({ params, searchParams }: { para
   const TY = eventType(event.type);
   const sort: SortKey = sp.sort && sp.sort in SORTS ? (sp.sort as SortKey) : 'newest';
   const page = Math.max(1, Number(sp.page) || 1);
-  const where = registrationWhere(event.id, sp);
+  const where = registrationWhere(event.id, sp, event.timezone);
 
-  const [total, rows, tickets, all] = await Promise.all([
+  const [total, rows, tickets, all, f1s] = await Promise.all([
     prisma.registration.count({ where }),
     prisma.registration.findMany({
       where,
@@ -35,6 +35,7 @@ export default async function RegistrationsPage({ params, searchParams }: { para
     }),
     prisma.ticketType.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, select: { id: true, name: true } }),
     prisma.registration.count({ where: { eventId: event.id, status: 'CONFIRMED' } }),
+    prisma.registration.groupBy({ by: ['field1'], where: { eventId: event.id, status: 'CONFIRMED', field1: { not: '' } }, orderBy: { field1: 'asc' }, take: 60 }),
   ]);
   const pages = Math.max(1, Math.ceil(total / PAGE));
   const qs = (p: number) => {
@@ -42,8 +43,8 @@ export default async function RegistrationsPage({ params, searchParams }: { para
     n.set('page', String(p));
     return `?${n.toString()}`;
   };
-  const filtered = !!(sp.q || sp.show || sp.ticket);
-  const exportHref = `/events/${slug}/registrations/export?${new URLSearchParams(Object.entries({ q: sp.q, show: sp.show, ticket: sp.ticket }).filter(([, v]) => v) as [string, string][])}`;
+  const filtered = !!(sp.q || sp.show || sp.ticket || sp.f1);
+  const exportHref = `/events/${slug}/registrations/export?${new URLSearchParams(Object.entries({ q: sp.q, show: sp.show, ticket: sp.ticket, f1: sp.f1 }).filter(([, v]) => v) as [string, string][])}`;
 
   return (
     <>
@@ -60,19 +61,20 @@ export default async function RegistrationsPage({ params, searchParams }: { para
         </div>
       </div>
 
-      <div className="toolbar">
+      <div data-tour="search" className="toolbar">
         <SearchBox label={`Find ${an(TY.guest)}`} placeholder={`Find ${an(TY.guest)} by name, ID, email or mobile`} />
         <UrlSelect
           param="show"
           label="Show"
           value={sp.show ?? ''}
-          options={[['', `All ${TY.guests}`], ['checked_in', 'Checked in'], ['not_checked_in', 'Not checked in yet'], ['no_badge', `${TY.badge[0].toUpperCase() + TY.badge.slice(1)} not printed`], ['cancelled', 'Cancelled']]}
+          options={[['', `All ${TY.guests}`], ['checked_in', 'Checked in'], ['not_checked_in', 'Not checked in yet'], ['today', TY.gates ? 'Bought today' : 'Registered today'], ['no_badge', `${TY.badge[0].toUpperCase() + TY.badge.slice(1)} not printed`], ['cancelled', 'Cancelled']]}
         />
         {tickets.length > 1 && <UrlSelect param="ticket" label="Ticket" value={sp.ticket ?? ''} options={[['', 'Any ticket'], ...tickets.map((t) => [t.id, t.name] as [string, string])]} />}
+        {f1s.length > 1 && TY.f1 !== 'Ticket' && <UrlSelect param="f1" label={TY.f1} value={sp.f1 ?? ''} options={[['', `All ${TY.f1s}`], ...f1s.map((f) => [f.field1, f.field1] as [string, string])]} />}
         <UrlSelect param="sort" label="Sort by" value={sort} options={[['newest', 'Newest first'], ['oldest', 'Oldest first'], ['name', 'Last name, A–Z']]} />
       </div>
 
-      <div className="tbl-wrap">
+      <div data-tour="table" className="tbl-wrap">
         {rows.length === 0 ? (
           <div className="empty">
             <div className="ic"><Icon name="search" size={24} /></div>
@@ -82,10 +84,15 @@ export default async function RegistrationsPage({ params, searchParams }: { para
           </div>
         ) : (
           <>
+            <form id="bulk" action={`/events/${slug}/registrations/print`} className="flex flex-wrap items-center gap-3 border-b border-line px-3.5 py-2.5">
+              <span className="text-[12.5px] text-muted">Tick people to print their {TY.badge}s together.</span>
+              <button className="btn secondary sm ml-auto"><Icon name="print" size={15} /> Print selected</button>
+            </form>
             <table className="tbl">
               <caption className="sr-only">{TY.regs}, page {page} of {pages}</caption>
               <thead>
                 <tr>
+                  <th scope="col" className="w-10"><span className="sr-only">Select</span></th>
                   <th scope="col">ID</th>
                   <th scope="col">Name</th>
                   <th scope="col">{TY.f1}</th>
@@ -97,6 +104,7 @@ export default async function RegistrationsPage({ params, searchParams }: { para
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id}>
+                    <td>{r.status === 'CONFIRMED' && <input type="checkbox" form="bulk" name="id" value={r.publicId} aria-label={`Select ${fullName(r)}`} className="h-4 w-4 accent-[var(--brand)]" />}</td>
                     <td className="tabular-nums">{r.publicId}</td>
                     <td>
                       <div className="flex items-center gap-2.5">

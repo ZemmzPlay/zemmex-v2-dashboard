@@ -1,14 +1,16 @@
 'use client';
 
 import { useActionState } from 'react';
+import { eventType, siteText, type Locale } from '@zemmz/shared';
 import type { PublicFormState } from '../../../actions';
 
 interface Q { id: string; text: string; kind: 'RATING' | 'CHECK' | 'CHOICE' | 'TEXT'; group: string; required: boolean }
 
-const SCALE: [number, string][] = [[1, 'Poor'], [2, 'Fair'], [3, 'Good'], [4, 'Very good'], [5, 'Excellent']];
 
 /** Ratings as radio groups (keyboard-friendly by default), ticked statements, comments. */
-export function EvaluationForm({ action, questions }: { action: (p: PublicFormState, fd: FormData) => Promise<PublicFormState>; questions: Q[] }) {
+export function EvaluationForm({ action, questions, type, locale }: { action: (p: PublicFormState, fd: FormData) => Promise<PublicFormState>; questions: Q[]; type: string; locale: Locale }) {
+  const t = siteText(eventType(type), locale);
+  const SCALE = t.scale.map((l, i) => [i + 1, l] as [number, string]);
   const [state, formAction, pending] = useActionState(action, {});
   const groups: { group: string; items: Q[] }[] = [];
   for (const q of questions) {
@@ -25,7 +27,7 @@ export function EvaluationForm({ action, questions }: { action: (p: PublicFormSt
         if (first.kind === 'CHECK') {
           return (
             <fieldset key={gi} className="mb-6 rounded-xl border border-[var(--line)] p-4">
-              <legend className="px-1 font-semibold">{g.group || 'Tick any that apply'}</legend>
+              <legend className="px-1 font-semibold">{g.group || t.tickAny}</legend>
               {g.items.map((q) => (
                 <label key={q.id} className="flex items-start gap-2.5 py-1.5 text-[14.5px]">
                   <input type="checkbox" name={`q_${q.id}`} className="mt-1" defaultChecked={state.values?.[`q_${q.id}`] === 'on'} /> {q.text}
@@ -39,7 +41,7 @@ export function EvaluationForm({ action, questions }: { action: (p: PublicFormSt
             {g.items.map((q) =>
               q.kind === 'TEXT' ? (
                 <div className="fld" key={q.id}>
-                  <label htmlFor={`q_${q.id}`}>{q.text}{!q.required && <span className="opt">optional</span>}</label>
+                  <label htmlFor={`q_${q.id}`}>{q.text}{!q.required && <span className="opt">{t.optional}</span>}</label>
                   <textarea id={`q_${q.id}`} name={`q_${q.id}`} className="inp !h-24 py-2" maxLength={2000} defaultValue={state.values?.[`q_${q.id}`]} />
                 </div>
               ) : (
@@ -59,7 +61,7 @@ export function EvaluationForm({ action, questions }: { action: (p: PublicFormSt
           </div>
         );
       })}
-      <button className="btn accent" disabled={pending}>{pending ? 'Sending…' : 'Submit'}</button>
+      <button className="btn accent" disabled={pending}>{pending ? t.sending : t.submit}</button>
     </form>
   );
 }

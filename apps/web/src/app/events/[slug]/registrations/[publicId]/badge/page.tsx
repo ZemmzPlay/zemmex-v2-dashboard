@@ -6,6 +6,7 @@ import { eventType } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { fullName } from '@/lib/format';
 import { BadgeCard } from '@/components/badge-card';
+import { logoUrlFor } from '@/lib/assets';
 import { Icon } from '@/components/icon';
 import { PrintButton } from './print-button';
 import { markPrinted } from '../../actions';
@@ -15,6 +16,7 @@ export const metadata: Metadata = { title: 'Print badge' };
 export default async function BadgePage({ params }: { params: Promise<{ slug: string; publicId: string }> }) {
   const { slug, publicId: pid } = await params;
   const { event } = await requirePermission(slug, can.checkIn);
+  const logoUrl = await logoUrlFor(event);
   const TY = eventType(event.type);
   const reg = await prisma.registration.findUnique({
     where: { eventId_publicId: { eventId: event.id, publicId: Number(pid) || 0 } },
@@ -39,6 +41,7 @@ export default async function BadgePage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
       <BadgeCard
+              logoUrl={logoUrl}
         event={event}
         name={fullName(reg)}
         line1={TY.gates ? undefined : reg.field1}

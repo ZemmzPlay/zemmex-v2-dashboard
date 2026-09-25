@@ -58,4 +58,17 @@ describe('createRegistrations', () => {
     const fresh = await prisma.event.findUniqueOrThrow({ where: { id: event.id } });
     expect(fresh.nextPublicId).toBe(1001);
   });
+
+  it('stops at the free trial limit, even when people race for the last places, and not once a plan is active', async () => {
+    const { event, org } = await makeEvent({ trial: true });
+    const tid = event.ticketTypes[0].id;
+    await createRegistrations({ event, people: Array.from({ length: 45 }, (_, i) => person(i, tid)), source: 'WEBSITE' });
+    const results = await Promise.allSettled(Array.from({ length: 10 }, (_, i) => createRegistrations({ event, people: [person(100 + i, tid)], source: 'WEBSITE' })));
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(5);
+    await expect(createRegistrations({ event, people: [person(200, tid)], source: 'DASHBOARD' })).rejects.toThrow('free trial covers 50');
+    await expect(createRegistrations({ event, people: [person(201, tid)], source: 'WEBSITE' })).rejects.toThrow('Contact the organiser');
+    await prisma.organisation.update({ where: { id: org.id }, data: { planStatus: 'ACTIVE' } });
+    const [r] = await createRegistrations({ event, people: [person(202, tid)], source: 'WEBSITE' });
+    expect(r.publicId).toBe(1051);
+  });
 });

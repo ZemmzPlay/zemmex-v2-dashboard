@@ -40,8 +40,11 @@ export interface CurrentUser {
   role: Role;
 }
 
-/** The signed-in user and their organisation, or null. Cached per request. */
-export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+/**
+ * Whoever holds a valid session cookie, even before they have an
+ * organisation: someone part-way through signing up. Cached per request.
+ */
+export const getSessionAccount = cache(async () => {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -50,12 +53,18 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     include: { user: { include: { memberships: { include: { organisation: true }, orderBy: { createdAt: 'asc' }, take: 1 } } } },
   });
   if (!session || session.expiresAt < new Date()) return null;
-  const m = session.user.memberships[0];
-  if (!m) return null;
+  return session.user;
+});
+
+/** The signed-in user and their organisation, or null. Cached per request. */
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  const user = await getSessionAccount();
+  const m = user?.memberships[0];
+  if (!user || !m || !user.emailVerifiedAt) return null;
   return {
-    id: session.user.id,
-    name: session.user.name,
-    email: session.user.email,
+    id: user.id,
+    name: user.name,
+    email: user.email,
     organisationId: m.organisationId,
     organisationName: m.organisation.name,
     role: m.role,
@@ -64,8 +73,17 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect('/login');
+  if (!user) {
+    // Signed in but not finished signing up: carry on where they left off.
+    if (await getSessionAccount()) redirect('/signup');
+    redirect('/login');
+  }
   return user;
+}
+
+/** zemmz staff who can activate plans, from PLATFORM_ADMIN_EMAILS (comma-separated). */
+export function isPlatformAdmin(email: string) {
+  return (process.env.PLATFORM_ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase());
 }
 
 /** What each role may do. Check-in staff only reach the check-in console. */
