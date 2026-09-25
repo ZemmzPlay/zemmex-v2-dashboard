@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@zemmz/db';
 import { verifyStripeSignature } from '@/lib/payments';
 import { syncOrder } from '@/lib/orders';
+import { syncPurchase } from '@/lib/billing';
 
 /**
  * Stripe webhook: checkout.session.completed, .async_payment_succeeded,
@@ -16,7 +17,12 @@ export async function POST(req: Request) {
   if (!event.type.startsWith('checkout.session.')) return NextResponse.json({ ok: true });
   const session = event.data.object;
   const order = await prisma.order.findFirst({ where: { OR: [{ providerSession: session.id }, { id: session.metadata?.orderId ?? '-' }], provider: 'stripe' } });
-  if (!order) return NextResponse.json({ ok: true, note: 'unknown order' });
-  await syncOrder({ ...order, providerSession: order.providerSession ?? session.id });
+  if (order) {
+    await syncOrder({ ...order, providerSession: order.providerSession ?? session.id });
+    return NextResponse.json({ ok: true });
+  }
+  const plan = await prisma.planPurchase.findFirst({ where: { OR: [{ providerSession: session.id }, { id: session.metadata?.orderId ?? '-' }], provider: 'stripe' } });
+  if (!plan) return NextResponse.json({ ok: true, note: 'unknown order' });
+  await syncPurchase({ ...plan, providerSession: plan.providerSession ?? session.id });
   return NextResponse.json({ ok: true });
 }

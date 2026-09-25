@@ -16,7 +16,7 @@ limitation.
 |---|---|
 | **Marketing site** | `/`: the landing page from `live-marketing.html` (hero, how it works, who it's for, pricing, questions, footer with the wordmark), `/contact` for demos, questions and enterprise enquiries, `/help`, `/terms` and `/privacy` (drafts awaiting legal review). Requests are stored and emailed to `SALES_EMAIL`. |
 | **Signup and onboarding** | `/signup` in the prototype's 11 steps: account, a 6-digit email code, organisation, type of event, the event, tickets, a step that changes by type (CME and accreditation, gates and pass-outs, after-event content, certificates), form fields, logo and colour with a contrast check, team invitations, plan. Finishing creates the event with everything the answers imply and shows a checklist built from the real data. People who stop part-way resume where they left off. |
-| **Plans and trial** | Every new organisation starts on a free trial of 50 confirmed attendees, enforced inside the registration transaction; a dashboard banner shows usage. Owners ask to activate a plan from Organisation → Plan; zemmz staff (`PLATFORM_ADMIN_EMAILS`) activate or pause plans at `/admin`, where website requests also land. |
+| **Plans and trial** | Every new organisation starts on a free trial of 50 confirmed attendees, enforced inside the registration transaction; a dashboard banner shows usage. Owners pay for a plan by card on Organisation → Plan (one year of Season, or one more Single event; same hosted checkout as tickets, UAE VAT for UAE organisations, zemmz tax invoices), or ask for an invoice and zemmz staff activate it at `/admin` with a paid-until date. Limits: Single event covers the events paid for, Season six in any 12 months; creating one more is blocked with a way to buy it. The worker reminds owners 30 and 7 days before the end and on the day, keeps registrations open 14 days, then pauses the account until it's renewed. |
 | **Accounts** | Email and password sign-in, hashed session tokens, four roles (Owner, Admin, Content editor, Check-in staff) enforced on every page and action. Check-in staff only reach the console. Forgot password (single-use link, 2 hours; resets sign out everywhere). Your account: name, password, sign out other devices. |
 | **Team** | Organisation → People with access: invite by email with a role (link valid 7 days), resend or cancel, change roles, remove access (signs them out). Only owners manage owners; the last owner can't be removed. Organisation details and an organisation-wide activity log. |
 | **Files** | Logos (website header, badges, e-tickets), photos of faculty, speakers and artists, after-event photo galleries and slides. Checked by their bytes, never their name; stored on disk or S3. Attendee-only files need the claim link. Recordings are links to the organiser's video host. |
@@ -51,7 +51,6 @@ Everything designed in the Live prototypes is built. What's left is outside
 them, or waits on a decision:
 
 1. **zemmz Play**: all three prototypes. It shares the website builder, theming, roles and messaging but little else (docs/prototype/08).
-3. **Card billing for plans.** Plans are invoiced and activated by zemmz staff at `/admin`. Online subscription billing needs the payment provider first.
 4. **Single sign-on** ("Continue with Microsoft" in the prototype) and **custom domains per event**. Both are listed on the enterprise plan; neither is designed.
 5. **Bilingual organiser content.** Arabic sites translate the interface; an event's own text (name, pages, biographies) is in whichever language the organiser writes it. Separate English and Arabic versions of that text would be the next step.
 6. **An offline mode for check-in** (docs/prototype/09, task 12).
@@ -197,9 +196,10 @@ New:
 - **The marketing site's promises.** Pricing, plan limits, "single sign-on" and
   "on-site support" on the enterprise plan are the prototype's proposal, not
   signed off; SSO isn't built. Confirm or soften them before launch.
-- **Plan limits after the trial** (1 event and 1,000 attendees on Single event,
-  6 events on Season) are shown on the Plan tab but not enforced; decide
-  whether they should block or just prompt a conversation.
+- **Plan limits.** Events are enforced (Single event: the events paid for;
+  Season: six in 12 months). The 1,000-attendee limit on Single event only
+  shows a warning, so a popular event never stops registering; decide
+  whether it should block.
 
 Still open from `docs/prototype/07-open-questions.md`: every name, figure and
 organisation in the seed is fictional; the CME activity number and KIMS

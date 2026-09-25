@@ -53,8 +53,15 @@ model Organisation {
   payoutBankName    String   @default("")
   payoutIban        String   @default("")
   payoutSwift       String   @default("")
+  /// A paid plan runs until here; renewal reminders and the grace period count from it.
+  planEndsAt  DateTime?
+  /// Single-event plan: events paid for and not yet used.
+  eventCredits Int           @default(0)
+  /// The last renewal reminder sent ("30d", "7d", "ended", "paused"), so each goes once.
+  planReminder String        @default("")
   memberships Membership[]
   payouts     Payout[]
+  purchases   PlanPurchase[]
   events      Event[]
   activity    ActivityLog[]
   invitations Invitation[]
@@ -427,6 +434,30 @@ model Refund {
   order          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+}
+
+/// An organisation paying zemmz for a plan by card. Bank transfers are recorded at /admin instead.
+model PlanPurchase {
+  id             String       @id @default(cuid())
+  organisationId String
+  plan           Plan
+  currency       String       @default("AED")
+  amountMinor    Int
+  vatMinor       Int          @default(0)
+  totalMinor     Int
+  status         OrderStatus  @default(PENDING)
+  provider       String
+  providerSession String?
+  providerRef    String?
+  byLabel        String       @default("")
+  createdAt      DateTime     @default(now())
+  paidAt         DateTime?
+  /// What the payment bought: the plan until this date.
+  periodEnd      DateTime?
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, createdAt])
 }
 
 /// Money zemmz has transferred to an organisation from ticket sales.

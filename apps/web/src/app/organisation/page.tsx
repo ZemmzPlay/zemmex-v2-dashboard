@@ -22,10 +22,10 @@ export const metadata: Metadata = { title: 'Organisation' };
 const KINDS = ['Event company or agency', 'Promoter', 'Company', 'Association or society', 'University', 'Hospital or medical body', 'Venue', 'Government'];
 const COUNTRIES = ['United Arab Emirates', 'Saudi Arabia', 'Kuwait', 'Qatar', 'Bahrain', 'Oman', 'Egypt', 'Jordan', 'Other'];
 
-export default async function OrganisationPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function OrganisationPage({ searchParams }: { searchParams: Promise<{ tab?: string; payment?: string }> }) {
   const user = await requireUser();
   if (!can.seeDashboard(user.role)) redirect('/events');
-  const { tab = 'team' } = await searchParams;
+  const { tab = 'team', payment } = await searchParams;
   const manage = can.manageEvent(user.role);
   const org = await prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId } });
   const tabs: [string, string][] = [['team', 'People with access'], ['plan', 'Plan'], ['payouts', 'Payouts'], ['details', 'Details'], ['log', 'Activity']];
@@ -37,7 +37,7 @@ export default async function OrganisationPage({ searchParams }: { searchParams:
         {tabs.map(([k, l]) => <Link key={k} href={`/organisation?tab=${k}`} aria-current={tab === k ? 'page' : undefined}>{l}</Link>)}
       </nav>
       {tab === 'team' && <Team userId={user.id} role={user.role} organisationId={user.organisationId} manage={manage} />}
-      {tab === 'plan' && <PlanTab organisationId={user.organisationId} manage={manage} />}
+      {tab === 'plan' && <PlanTab organisationId={user.organisationId} manage={manage} payment={payment} />}
       {tab === 'details' && (
         <SimpleForm action={saveOrganisation} submitLabel="Save" canEdit={manage}>
           <section className="fsec">

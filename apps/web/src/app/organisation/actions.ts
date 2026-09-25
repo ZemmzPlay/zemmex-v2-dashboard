@@ -3,12 +3,19 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { normaliseIban, validIban } from '@/lib/payouts';
+import { paymentProvider, paymentsReady, PaymentError, startCheckout } from '@/lib/payments';
+import { planQuote } from '@/lib/billing';
+import { sign } from '@/lib/order-tokens';
+
 import { prisma, type Role } from '@zemmz/db';
 import { emailSchema } from '@zemmz/shared';
 import { can, requireUser, ROLE_LABEL } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { platformEmail, queuePlatformEmail, sendInvitation } from '@/lib/accounts';
 import { done, failed, type ActionState } from '@/lib/action-state';
+import { redirect } from 'next/navigation';
+import { appUrl } from '@/lib/email';
+import { planDef } from '@/lib/plans';
 
 const ROLES = ['OWNER', 'ADMIN', 'EDITOR', 'CHECKIN'] as const;
 
@@ -110,7 +117,8 @@ export async function requestActivation(_p: ActionState, fd: FormData): Promise<
   const user = await manager();
   const plan = z.enum(['EVENT', 'SEASON', 'ENTERPRISE']).safeParse(fd.get('plan'));
   if (!plan.success) return failed('Choose a plan.');
-  await prisma.organisation.update({ where: { id: user.organisationId }, data: { plan: plan.data } });
+  // An active plan stays as it is until the new one is paid for.
+  await prisma.organisation.updateMany({ where: { id: user.organisationId, planStatus: { not: 'ACTIVE' } }, data: { plan: plan.data } });
   // The organisation ID in the message lets the admin page link the request to the account.
   await prisma.contactRequest.create({ data: { kind: 'UPGRADE', name: user.name, email: user.email, organisation: user.organisationName, plan: plan.data, message: `Activate ${plan.data} for organisation ${user.organisationId}` } });
   await queuePlatformEmail({ email: process.env.SALES_EMAIL || 'hello@zemmz.com' }, `Plan request: ${user.organisationName}`, platformEmail({
@@ -135,4 +143,37 @@ export async function savePayoutAccount(_p: ActionState, fd: FormData): Promise<
   await logActivity(user, null, `changed the payout bank account to one ending ${iban.slice(-4)}`);
   revalidatePath('/organisation');
   return done('Bank details saved. Payouts go to this account from now on.');
+}
+
+/** Pay for a plan (or one more event) by card, on the provider's page. */
+export async function buyPlan(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await manager();
+  const plan = z.enum(['EVENT', 'SEASON']).safeParse(fd.get('plan'));
+  if (!plan.success) return failed('Choose a plan.');
+  if (!paymentsReady()) return failed('Card payments aren’t set up yet. Ask for an invoice instead.');
+  const org = await prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId } });
+  const q = planQuote(plan.data, org.country)!;
+  const purchase = await prisma.planPurchase.create({
+    data: { organisationId: org.id, plan: plan.data, currency: q.currency, amountMinor: q.amountMinor, vatMinor: q.vatMinor, totalMinor: q.totalMinor, provider: paymentProvider(), byLabel: user.name },
+  });
+  const token = sign('plan', purchase.id);
+  let url: string;
+  try {
+    const base = `${appUrl()}/organisation/billing`;
+    const c = await startCheckout({
+      orderId: purchase.id, amountMinor: q.totalMinor, currency: q.currency, locale: 'en',
+      description: `zemmz Live: ${planDef(plan.data).name} plan`,
+      buyer: { name: user.name, email: user.email },
+      returnUrl: `${base}/return?p=${token}&s={SESSION}`,
+      cancelUrl: `${base}/cancel?p=${token}`,
+      webhookUrl: `${appUrl()}/api/payments/${paymentProvider()}`,
+      mockUrl: `/organisation/billing/test/${token}`,
+    });
+    await prisma.planPurchase.update({ where: { id: purchase.id }, data: { providerSession: c.session } });
+    url = c.url;
+  } catch (e) {
+    await prisma.planPurchase.update({ where: { id: purchase.id }, data: { status: 'FAILED' } });
+    return failed(`${e instanceof PaymentError ? e.message : 'The payment provider could not be reached.'} Nothing was charged.`);
+  }
+  redirect(url);
 }

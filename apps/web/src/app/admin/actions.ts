@@ -25,9 +25,19 @@ export async function setPlan(organisationId: string, _p: ActionState, fd: FormD
   const before = await prisma.organisation.findUnique({ where: { id: organisationId }, include: { memberships: { where: { role: 'OWNER' }, include: { user: true } } } });
   if (!before) return failed('That organisation no longer exists.');
   const { plan, planStatus } = parsed.data;
+  // Paid until: the date given, or a year from now when activating by invoice.
+  const until = String(fd.get('planEndsAt') ?? '').trim();
+  const planEndsAt = until ? new Date(`${until}T20:00:00Z`) : planStatus === 'ACTIVE' && before.planStatus !== 'ACTIVE' ? new Date(Date.now() + 365 * 86_400_000) : before.planEndsAt;
+  if (until && Number.isNaN(planEndsAt?.getTime())) return failed('Enter the paid-until date as a date.');
+  const credits = Number(String(fd.get('eventCredits') ?? '').trim() || before.eventCredits);
+  if (!Number.isInteger(credits) || credits < 0) return failed('Enter the events paid for as a whole number.');
   await prisma.organisation.update({
     where: { id: organisationId },
-    data: { plan, planStatus, activatedAt: planStatus === 'ACTIVE' && before.planStatus !== 'ACTIVE' ? new Date() : before.activatedAt },
+    data: {
+      plan, planStatus, planEndsAt, planReminder: planEndsAt?.getTime() !== before.planEndsAt?.getTime() ? '' : before.planReminder,
+      eventCredits: plan === 'EVENT' && planStatus === 'ACTIVE' ? Math.max(1, credits) : credits,
+      activatedAt: planStatus === 'ACTIVE' && before.planStatus !== 'ACTIVE' ? new Date() : before.activatedAt,
+    },
   });
   await prisma.activityLog.create({ data: { organisationId, actorId: user.id, actorLabel: `zemmz (${user.name})`, action: `set the plan to ${planDef(plan).name}, ${planStatus.toLowerCase()}` } });
   if (planStatus === 'ACTIVE' && before.planStatus !== 'ACTIVE') {

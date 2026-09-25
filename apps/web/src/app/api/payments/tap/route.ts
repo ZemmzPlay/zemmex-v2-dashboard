@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@zemmz/db';
 import { syncOrder } from '@/lib/orders';
+import { syncPurchase } from '@/lib/billing';
 
 /**
  * Tap webhook (the charge's post.url). The body is only used to find the
@@ -17,7 +18,12 @@ export async function POST(req: Request) {
   if (!body.id?.startsWith('chg_')) return NextResponse.json({ ok: true });
   const orderId = body.metadata?.orderId ?? body.reference?.order ?? '-';
   const order = await prisma.order.findFirst({ where: { OR: [{ providerSession: body.id }, { id: orderId }], provider: 'tap' } });
-  if (!order) return NextResponse.json({ ok: true, note: 'unknown order' });
-  await syncOrder({ ...order, providerSession: order.providerSession ?? body.id });
+  if (order) {
+    await syncOrder({ ...order, providerSession: order.providerSession ?? body.id });
+    return NextResponse.json({ ok: true });
+  }
+  const plan = await prisma.planPurchase.findFirst({ where: { OR: [{ providerSession: body.id }, { id: orderId }], provider: 'tap' } });
+  if (!plan) return NextResponse.json({ ok: true, note: 'unknown order' });
+  await syncPurchase({ ...plan, providerSession: plan.providerSession ?? body.id });
   return NextResponse.json({ ok: true });
 }

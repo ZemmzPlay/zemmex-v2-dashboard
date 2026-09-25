@@ -54,11 +54,15 @@ async function Orgs() {
                 <td><span className={`badge ${o.planStatus === 'ACTIVE' ? 'b-ok' : o.planStatus === 'TRIAL' ? 'b-info' : 'b-danger'}`}>{o.planStatus === 'TRIAL' ? 'Trial' : o.planStatus === 'ACTIVE' ? 'Active' : 'Paused'}</span></td>
                 <td className="num">{fmt(n)}{o.planStatus === 'TRIAL' && <span className="muted"> / {TRIAL_ATTENDEES}</span>}</td>
                 <td className="num">{o._count.events}</td>
-                <td className="muted whitespace-nowrap">{formatShortDateTime(o.createdAt, 'UTC')}</td>
+                <td className="muted whitespace-nowrap">{formatShortDateTime(o.createdAt, 'UTC')}{o.planEndsAt && <div>paid until {formatShortDateTime(o.planEndsAt, 'UTC').split(',')[0]}</div>}</td>
                 <td className="text-right">
                   <FormDialog action={setPlan.bind(null, o.id)} label="Change" className="btn secondary sm" title={`Plan for ${o.name}`} submitLabel="Save">
                     <div className="fld"><label htmlFor={`p-${o.id}`}>Plan</label><select id={`p-${o.id}`} name="plan" className="sel" defaultValue={o.plan}>{PLANS.map((p) => <option key={p.key} value={p.key}>{p.name} · {p.price} {p.per}</option>)}</select></div>
                     <div className="fld !mb-0"><label htmlFor={`s-${o.id}`}>Status</label><select id={`s-${o.id}`} name="planStatus" className="sel" defaultValue={o.planStatus}><option value="TRIAL">Free trial ({TRIAL_ATTENDEES} attendees)</option><option value="ACTIVE">Active: invoice paid</option><option value="SUSPENDED">Paused: registrations closed</option></select><span className="help">Activating emails the owners.</span></div>
+                    <div className="mt-4 grid gap-x-4 sm:grid-cols-2">
+                      <div className="fld !mb-0"><label htmlFor={`e-${o.id}`}>Paid until<span className="opt">optional</span></label><input id={`e-${o.id}`} name="planEndsAt" type="date" className="inp" defaultValue={o.planEndsAt?.toISOString().slice(0, 10)} /><span className="help">Empty: a year from activation.</span></div>
+                      <div className="fld !mb-0"><label htmlFor={`c-${o.id}`}>Events paid for</label><input id={`c-${o.id}`} name="eventCredits" type="number" min={0} className="inp" defaultValue={o.eventCredits} /><span className="help">Single-event plan only.</span></div>
+                    </div>
                   </FormDialog>
                 </td>
               </tr>

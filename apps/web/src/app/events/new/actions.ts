@@ -6,6 +6,7 @@ import { evaluationTemplate, eventType, newEventSchema } from '@zemmz/shared';
 import { can, requireUser } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { defaultsFor } from '@/lib/event-defaults';
+import { eventAllowance } from '@/lib/billing';
 
 export interface NewEventState {
   error?: string;
@@ -15,6 +16,8 @@ export interface NewEventState {
 export async function createEvent(_p: NewEventState, fd: FormData): Promise<NewEventState> {
   const user = await requireUser();
   if (!can.manageEvent(user.role)) return { error: 'Only owners and admins can create events.' };
+  const allowance = await eventAllowance(await prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId } }));
+  if (!allowance.ok) return { error: allowance.reason };
   const parsed = newEventSchema.safeParse(Object.fromEntries(fd.entries()));
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
