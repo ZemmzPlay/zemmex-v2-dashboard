@@ -12,15 +12,17 @@ import { FormDialog } from '@/components/form-dialog';
 import { Icon } from '@/components/icon';
 import { SimpleForm } from '@/components/simple-form';
 import { DashboardShell } from '@/components/shell/dashboard-shell';
-import { changeRole, invite, removeMember, resendInvite, revokeInvite, saveOrganisation, savePayoutAccount } from './actions';
+import { changeRole, invite, removeMember, removeSsoDomain, resendInvite, revokeInvite, saveOrganisation, savePayoutAccount, saveSsoSettings, setSsoDomain, verifySsoDomain } from './actions';
+import { ssoProviders } from '@/lib/sso';
 import { balances, formatIban, PAYOUT_DELAY_DAYS } from '@/lib/payouts';
 import { RoleSelect } from './role-select';
 import { PlanTab } from './plan-tab';
+import { ORG_COUNTRIES, ORG_KINDS } from '@/lib/onboarding';
 
 export const metadata: Metadata = { title: 'Organisation' };
 
-const KINDS = ['Event company or agency', 'Promoter', 'Company', 'Association or society', 'University', 'Hospital or medical body', 'Venue', 'Government'];
-const COUNTRIES = ['United Arab Emirates', 'Saudi Arabia', 'Kuwait', 'Qatar', 'Bahrain', 'Oman', 'Egypt', 'Jordan', 'Other'];
+const KINDS = ORG_KINDS;
+const COUNTRIES = ORG_COUNTRIES;
 
 export default async function OrganisationPage({ searchParams }: { searchParams: Promise<{ tab?: string; payment?: string }> }) {
   const user = await requireUser();
@@ -28,7 +30,7 @@ export default async function OrganisationPage({ searchParams }: { searchParams:
   const { tab = 'team', payment } = await searchParams;
   const manage = can.manageEvent(user.role);
   const org = await prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId } });
-  const tabs: [string, string][] = [['team', 'People with access'], ['plan', 'Plan'], ['payouts', 'Payouts'], ['details', 'Details'], ['log', 'Activity']];
+  const tabs: [string, string][] = [['team', 'People with access'], ['plan', 'Plan'], ['payouts', 'Payouts'], ['sso', 'Single sign-on'], ['details', 'Details'], ['log', 'Activity']];
 
   return (
     <DashboardShell user={user}>
@@ -60,6 +62,7 @@ export default async function OrganisationPage({ searchParams }: { searchParams:
         </SimpleForm>
       )}
       {tab === 'payouts' && <Payouts organisationId={user.organisationId} manage={manage} timezone={DEFAULT_TZ} />}
+      {tab === 'sso' && <Sso organisationId={user.organisationId} manage={manage} />}
       {tab === 'log' && <OrgLog organisationId={user.organisationId} />}
     </DashboardShell>
   );
@@ -223,6 +226,68 @@ async function Payouts({ organisationId, manage, timezone }: { organisationId: s
             </tbody>
           </table>
         </div>
+      )}
+    </div>
+  );
+}
+
+async function Sso({ organisationId, manage }: { organisationId: string; manage: boolean }) {
+  const org = await prisma.organisation.findUniqueOrThrow({ where: { id: organisationId } });
+  const allowed = org.plan === 'ENTERPRISE' && org.planStatus === 'ACTIVE';
+  const providers = ssoProviders().filter((p) => p.key !== 'test');
+  return (
+    <div className="max-w-[760px]">
+      <p className="mt-0 text-[13.5px] text-muted">
+        People at your organisation sign in with their work Microsoft or Google account. Once you verify your email domain, anyone at it joins this organisation the first time they sign in, with the role you choose; you can change or remove them as usual.
+      </p>
+      {!allowed ? (
+        <div className="notice info">Single sign-on comes with the government and enterprise plan. <Link href="/organisation?tab=plan" className="font-semibold">See plans</Link></div>
+      ) : !manage ? (
+        <div className="notice info">Only owners and admins can change single sign-on.</div>
+      ) : (
+        <>
+          {providers.length === 0 && <div className="notice warn mb-4">zemmz hasn’t connected Microsoft or Google sign-in on this server yet, so the domain can be verified but nobody can sign in with it until that’s done.</div>}
+          <SimpleForm action={setSsoDomain} submitLabel={org.ssoDomain ? 'Change domain' : 'Continue'} canEdit>
+            <section className="fsec">
+              <h2>1. Your email domain</h2>
+              <div className="fld !mb-0 max-w-[360px]"><label htmlFor="s-domain">Domain</label><input id="s-domain" name="domain" className="inp" defaultValue={org.ssoDomain ?? ''} placeholder="health.gov.ae" /></div>
+            </section>
+          </SimpleForm>
+          {org.ssoDomain && (
+            <div className="mt-6">
+              <SimpleForm action={verifySsoDomain} submitLabel={org.ssoDomainVerifiedAt ? 'Check again' : 'Check the record'} canEdit>
+                <section className="fsec">
+                  <h2>2. Prove it’s yours {org.ssoDomainVerifiedAt && <span className="badge b-ok ml-2">Verified</span>}</h2>
+                  <p className="hint">Add this TXT record in your domain’s DNS. It can stay there; removing it doesn’t turn anything off.</p>
+                  <dl className="m-0 grid grid-cols-[90px_1fr] gap-y-1.5 rounded-xl border border-line p-3 text-[13px]">
+                    <dt className="text-muted">Type</dt><dd className="m-0 font-mono">TXT</dd>
+                    <dt className="text-muted">Name</dt><dd className="m-0 font-mono">{org.ssoDomain}</dd>
+                    <dt className="text-muted">Value</dt><dd className="m-0 break-all font-mono">{org.ssoDomainToken}</dd>
+                  </dl>
+                </section>
+              </SimpleForm>
+            </div>
+          )}
+          {org.ssoDomainVerifiedAt && (
+            <div className="mt-6">
+              <SimpleForm action={saveSsoSettings} submitLabel="Save" canEdit>
+                <section className="fsec">
+                  <h2>3. Who gets in, and how</h2>
+                  <div className="fld max-w-[320px]"><label htmlFor="s-role">New people join as</label><select id="s-role" name="role" className="sel" defaultValue={org.ssoDefaultRole}><option value="EDITOR">{ROLE_LABEL.EDITOR}</option><option value="CHECKIN">{ROLE_LABEL.CHECKIN}</option><option value="ADMIN">{ROLE_LABEL.ADMIN}</option></select></div>
+                  <div className="fld !mb-0">
+                    <label className="switch"><input type="checkbox" role="switch" name="required" defaultChecked={org.ssoRequired} /> Require single sign-on for @{org.ssoDomain}</label>
+                    <span className="help">Passwords stop working for everyone at the domain. Connect your own Microsoft or Google account under Your account first.</span>
+                  </div>
+                </section>
+              </SimpleForm>
+            </div>
+          )}
+          {org.ssoDomain && (
+            <div className="mt-6">
+              <ConfirmButton action={removeSsoDomain} label="Turn off single sign-on" title={`Turn off single sign-on for ${org.ssoDomain}?`} body={<p className="m-0">New people at {org.ssoDomain} stop joining automatically, and passwords work again. Nobody loses access they already have.</p>} confirmLabel="Turn it off" />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

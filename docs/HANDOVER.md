@@ -19,6 +19,9 @@ limitation.
 | **Plans and trial** | Every new organisation starts on a free trial of 50 confirmed attendees, enforced inside the registration transaction; a dashboard banner shows usage. Owners pay for a plan by card on Organisation → Plan (one year of Season, or one more Single event; same hosted checkout as tickets, UAE VAT for UAE organisations, zemmz tax invoices), or ask for an invoice and zemmz staff activate it at `/admin` with a paid-until date. Limits: Single event covers the events paid for, Season six in any 12 months; creating one more is blocked with a way to buy it. The worker reminds owners 30 and 7 days before the end and on the day, keeps registrations open 14 days, then pauses the account until it's renewed. |
 | **Accounts** | Email and password sign-in, hashed session tokens, four roles (Owner, Admin, Content editor, Check-in staff) enforced on every page and action. Check-in staff only reach the console. Forgot password (single-use link, 2 hours; resets sign out everywhere). Your account: name, password, sign out other devices. |
 | **Team** | Organisation → People with access: invite by email with a role (link valid 7 days), resend or cancel, change roles, remove access (signs them out). Only owners manage owners; the last owner can't be removed. Organisation details and an organisation-wide activity log. |
+| **Several organisations** | One login can belong to several organisations (an agency and its clients): a switcher in the top bar, New organisation (starts on the trial), invitations to people who already have an account, and links to another organisation's event switch to it. |
+| **Single sign-on** | "Continue with Microsoft" and "Continue with Google" (OpenID Connect with PKCE, plain `fetch`) on sign-in and signup when configured; connect or disconnect them under Your account. Enterprise organisations verify their email domain with a DNS TXT record; people at the domain then join on first sign-in with a chosen role, and passwords can be turned off for them. Accounts are only matched by email when the provider vouches for it (Google's `email_verified`, Microsoft's `xms_edov`). |
+| **Custom domains** | Enterprise events can live on the organiser's own address (Settings → Web address): a CNAME plus a TXT record, checked from the app. The middleware maps the host to the event; Caddy issues certificates on demand, only for verified domains (`/api/domains/allowed`). |
 | **Files** | Logos (website header, badges, e-tickets), photos of faculty, speakers and artists, after-event photo galleries and slides. Checked by their bytes, never their name; stored on disk or S3. Attendee-only files need the claim link. Recordings are links to the organiser's video host. |
 | **Help centre** | In each event's dashboard: guides for before, on the day and after, in that event's words, and five on-screen tours that highlight the real controls. A public version at `/help`. |
 | **Arabic** | Each event's website can be English, Arabic, or both with a switch. All interface text, error messages, badges, certificates and emails have Arabic versions; the layout is right to left with an Arabic typeface. Organiser text appears as written. |
@@ -51,7 +54,6 @@ Everything designed in the Live prototypes is built. What's left is outside
 them, or waits on a decision:
 
 1. **zemmz Play**: all three prototypes. It shares the website builder, theming, roles and messaging but little else (docs/prototype/08).
-4. **Single sign-on** ("Continue with Microsoft" in the prototype) and **custom domains per event**. Both are listed on the enterprise plan; neither is designed.
 5. **Bilingual organiser content.** Arabic sites translate the interface; an event's own text (name, pages, biographies) is in whichever language the organiser writes it. Separate English and Arabic versions of that text would be the next step.
 6. **An offline mode for check-in** (docs/prototype/09, task 12).
 7. **Uploading video files.** Recordings are links to a video host, as the prototype's onboarding offers.
@@ -189,13 +191,9 @@ New:
   real card processing rate in `CARD_PROCESSING_BPS`.
 - **SMS provider.** SMS rows are queued and fail with "No SMS provider
   configured" when SendGrid is the email provider.
-- **One organisation per user** is assumed. Agencies running events for several
-  clients will need an organisation switcher.
-- **Custom domains per event** (`events.client.com`): Caddy can issue the
-  certificates; the app needs a host-to-event lookup in middleware.
-- **The marketing site's promises.** Pricing, plan limits, "single sign-on" and
-  "on-site support" on the enterprise plan are the prototype's proposal, not
-  signed off; SSO isn't built. Confirm or soften them before launch.
+- **The marketing site's promises.** Pricing, plan limits and "on-site
+  support" on the enterprise plan are the prototype's proposal, not signed
+  off. Confirm or soften them before launch.
 - **Plan limits.** Events are enforced (Single event: the events paid for;
   Season: six in 12 months). The 1,000-attendee limit on Single event only
   shows a warning, so a popular event never stops registering; decide
@@ -212,6 +210,8 @@ ownership; the traced wordmark.
 - [ ] `PAYMENT_PROVIDER=stripe` or `tap` with its secret key; for Stripe, the webhook at `/api/payments/stripe` and `STRIPE_WEBHOOK_SECRET`; `CARD_PROCESSING_BPS` at the signed rate
 - [ ] `MESSAGING_PROVIDER=sendgrid`, a verified sender domain (SPF, DKIM)
 - [ ] `SESSION_SECRET`, `APP_URL`, `DATABASE_URL` set in the host's `.env`
+- [ ] Microsoft (Entra app registration, multi-tenant, with the `xms_edov` optional claim) and Google OAuth clients for single sign-on, redirect URIs `<APP_URL>/auth/<provider>/callback`
+- [ ] `CUSTOM_DOMAIN_TARGET` (the host organisers CNAME to) and port 443 open for Caddy's on-demand certificates
 - [ ] Postgres timezone UTC; automated backups on RDS
 - [ ] Remove or replace every fictional name and figure (docs/prototype/07)
 - [ ] `PLATFORM_ADMIN_EMAILS` and `SALES_EMAIL` set; someone owns `/admin` requests

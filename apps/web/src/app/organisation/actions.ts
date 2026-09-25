@@ -16,6 +16,7 @@ import { done, failed, type ActionState } from '@/lib/action-state';
 import { redirect } from 'next/navigation';
 import { appUrl } from '@/lib/email';
 import { planDef } from '@/lib/plans';
+import { hasTxt, newDomainToken, normaliseDomain, PUBLIC_EMAIL_DOMAINS } from '@/lib/domains';
 
 const ROLES = ['OWNER', 'ADMIN', 'EDITOR', 'CHECKIN'] as const;
 
@@ -37,7 +38,6 @@ export async function invite(_p: ActionState, fd: FormData): Promise<ActionState
   if (!mayGrant(user.role, role.data)) return failed('Only an owner can invite another owner.');
   const existing = await prisma.user.findUnique({ where: { email: email.data }, include: { memberships: true } });
   if (existing?.memberships.some((m) => m.organisationId === user.organisationId)) return failed(`${email.data} already has access.`);
-  if (existing?.memberships.length) return failed(`${email.data} belongs to another organisation. For now an account can be in one organisation.`);
   await sendInvitation({ organisationId: user.organisationId, organisationName: user.organisationName, email: email.data, role: role.data, invitedBy: user });
   await logActivity(user, null, `invited ${email.data} as ${ROLE_LABEL[role.data].toLowerCase()}`);
   revalidatePath('/organisation');
@@ -86,10 +86,11 @@ export async function removeMember(fd: FormData) {
   const m = await prisma.membership.findFirst({ where: { id: String(fd.get('id') ?? ''), organisationId: user.organisationId }, include: { user: true } });
   if (!m || m.userId === user.id || !mayGrant(user.role, m.role)) return;
   if (m.role === 'OWNER' && (await ownerCount(user.organisationId)) <= 1) return;
+  const elsewhere = await prisma.membership.count({ where: { userId: m.userId, organisationId: { not: user.organisationId } } });
   await prisma.$transaction([
     prisma.membership.delete({ where: { id: m.id } }),
-    // Signed out straight away on every device.
-    prisma.authSession.deleteMany({ where: { userId: m.userId } }),
+    // Signed out straight away on every device, unless they still work for another organisation.
+    ...(elsewhere ? [] : [prisma.authSession.deleteMany({ where: { userId: m.userId } })]),
   ]);
   await logActivity(user, null, `removed ${m.user.name} (${m.user.email})`);
   revalidatePath('/organisation');
@@ -176,4 +177,63 @@ export async function buyPlan(_p: ActionState, fd: FormData): Promise<ActionStat
     return failed(`${e instanceof PaymentError ? e.message : 'The payment provider could not be reached.'} Nothing was charged.`);
   }
   redirect(url);
+}
+
+/* ------------------------------------------------------------------ */
+/* Single sign-on (enterprise)                                          */
+/* ------------------------------------------------------------------ */
+
+async function enterprise() {
+  const user = await manager();
+  const org = await prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId } });
+  return { user, org, allowed: org.plan === 'ENTERPRISE' && org.planStatus === 'ACTIVE' };
+}
+
+export async function setSsoDomain(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user, org, allowed } = await enterprise();
+  if (!allowed) return failed('Single sign-on comes with the government and enterprise plan.');
+  const domain = normaliseDomain(String(fd.get('domain') ?? ''));
+  if (!domain) return failed('Enter your email domain, for example health.gov.ae');
+  if (PUBLIC_EMAIL_DOMAINS.has(domain)) return failed(`${domain} is a public email service, so it can’t be claimed. Use your organisation’s own domain.`);
+  if (!user.email.endsWith(`@${domain}`)) return failed(`Use the domain of your own email address (${user.email.split('@')[1]}), so we know it’s yours.`);
+  const taken = await prisma.organisation.findFirst({ where: { ssoDomain: domain, id: { not: org.id } } });
+  if (taken) return failed(`${domain} is already set up by another organisation. Contact us if that’s wrong.`);
+  await prisma.organisation.update({ where: { id: org.id }, data: { ssoDomain: domain, ssoDomainToken: newDomainToken(), ssoDomainVerifiedAt: null, ssoRequired: false } });
+  await logActivity(user, null, `started single sign-on for ${domain}`);
+  revalidatePath('/organisation');
+  return done('Now add the DNS record below, then check it.');
+}
+
+export async function verifySsoDomain(_p: ActionState, _fd: FormData): Promise<ActionState> {
+  const { user, org } = await enterprise();
+  if (!org.ssoDomain) return failed('Add your email domain first.');
+  if (!(await hasTxt(org.ssoDomain, org.ssoDomainToken))) return failed(`We couldn’t find the TXT record on ${org.ssoDomain} yet. DNS changes can take up to an hour; check the value matches exactly.`);
+  await prisma.organisation.update({ where: { id: org.id }, data: { ssoDomainVerifiedAt: new Date() } });
+  await logActivity(user, null, `verified ${org.ssoDomain} for single sign-on`);
+  revalidatePath('/organisation');
+  return done(`${org.ssoDomain} is verified. People with an @${org.ssoDomain} Microsoft or Google account now join when they first sign in.`);
+}
+
+export async function saveSsoSettings(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user, org } = await enterprise();
+  if (!org.ssoDomainVerifiedAt) return failed('Verify your domain first.');
+  const role = z.enum(['ADMIN', 'EDITOR', 'CHECKIN']).safeParse(fd.get('role'));
+  if (!role.success) return failed('Choose the role new people get.');
+  const required = fd.get('required') === 'on';
+  if (required && !user.email.endsWith(`@${org.ssoDomain}`)) return failed('Only someone with an address at the domain can require single sign-on.');
+  if (required) {
+    const me = await prisma.userIdentity.count({ where: { userId: user.id, provider: { in: ['microsoft', 'google', 'test'] } } });
+    if (!me) return failed('Connect Microsoft or Google under Your account first, so requiring it doesn’t lock you out.');
+  }
+  await prisma.organisation.update({ where: { id: org.id }, data: { ssoDefaultRole: role.data, ssoRequired: required } });
+  await logActivity(user, null, `set single sign-on: new people join as ${ROLE_LABEL[role.data].toLowerCase()}${required ? ', passwords turned off' : ''}`);
+  revalidatePath('/organisation');
+  return done('Saved.');
+}
+
+export async function removeSsoDomain() {
+  const { user, org } = await enterprise();
+  await prisma.organisation.update({ where: { id: org.id }, data: { ssoDomain: null, ssoDomainToken: '', ssoDomainVerifiedAt: null, ssoRequired: false } });
+  await logActivity(user, null, `turned off single sign-on for ${org.ssoDomain}`);
+  revalidatePath('/organisation');
 }

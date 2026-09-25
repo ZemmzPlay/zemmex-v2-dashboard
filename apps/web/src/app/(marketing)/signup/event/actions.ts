@@ -128,7 +128,7 @@ export async function finishOnboarding(input: OnboardingData): Promise<FinishRes
   for (const i of invites) {
     const email = emailSchema.parse(i.email);
     const existing = await prisma.user.findUnique({ where: { email }, include: { memberships: true } });
-    if (existing?.memberships.length) continue;
+    if (existing?.memberships.some((m) => m.organisationId === user.organisationId)) continue;
     await sendInvitation({ organisationId: user.organisationId, organisationName: user.organisationName, email, role: i.role as Role, invitedBy: user });
     await logActivity(user, null, `invited ${email}`);
   }

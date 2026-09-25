@@ -315,3 +315,4 @@
 .prose-page blockquote { margin: 0 0 10px; padding-left: 14px; border-left: 3px solid var(--line-2); color: var(--ink-2); }
 .prose-page a { color: var(--brand); text-decoration: underline; }
 .prose-page > :first-child { margin-top: 0; }
+.orgsw summary::-webkit-details-marker { display: none; }

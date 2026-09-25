@@ -75,3 +75,15 @@ export async function findInvitation(token: string) {
 export function sixDigits() {
   return String(randomInt(100000, 1000000));
 }
+
+/** The 6-digit code that proves someone owns their email, at signup. */
+export async function sendEmailCode(user: { id: string; email: string; name: string }) {
+  const code = sixDigits();
+  await prisma.emailCode.create({ data: { userId: user.id, codeHash: sha256(`${user.id}:${code}`), expiresAt: new Date(Date.now() + CODE_MINUTES * 60_000) } });
+  await queuePlatformEmail(user, `${code} is your zemmz Live code`, platformEmail({
+    heading: 'Confirm your email',
+    paragraphs: [`Hi ${user.name.split(' ')[0]},`, `Enter this code to finish creating your zemmz Live account. It works for ${CODE_MINUTES} minutes.`],
+    code,
+    footer: 'If you didn’t try to create an account, ignore this email.',
+  }));
+}

@@ -59,6 +59,14 @@ model Organisation {
   eventCredits Int           @default(0)
   /// The last renewal reminder sent ("30d", "7d", "ended", "paused"), so each goes once.
   planReminder String        @default("")
+  /// Enterprise single sign-on: people signing in with Microsoft or Google
+  /// from this email domain join automatically once the domain is verified.
+  ssoDomain           String?   @unique
+  ssoDomainToken      String    @default("")
+  ssoDomainVerifiedAt DateTime?
+  /// Password sign-in refused for people at the domain.
+  ssoRequired         Boolean   @default(false)
+  ssoDefaultRole      Role      @default(EDITOR)
   memberships Membership[]
   payouts     Payout[]
   purchases   PlanPurchase[]
@@ -80,6 +88,24 @@ model User {
   sessions     AuthSession[]
   resets       PasswordReset[]
   emailCodes   EmailCode[]
+  identities   UserIdentity[]
+}
+
+/// A Microsoft or Google account someone signs in with.
+model UserIdentity {
+  id        String   @id @default(cuid())
+  userId    String
+  provider  String
+  /// The provider's stable id for the account (OIDC "sub", or "oid" for Microsoft).
+  subject   String
+  email     String
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subject])
+  @@index([userId])
 }
 
 /// Someone asked to join an organisation by email. Only the token's SHA-256 is stored.
@@ -237,6 +263,10 @@ model Event {
   feePassedOn      Boolean    @default(true)
   /// Buyers can cancel and be refunded until this many hours before the start. Null: no self-service refunds.
   refundHours      Int?
+  /// The event's website on the organiser's own domain, e.g. events.client.com.
+  customDomain           String?   @unique
+  customDomainToken      String    @default("")
+  customDomainVerifiedAt DateTime?
   /// Built-in website pages left out of the menu: people, programme, venue.
   navHidden        String[]   @default([])
 

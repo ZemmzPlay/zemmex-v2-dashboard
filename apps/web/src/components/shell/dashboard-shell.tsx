@@ -8,6 +8,7 @@ import { can, isPlatformAdmin, ROLE_LABEL, type CurrentUser } from '@/lib/auth';
 import { kfmt } from '@/lib/format';
 import { PLAN_GRACE_DAYS, TRIAL_ATTENDEES } from '@/lib/plans';
 import { daysLeft } from '@/lib/billing';
+import { OrgSwitcher } from './org-switcher';
 import { Avatar } from '../avatar';
 import { Icon } from '../icon';
 import { DrawerToggle, Sidebar, type NavItem, type SwitcherEvent } from './sidebar';
@@ -84,6 +85,7 @@ export async function DashboardShell({ user, event, children }: { user: CurrentU
                 <Icon name="ext" size={15} /> View event website
               </Link>
             )}
+            {(user.organisations.length > 1 || can.manageEvent(user.role)) && <div className="max-sm:hidden"><OrgSwitcher user={user} /></div>}
             <div className="flex items-center gap-2.5">
               <Avatar name={user.name} size={36} />
               <Link href="/account" className="text-ink no-underline max-sm:hidden" title="Your account">

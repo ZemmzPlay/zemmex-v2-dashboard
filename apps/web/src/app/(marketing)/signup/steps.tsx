@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useActionState, useRef, useState, useTransition } from 'react';
 import { keepValues } from '@/lib/use-keep-values';
 import { createAccount, createOrganisation, resendCode, verifyCode, type SignupState } from './actions';
+import { ORG_COUNTRIES, ORG_KINDS } from '@/lib/onboarding';
 
 const Arrow = () => <svg className="i" viewBox="0 0 24 24" style={{ width: 16, height: 16 }} aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>;
 
@@ -16,7 +17,7 @@ function score(p: string) {
   return p ? Math.max(1, s) : 0;
 }
 
-export function AccountStep({ plan }: { plan: string }) {
+export function AccountStep({ plan, sso }: { plan: string; sso?: React.ReactNode }) {
   const [state, action, pending] = useActionState<SignupState, FormData>(createAccount, {});
   const [pw, setPw] = useState('');
   const [show, setShow] = useState(false);
@@ -26,6 +27,7 @@ export function AccountStep({ plan }: { plan: string }) {
       <input type="hidden" name="plan" value={plan} />
       <h1>Create your account</h1>
       <p className="lead">Start free. Your first 50 attendees cost nothing.</p>
+      {sso}
       {state.error && <div className="notice err" role="alert">{state.error} {state.error.includes('Sign in') && <Link href="/login" className="linkbtn">Sign in</Link>}</div>}
       <div className={`fld ${f.name ? 'bad' : ''}`}>
         <label htmlFor="o-name">Full name</label>
@@ -113,8 +115,8 @@ export function VerifyStep({ email, plan }: { email: string; plan: string }) {
   );
 }
 
-const KINDS = ['Event company or agency', 'Promoter', 'Company', 'Association or society', 'University', 'Hospital or medical body', 'Venue', 'Government'];
-const COUNTRIES = ['United Arab Emirates', 'Saudi Arabia', 'Kuwait', 'Qatar', 'Bahrain', 'Oman', 'Egypt', 'Jordan', 'Other'];
+const KINDS = ORG_KINDS;
+const COUNTRIES = ORG_COUNTRIES;
 
 export function OrganisationStep({ plan }: { plan: string }) {
   const [state, action, pending] = useActionState<SignupState, FormData>(createOrganisation, {});

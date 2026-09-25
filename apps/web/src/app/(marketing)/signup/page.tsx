@@ -4,6 +4,8 @@ import { getSessionAccount } from '@/lib/auth';
 import { onboardingSteps } from '@/lib/onboarding';
 import { OnboardingShell } from '@/components/onboarding-shell';
 import { AccountStep, OrganisationStep, VerifyStep } from './steps';
+import { SsoButtons } from '@/components/sso-buttons';
+import { ssoProviders } from '@/lib/sso';
 
 export const metadata: Metadata = { title: 'Start your free trial' };
 
@@ -16,7 +18,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   const step = !user ? 0 : !user.emailVerifiedAt ? 1 : 2;
   return (
     <OnboardingShell steps={onboardingSteps()} current={step} signIn={!user}>
-      {step === 0 && <AccountStep plan={planKey} />}
+      {step === 0 && <AccountStep plan={planKey} sso={<SsoButtons providers={ssoProviders()} verb="Sign up" position="before" next="/signup" />} />}
       {step === 1 && <VerifyStep email={user!.email} plan={planKey} />}
       {step === 2 && <OrganisationStep plan={planKey} />}
     </OnboardingShell>

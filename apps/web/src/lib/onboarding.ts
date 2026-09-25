@@ -65,3 +65,14 @@ export const ACCREDITORS: [string, string][] = [
 
 export const CURRENCY_FOR_COUNTRY: Record<string, string> = { Kuwait: 'KWD', 'Saudi Arabia': 'SAR', Qatar: 'QAR', Bahrain: 'BHD', Oman: 'OMR' };
 export const TZ_FOR_COUNTRY: Record<string, string> = { Kuwait: 'Asia/Kuwait', 'Saudi Arabia': 'Asia/Riyadh', Qatar: 'Asia/Qatar', Bahrain: 'Asia/Bahrain', Oman: 'Asia/Muscat', Egypt: 'Africa/Cairo', Jordan: 'Asia/Amman' };
+
+export const ORG_KINDS = ['Event company or agency', 'Promoter', 'Company', 'Association or society', 'University', 'Hospital or medical body', 'Venue', 'Government'];
+export const ORG_COUNTRIES = ['United Arab Emirates', 'Saudi Arabia', 'Kuwait', 'Qatar', 'Bahrain', 'Oman', 'Egypt', 'Jordan', 'Other'];
+
+/** A unique organisation slug from its name. */
+export async function orgSlug(name: string, taken: (slug: string) => Promise<boolean>) {
+  const stem = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'organisation';
+  let slug = stem;
+  for (let n = 2; await taken(slug); n++) slug = `${stem}-${n}`;
+  return slug;
+}
