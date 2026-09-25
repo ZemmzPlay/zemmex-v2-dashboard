@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@zemmz/db';
+import { localiseAll } from '@zemmz/shared';
 import { siteTextFor } from '@/lib/site-locale';
 import { getPublicEvent, homeState } from '@/lib/public-event';
 import { loadFormFields } from '@/lib/form-fields';
@@ -26,17 +27,17 @@ export default async function CheckoutPage({ params, searchParams }: { params: P
     );
   }
 
-  const tickets = await prisma.ticketType.findMany({
+  const tickets = localiseAll(await prisma.ticketType.findMany({
     where: { eventId: event.id, onSale: true },
     orderBy: { sortOrder: 'asc' },
     include: { _count: { select: { registrations: { where: { status: { in: ['CONFIRMED', 'PENDING'] } } } } } },
-  });
+  }), locale);
   const initial: Record<string, number> = {};
   for (const part of wantedParam.split(',')) {
     const [id, n] = part.split(':');
     if (tickets.some((x) => x.id === id) && Number(n) > 0) initial[id] = Math.min(10, Math.floor(Number(n)));
   }
-  const form = await loadFormFields(event.id, event.currency);
+  const form = await loadFormFields(event.id, event.currency, { locale });
 
   // Back from a payment that didn't go through: offer the same tickets and details again.
   const retryId = retry ? verify('order', retry) : null;

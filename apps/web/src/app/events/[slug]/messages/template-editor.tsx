@@ -20,6 +20,7 @@ export function TemplateEditor({
   children,
   confirmText,
   testAction,
+  arabic,
 }: {
   action: (p: MsgState, fd: FormData) => Promise<MsgState>;
   initial: { subject: string; bodyHtml: string; kicker?: string };
@@ -30,6 +31,8 @@ export function TemplateEditor({
   children?: React.ReactNode;
   confirmText?: string;
   testAction?: (p: MsgState, fd: FormData) => Promise<MsgState>;
+  /** Shown when the website is in Arabic or both: the version people who registered in Arabic get. */
+  arabic?: { subject: string; bodyHtml: string; kicker?: string };
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   const [testState, testFormAction, testing] = useActionState<MsgState, FormData>(testAction ?? (async () => ({})), {});
@@ -89,6 +92,26 @@ export function TemplateEditor({
             <textarea id="bodyHtml" name="bodyHtml" ref={bodyRef} className="inp min-h-[220px] font-mono text-[12.5px]" value={body} onChange={(e) => setBody(e.target.value)} required />
             <span className="help">Paragraphs, bold, italic, links, lists and headings are kept. Anything else is removed before sending.</span>
           </div>
+          {arabic && (
+            <details className="rounded-xl border border-line p-3.5" open={!!(arabic.subject || arabic.bodyHtml)}>
+              <summary className="cursor-pointer text-[13.5px] font-semibold">Arabic version <span className="font-normal text-muted">for people who registered on the Arabic website</span></summary>
+              <p className="mb-3 mt-1.5 text-[12.5px] text-muted">Leave it empty to send them the English. Merge tags work the same way.</p>
+              {withKicker && (
+                <div className="fld">
+                  <label htmlFor="ar_kicker">Label above the event name in Arabic</label>
+                  <input id="ar_kicker" name="ar_kicker" dir="rtl" lang="ar" className="inp" defaultValue={arabic.kicker} maxLength={40} />
+                </div>
+              )}
+              <div className="fld">
+                <label htmlFor="ar_subject">Subject in Arabic</label>
+                <input id="ar_subject" name="ar_subject" dir="rtl" lang="ar" className="inp" defaultValue={arabic.subject} maxLength={200} />
+              </div>
+              <div className="fld !mb-0">
+                <label htmlFor="ar_bodyHtml">Message in Arabic</label>
+                <textarea id="ar_bodyHtml" name="ar_bodyHtml" dir="rtl" lang="ar" className="inp min-h-[160px] font-mono text-[12.5px]" defaultValue={arabic.bodyHtml} />
+              </div>
+            </details>
+          )}
         </div>
         <div className="flex flex-wrap gap-2.5">
           <button className="btn primary" disabled={pending || testing} onClick={() => setLast('main')}>{pending ? 'Working…' : submitLabel}</button>

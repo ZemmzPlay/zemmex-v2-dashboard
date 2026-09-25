@@ -1,6 +1,6 @@
 import 'server-only';
 import type { Event, MessageTemplate, Registration, TicketType } from '@zemmz/db';
-import { applyMergeTags, escapeHtml, eventType, formatDateRange, sanitizeRichText, siteText, stripHtml, textOn, type MergeValues } from '@zemmz/shared';
+import { applyMergeTags, escapeHtml, eventType, formatDateRange, localise, sanitizeRichText, siteText, stripHtml, textOn, type MergeValues } from '@zemmz/shared';
 import { ticketToken } from './tokens';
 
 export const appUrl = () => (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '');
@@ -44,7 +44,16 @@ export function emailLayout(opts: { event: Event; kicker: string; bodyHtml: stri
 </table></td></tr></table></body></html>`;
 }
 
-export function renderConfirmation(event: Event, template: Pick<MessageTemplate, 'subject' | 'bodyHtml' | 'kicker'>, reg: Registration, ticket: TicketType | null) {
+/**
+ * The confirmation email in the registrant's language: on an Arabic
+ * registration, the organiser's Arabic template, event name and ticket name
+ * are used wherever they've been written.
+ */
+export function renderConfirmation(eventIn: Event, templateIn: Pick<MessageTemplate, 'subject' | 'bodyHtml' | 'kicker'> & { ar?: unknown }, reg: Registration, ticketIn: TicketType | null) {
+  const locale = reg.locale === 'ar' ? 'ar' : 'en';
+  const event = localise(eventIn, locale);
+  const template = localise(templateIn, locale);
+  const ticket = ticketIn && localise(ticketIn, locale);
   const values = mergeValuesFor(event, reg, ticket);
   const body = applyMergeTags(sanitizeRichText(template.bodyHtml), values, { html: true });
   const subject = applyMergeTags(template.subject, values, { html: false });
@@ -54,7 +63,12 @@ export function renderConfirmation(event: Event, template: Pick<MessageTemplate,
   return { subject, html, text };
 }
 
-export function renderBroadcast(event: Event, subjectT: string, bodyT: string, reg: Registration) {
+/** A one-off message; `arabic` is used for people who registered on the Arabic site, when given. */
+export function renderBroadcast(eventIn: Event, subjectEn: string, bodyEn: string, reg: Registration, arabic?: { subject: string; bodyHtml: string }) {
+  const ar = reg.locale === 'ar';
+  const event = localise(eventIn, ar ? 'ar' : 'en');
+  const subjectT = ar && arabic?.subject ? arabic.subject : subjectEn;
+  const bodyT = ar && arabic?.bodyHtml && stripHtml(arabic.bodyHtml).trim() ? arabic.bodyHtml : bodyEn;
   const values = mergeValuesFor(event, reg);
   const body = applyMergeTags(sanitizeRichText(bodyT), values, { html: true });
   const subject = applyMergeTags(subjectT, values, { html: false });

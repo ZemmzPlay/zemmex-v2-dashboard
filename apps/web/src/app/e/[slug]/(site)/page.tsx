@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { prisma } from '@zemmz/db';
-import { dayKey, eventType, formatDateRange, formatDay, formatTime, sanitizeRichText, shortTitle } from '@zemmz/shared';
+import { dayKey, eventType, localiseAll, formatDateRange, formatDay, formatTime, sanitizeRichText, shortTitle } from '@zemmz/shared';
 import { siteTextFor } from '@/lib/site-locale';
 import { getPublicEvent, getPublicPages, homeState } from '@/lib/public-event';
 import { loadFormFields } from '@/lib/form-fields';
@@ -17,10 +17,10 @@ export default async function EventHome({ params }: { params: Promise<{ slug: st
   const base = `/e/${slug}`;
 
   const [pages, people, sessions, tickets] = await Promise.all([
-    getPublicPages(event.id),
-    prisma.person.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, take: 6, include: { photo: { select: { key: true } } } }),
-    prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }] }),
-    prisma.ticketType.findMany({ where: { eventId: event.id, onSale: true }, orderBy: { sortOrder: 'asc' }, include: { _count: { select: { registrations: { where: { status: { in: ['CONFIRMED', 'PENDING'] } } } } } } }),
+    getPublicPages(event.id).then((r) => localiseAll(r, locale)),
+    prisma.person.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, take: 6, include: { photo: { select: { key: true } } } }).then((r) => localiseAll(r, locale)),
+    prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }] }).then((r) => localiseAll(r, locale)),
+    prisma.ticketType.findMany({ where: { eventId: event.id, onSale: true }, orderBy: { sortOrder: 'asc' }, include: { _count: { select: { registrations: { where: { status: { in: ['CONFIRMED', 'PENDING'] } } } } } } }).then((r) => localiseAll(r, locale)),
   ]);
   const paid = tickets.some((t) => t.priceMinor > 0);
   const welcome = pages[0];
@@ -42,7 +42,7 @@ export default async function EventHome({ params }: { params: Promise<{ slug: st
       />
     );
   } else if (state === 'open') {
-    const form = await loadFormFields(event.id, event.currency);
+    const form = await loadFormFields(event.id, event.currency, { locale });
     panel = (
       <FreeRegistration
         action={registerFree.bind(null, slug)}

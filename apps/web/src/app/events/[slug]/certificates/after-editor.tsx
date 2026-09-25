@@ -9,9 +9,11 @@ import { keepValues } from '@/lib/use-keep-values';
 interface Values { showRecordings: boolean; showSlides: boolean; showPhotos: boolean; showSurvey: boolean; attendeesOnly: boolean; message: string }
 
 /** What the after-event page shows, who can open it, and a preview. */
-export function AfterEditor({ action, initial, gates, unit, idName, eventName, dates, accent, canEdit }: {
+export function AfterEditor({ action, initial, arabicMessage, gates, unit, idName, eventName, dates, accent, canEdit }: {
   action: (p: ActionState, fd: FormData) => Promise<ActionState>;
   initial: Values;
+  /** Set when the website is in Arabic or both. */
+  arabicMessage?: string;
   gates: boolean;
   unit: string;
   idName: string;
@@ -65,6 +67,12 @@ export function AfterEditor({ action, initial, gates, unit, idName, eventName, d
             <h2><label htmlFor="af-msg">Message</label></h2>
             <p className="hint">Shown at the top of the page.</p>
             <textarea id="af-msg" name="message" className="inp w-full" maxLength={1000} value={v.message} onChange={(e) => setV({ ...v, message: e.target.value })} />
+            {arabicMessage !== undefined && (
+              <div className="fld !mb-0 mt-3.5">
+                <label htmlFor="af-msg-ar">Message in Arabic<span className="opt">optional</span></label>
+                <textarea id="af-msg-ar" name="ar_message" dir="rtl" lang="ar" className="inp w-full" maxLength={1000} defaultValue={arabicMessage} />
+              </div>
+            )}
           </section>
         </fieldset>
         {canEdit && <button className="btn primary" disabled={pending}>{pending ? 'Saving…' : 'Save'}</button>}

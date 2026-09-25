@@ -10,6 +10,7 @@ import { ConfirmButton } from '@/components/confirm-button';
 import { FormDialog } from '@/components/form-dialog';
 import { createPromoCode, deleteTicketType, savePaymentSettings, saveTicketType, setPromoActive, setTicketOnSale } from './actions';
 import { PaymentSettings } from './payment-settings';
+import { ArabicInput, arText, isBilingual } from '@/components/arabic-input';
 import { paymentProvider, paymentsReady, PROVIDER_LABEL, PROVIDER_METHODS } from '@/lib/payments';
 import { invoiceNumber, TAKEN, ticketTakings } from '@/lib/orders';
 import { formatShortDateTime } from '@zemmz/shared';
@@ -62,6 +63,12 @@ export default async function TicketsPage({ params, searchParams }: { params: Pr
         <label htmlFor={`td-${t?.id ?? 'new'}`}>Description<span className="opt">optional</span></label>
         <input id={`td-${t?.id ?? 'new'}`} name="description" className="inp" defaultValue={t?.description} placeholder="What’s included" maxLength={200} />
       </div>
+      {isBilingual(event) && (
+        <div className="mt-3.5 grid gap-x-4 sm:grid-cols-2">
+          <ArabicInput name="name" label="Name" defaultValue={arText(t, 'name')} maxLength={80} idSuffix={t?.id ?? 'new'} className="!mb-0" />
+          <ArabicInput name="description" label="Description" defaultValue={arText(t, 'description')} maxLength={200} idSuffix={t?.id ?? 'new'} className="!mb-0" />
+        </div>
+      )}
     </>
   );
 

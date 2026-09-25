@@ -10,6 +10,7 @@ import { Icon } from '@/components/icon';
 import { ConfirmButton } from '@/components/confirm-button';
 import { FormDialog } from '@/components/form-dialog';
 import { deleteSession, saveSession } from './actions';
+import { ArabicInput, arText, isBilingual } from '@/components/arabic-input';
 
 export const metadata: Metadata = { title: 'Check-in' };
 
@@ -24,7 +25,7 @@ export default async function CheckInList({ params }: { params: Promise<{ slug: 
   ]);
   const days: string[] = [];
   for (let t = event.startsOn.getTime(); t <= event.endsOn.getTime(); t += 86_400_000) days.push(dayKey(new Date(t), 'UTC'));
-  const fields = (s?: Session) => <SessionFields TY={TY} s={s} tz={event.timezone} days={days} tickets={tickets} />;
+  const fields = (s?: Session) => <SessionFields TY={TY} s={s} tz={event.timezone} days={days} tickets={tickets} bilingual={isBilingual(event)} />;
   const byDay = new Map<string, typeof sessions>();
   for (const s of sessions) {
     const k = dayKey(s.startsAt, event.timezone);
@@ -119,7 +120,7 @@ export default async function CheckInList({ params }: { params: Promise<{ slug: 
   );
 }
 
-function SessionFields({ TY, s, tz, days, tickets }: { TY: EventTypeDef; s?: Session; tz: string; days: string[]; tickets: TicketType[] }) {
+function SessionFields({ TY, s, tz, days, tickets, bilingual }: { TY: EventTypeDef; s?: Session; tz: string; days: string[]; tickets: TicketType[]; bilingual: boolean }) {
   const id = (k: string) => `${k}-${s?.id ?? 'new'}`;
   const day = s ? dayKey(s.startsAt, tz) : days[0];
   return (
@@ -182,6 +183,13 @@ function SessionFields({ TY, s, tz, days, tickets }: { TY: EventTypeDef; s?: Ses
           <span className="help">Scans stop when it’s full.</span>
         </div>
       </div>
+      {bilingual && (
+        <div className="mt-3.5 grid gap-x-4 sm:grid-cols-3">
+          <ArabicInput name="title" label="Title" defaultValue={arText(s, 'title')} maxLength={160} idSuffix={s?.id ?? 'new'} className="!mb-0 sm:col-span-3" />
+          {!TY.gates && <ArabicInput name="chairs" label={TY.chair} defaultValue={arText(s, 'chairs')} maxLength={200} idSuffix={s?.id ?? 'new'} className="!mb-0 sm:col-span-2" />}
+          {!TY.gates && <ArabicInput name="location" label="Room or place" defaultValue={arText(s, 'location')} maxLength={120} idSuffix={s?.id ?? 'new'} className="!mb-0" />}
+        </div>
+      )}
     </>
   );
 }

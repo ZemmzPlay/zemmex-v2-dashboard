@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@zemmz/db';
-import { dayKey, eventType, sessionStatusAt, shortTitle, zonedTime } from '@zemmz/shared';
+import { dayKey, eventType, sessionStatusAt, shortTitle, zonedTime, mergeArabic } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { done, failed, type ActionState } from '@/lib/action-state';
@@ -63,10 +63,10 @@ export async function saveSession(slug: string, id: string | null, _p: ActionSta
   if (id) {
     const s = await prisma.session.findFirst({ where: { id, eventId: event.id }, include: { _count: { select: { attendance: true } } } });
     if (!s) return failed('That no longer exists. Reload the page.');
-    await prisma.session.update({ where: { id }, data });
+    await prisma.session.update({ where: { id }, data: { ...data, ar: mergeArabic(s.ar, fd, TY.gates ? ['title'] : ['title', 'chairs', 'location'], 200) } });
     await logActivity(user, event.id, `edited ${shortTitle(d.title)}`);
   } else {
-    await prisma.session.create({ data: { eventId: event.id, ...data } });
+    await prisma.session.create({ data: { eventId: event.id, ...data, ar: mergeArabic({}, fd, TY.gates ? ['title'] : ['title', 'chairs', 'location'], 200) } });
     await logActivity(user, event.id, `added ${shortTitle(d.title)} to the ${TY.gates ? 'gates' : 'programme'}`);
   }
   revalidatePath(`/events/${slug}`, 'layout');

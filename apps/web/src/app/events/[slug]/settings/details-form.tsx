@@ -4,12 +4,16 @@ import Link from 'next/link';
 import { useActionState } from 'react';
 import type { SettingsState } from './actions';
 import { keepValues } from '@/lib/use-keep-values';
+import { ArabicInput } from '@/components/arabic-input';
 
 interface Values { name: string; shortName: string; organiserName: string }
+interface ArabicValues { name: string; organiserName: string }
 
-export function DetailsForm({ action, initial, canEdit, links }: {
+export function DetailsForm({ action, initial, arabic, canEdit, links }: {
   action: (p: SettingsState, fd: FormData) => Promise<SettingsState>;
   initial: Values;
+  /** Set when the website is in Arabic or both. */
+  arabic?: ArabicValues;
   canEdit: boolean;
   /** Where the rest of the event's details live now. */
   links: { website: string; certificates?: string; certNav?: string };
@@ -36,6 +40,12 @@ export function DetailsForm({ action, initial, canEdit, links }: {
             {text('shortName', 'Short name', { max: 4 })}
           </div>
           {text('organiserName', 'Organiser', { optional: true, max: 120 })}
+          {arabic && (
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              <ArabicInput name="name" label="Event name" defaultValue={arabic.name} maxLength={120} />
+              <ArabicInput name="organiserName" label="Organiser" defaultValue={arabic.organiserName} maxLength={120} />
+            </div>
+          )}
           <p className="m-0 text-[12.5px] text-muted">
             The homepage introduction, venue and colour are in <Link href={links.website}>Website</Link>.
             {links.certificates && <> How CME points are earned is in <Link href={links.certificates}>{links.certNav}</Link>.</>}

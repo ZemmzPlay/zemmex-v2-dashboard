@@ -233,6 +233,8 @@ enum CreditRule {
 
 model Event {
   id             String       @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   organisationId String
   type           EventType
   name           String
@@ -309,6 +311,8 @@ model Event {
 
 model TicketType {
   id          String   @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId     String
   name        String
   description String   @default("")
@@ -522,6 +526,8 @@ enum SessionStatus {
 
 model Session {
   id               String        @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId          String
   kind             SessionKind   @default(SESSION)
   title            String
@@ -590,6 +596,8 @@ model Attendance {
 
 model Person {
   id        String  @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId   String
   name      String
   category  String
@@ -621,6 +629,8 @@ enum FieldKind {
 
 model FormField {
   id        String    @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId   String
   /// title, first, last, email, mob, spec (field1), hosp (field2), or a custom key.
   key       String
@@ -639,6 +649,8 @@ model FormField {
 
 model SitePage {
   id        String  @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId   String
   key       String
   title     String
@@ -660,6 +672,8 @@ enum TemplateKind {
 
 model MessageTemplate {
   id       String       @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId  String
   kind     TemplateKind
   subject  String
@@ -761,6 +775,8 @@ model CertificateIssue {
 
 model AfterEventPage {
   id            String  @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId       String  @unique
   showRecordings Boolean @default(false)
   showSlides    Boolean @default(false)

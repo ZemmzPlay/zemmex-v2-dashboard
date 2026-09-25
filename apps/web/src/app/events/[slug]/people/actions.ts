@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@zemmz/db';
-import { eventType } from '@zemmz/shared';
+import { eventType, mergeArabic } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { done, failed, type ActionState } from '@/lib/action-state';
@@ -32,11 +32,11 @@ export async function savePerson(slug: string, id: string | null, _p: ActionStat
   if (id) {
     const p = await prisma.person.findFirst({ where: { id, eventId: event.id } });
     if (!p) return failed(`That ${TY.person} no longer exists. Reload the page.`);
-    await prisma.person.update({ where: { id }, data });
+    await prisma.person.update({ where: { id }, data: { ...data, ar: mergeArabic(p.ar, fd, ['name', 'bio'], 4000) } });
     await logActivity(user, event.id, `edited ${d.name} on the ${TY.people} page`);
   } else {
     const last = await prisma.person.findFirst({ where: { eventId: event.id }, orderBy: { sortOrder: 'desc' } });
-    await prisma.person.create({ data: { eventId: event.id, ...data, sortOrder: d.sortOrder ?? (last?.sortOrder ?? 0) + 1 } });
+    await prisma.person.create({ data: { eventId: event.id, ...data, ar: mergeArabic({}, fd, ['name', 'bio'], 4000), sortOrder: d.sortOrder ?? (last?.sortOrder ?? 0) + 1 } });
     await logActivity(user, event.id, `added ${d.name} to the ${TY.people} page`);
   }
   revalidatePath(`/events/${slug}/people`);

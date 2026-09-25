@@ -3,7 +3,7 @@ import { getPublicEvent, getPublicPages, homeState } from '@/lib/public-event';
 import { builtInPages } from '@/lib/site-pages';
 import { SiteNav } from './site-nav';
 import { LangSwitch } from './lang-switch';
-import { eventType } from '@zemmz/shared';
+import { eventType, localiseAll } from '@zemmz/shared';
 import { siteTextFor } from '@/lib/site-locale';
 import { logoUrlFor } from '@/lib/assets';
 
@@ -28,7 +28,7 @@ export default async function SiteLayout({ children, params }: { children: React
     );
   }
 
-  const pages = await getPublicPages(event.id);
+  const pages = localiseAll(await getPublicPages(event.id), locale);
   const links: [string, string][] = [
     [base, t.home],
     ...builtInPages(eventType(event.type)).filter(([k]) => !event.navHidden.includes(k)).map(([k, , path]) => [`${base}${path}`, k === 'people' ? t.v.people : k === 'programme' ? t.programmeNav : t.venue] as [string, string]),

@@ -24,7 +24,7 @@ limitation.
 | **Custom domains** | Enterprise events can live on the organiser's own address (Settings → Web address): a CNAME plus a TXT record, checked from the app. The middleware maps the host to the event; Caddy issues certificates on demand, only for verified domains (`/api/domains/allowed`). |
 | **Files** | Logos (website header, badges, e-tickets), photos of faculty, speakers and artists, after-event photo galleries and slides. Checked by their bytes, never their name; stored on disk or S3. Attendee-only files need the claim link. Recordings are uploaded video files (MP4, MOV, WebM, up to 4 GB, sent straight to S3 with a presigned URL or streamed to disk, checked by their bytes, played with byte-range seeking) or links to the organiser's video host. |
 | **Help centre** | In each event's dashboard: guides for before, on the day and after, in that event's words, and five on-screen tours that highlight the real controls. A public version at `/help`. |
-| **Arabic** | Each event's website can be English, Arabic, or both with a switch. All interface text, error messages, badges, certificates and emails have Arabic versions; the layout is right to left with an Arabic typeface. Organiser text appears as written. |
+| **Arabic** | Each event's website can be English, Arabic, or both with a switch. All interface text, error messages, badges, certificates and emails have Arabic versions; the layout is right to left with an Arabic typeface. When the site is in Arabic or both, every place organisers write text (event name, organiser, introduction, venue, tickets, sessions, speakers' names and biographies, custom form fields and dropdowns, pages, the confirmation email, one-off messages, the after-event message) gets an optional Arabic version; Arabic pages and emails use it and fall back to the English where it's empty. |
 | **Events** | All events, New event (type first; defaults per type), event switcher, per-event timezone and currency. Settings: name, dates, timezone (fixed once there's a schedule), currency (fixed after the first order), pass-outs for gates, archive and restore. |
 | **Event type model** | `packages/shared/src/event-types.ts`, ported from the prototype's `TYPES`. Every view takes its nouns from it (Delegates, Attendees, Ticket holders; Faculty, Speakers, Line-up; Sessions, Entrances). All seven types exist; the last three borrow the closest configuration, as the spec says. |
 | **Dashboard** | KPIs by type with a comparison period, quick settings (the client's three switches) with a live homepage preview, today's sessions, 14-day chart, breakdown by the type's first profile field, recent activity. |
@@ -54,7 +54,6 @@ Everything designed in the Live prototypes is built. What's left is outside
 them, or waits on a decision:
 
 1. **zemmz Play**: all three prototypes. It shares the website builder, theming, roles and messaging but little else (docs/prototype/08).
-5. **Bilingual organiser content.** Arabic sites translate the interface; an event's own text (name, pages, biographies) is in whichever language the organiser writes it. Separate English and Arabic versions of that text would be the next step.
 
 From the marketing
 prototype: the client-logo row and the testimonial, which docs/prototype/07

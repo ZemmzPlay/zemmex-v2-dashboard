@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@zemmz/db';
-import { eventType } from '@zemmz/shared';
+import { eventType, mergeArabic } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { done, failed, type ActionState } from '@/lib/action-state';
@@ -89,7 +89,8 @@ export async function saveAfterPage(slug: string, _p: ActionState, fd: FormData)
     attendeesOnly: parsed.data.attendeesOnly === '1',
     message: parsed.data.message,
   };
-  await prisma.afterEventPage.upsert({ where: { eventId: event.id }, update: data, create: { eventId: event.id, ...data } });
+  const ar = mergeArabic((await prisma.afterEventPage.findUnique({ where: { eventId: event.id }, select: { ar: true } }))?.ar, fd, ['message'], 1000);
+  await prisma.afterEventPage.upsert({ where: { eventId: event.id }, update: { ...data, ar }, create: { eventId: event.id, ...data, ar } });
   await logActivity(user, event.id, `edited the ${TY.afterLbl.toLowerCase()}`);
   refresh(slug);
   return done('Saved. The website shows it when the page is switched on.');

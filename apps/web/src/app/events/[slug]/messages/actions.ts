@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma, type Registration } from '@zemmz/db';
-import { broadcastSchema, messageTemplateSchema, stripHtml } from '@zemmz/shared';
+import { broadcastSchema, messageTemplateSchema, stripHtml, mergeArabic } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { renderBroadcast, renderConfirmation } from '@/lib/email';
@@ -18,10 +18,12 @@ export async function saveTemplate(slug: string, _p: MsgState, fd: FormData): Pr
   const { user, event } = await requirePermission(slug, can.sendMessages);
   const parsed = messageTemplateSchema.safeParse({ subject: fd.get('subject'), bodyHtml: fd.get('bodyHtml') });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const existing = await prisma.messageTemplate.findUnique({ where: { eventId_kind: { eventId: event.id, kind: 'CONFIRMATION' } }, select: { ar: true } });
+  const ar = mergeArabic(existing?.ar, fd, ['subject', 'kicker', 'bodyHtml'], 50_000);
   await prisma.messageTemplate.upsert({
     where: { eventId_kind: { eventId: event.id, kind: 'CONFIRMATION' } },
-    update: { subject: parsed.data.subject, bodyHtml: parsed.data.bodyHtml, kicker: String(fd.get('kicker') ?? '').slice(0, 40) },
-    create: { eventId: event.id, kind: 'CONFIRMATION', subject: parsed.data.subject, bodyHtml: parsed.data.bodyHtml, kicker: String(fd.get('kicker') ?? '').slice(0, 40) },
+    update: { subject: parsed.data.subject, bodyHtml: parsed.data.bodyHtml, kicker: String(fd.get('kicker') ?? '').slice(0, 40), ar },
+    create: { eventId: event.id, kind: 'CONFIRMATION', subject: parsed.data.subject, bodyHtml: parsed.data.bodyHtml, kicker: String(fd.get('kicker') ?? '').slice(0, 40), ar },
   });
   await logActivity(user, event.id, 'edited the confirmation email');
   revalidatePath(`/events/${slug}/messages`);
@@ -33,6 +35,7 @@ export async function sendBroadcast(slug: string, _p: MsgState, fd: FormData): P
   const parsed = broadcastSchema.safeParse({ audience: fd.get('audience'), channel: fd.get('channel'), subject: fd.get('subject'), bodyHtml: fd.get('bodyHtml') });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { audience, channel, subject, bodyHtml } = parsed.data;
+  const arabic = { subject: String(fd.get('ar_subject') ?? '').trim().slice(0, 200), bodyHtml: String(fd.get('ar_bodyHtml') ?? '').slice(0, 50_000) };
   if (channel === 'sms') {
     const sms = smsAvailability(await prisma.organisation.findUniqueOrThrow({ where: { id: event.organisationId }, select: { plan: true, planStatus: true } }));
     if (!sms.ok) return { error: sms.reason };
@@ -47,7 +50,7 @@ export async function sendBroadcast(slug: string, _p: MsgState, fd: FormData): P
       data: { eventId: event.id, audience: AUDIENCES[audience], channel: channel === 'sms' ? 'SMS' : 'EMAIL', subject, bodyHtml, recipientCount: usable.length, sentById: user.id, sentByLabel: user.name },
     });
     const rows = usable.map((r) => {
-      const m = renderBroadcast(event, subject, bodyHtml, r);
+      const m = renderBroadcast(event, subject, bodyHtml, r, arabic);
       return channel === 'sms'
         ? { eventId: event.id, registrationId: r.id, broadcastId: b.id, channel: 'SMS' as const, toAddress: r.mobile, toName: `${r.firstName} ${r.lastName}`, subject: m.subject, html: '', text: stripHtml(`${m.subject}. ${m.text}`).slice(0, 480) }
         : { eventId: event.id, registrationId: r.id, broadcastId: b.id, channel: 'EMAIL' as const, toAddress: r.email, toName: `${r.firstName} ${r.lastName}`, subject: m.subject, html: m.html, text: m.text };

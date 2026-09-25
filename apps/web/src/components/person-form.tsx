@@ -10,6 +10,8 @@ export interface FieldDef {
   required: boolean;
   enabled: boolean;
   options: string[];
+  /** What to show for each option, when it differs from the value (Arabic sites). */
+  optionLabels?: string[];
 }
 
 /** FormField.key → form input name. */
@@ -41,7 +43,7 @@ export function FieldInput({ f, value, error, tickets, showAll, namePrefix = '',
     control = (
       <select {...common} className="sel" defaultValue={value} autoComplete={AUTOCOMPLETE[f.key]}>
         <option value="">{f.required ? text.chooseOne : text.notGiven}</option>
-        {f.options.map((o) => <option key={o} value={o}>{text.term(o)}</option>)}
+        {f.options.map((o, i) => <option key={o} value={o}>{f.optionLabels?.[i] ?? text.term(o)}</option>)}
         {value && !f.options.includes(value) && <option value={value}>{value}</option>}
       </select>
     );

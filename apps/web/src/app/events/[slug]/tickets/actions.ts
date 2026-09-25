@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@zemmz/db';
-import { CURRENCIES, formatMoney, isCurrency } from '@zemmz/shared';
+import { mergeArabic, CURRENCIES, formatMoney, isCurrency } from '@zemmz/shared';
 import { refundTickets, RefundError } from '@/lib/orders';
 import { can, requirePermission } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
@@ -44,11 +44,11 @@ export async function saveTicketType(slug: string, id: string | null, _p: Action
     if (!t) return failed('That ticket type no longer exists. Reload the page.');
     const sold = await prisma.registration.count({ where: { ticketTypeId: id, status: 'CONFIRMED' } });
     if (capacity != null && capacity < sold) return failed(`${sold} are already sold, so there must be at least ${sold} available`);
-    await prisma.ticketType.update({ where: { id }, data: { name: d.name, description: d.description, priceMinor, capacity } });
+    await prisma.ticketType.update({ where: { id }, data: { name: d.name, description: d.description, priceMinor, capacity, ar: mergeArabic((await prisma.ticketType.findUnique({ where: { id }, select: { ar: true } }))?.ar, fd, ['name', 'description'], 200) } });
     await logActivity(user, event.id, `edited the ${d.name} ticket`);
   } else {
     const last = await prisma.ticketType.findFirst({ where: { eventId: event.id }, orderBy: { sortOrder: 'desc' } });
-    await prisma.ticketType.create({ data: { eventId: event.id, name: d.name, description: d.description, priceMinor, capacity, onSale: true, sortOrder: (last?.sortOrder ?? -1) + 1 } });
+    await prisma.ticketType.create({ data: { eventId: event.id, name: d.name, description: d.description, priceMinor, capacity, onSale: true, sortOrder: (last?.sortOrder ?? -1) + 1, ar: mergeArabic({}, fd, ['name', 'description'], 200) } });
     await logActivity(user, event.id, `added the ${d.name} ticket`);
   }
   refresh(slug);

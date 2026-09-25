@@ -10,6 +10,7 @@ import { Icon } from '@/components/icon';
 import { SearchBox } from '@/components/search-box';
 import { Uploader } from '@/components/uploader';
 import { deletePerson, savePerson } from './actions';
+import { ArabicInput, arText, isBilingual } from '@/components/arabic-input';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { event } = await requirePermission((await params).slug, can.seeDashboard);
@@ -43,7 +44,7 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
         {edit && (
           <div className="actions">
             <FormDialog action={savePerson.bind(null, slug, null)} label={<><Icon name="plus" size={16} /> Add {TY.person}</>} className="btn primary" title={`Add ${TY.person}`} submitLabel={`Add ${TY.person}`} wide>
-              <PersonFields TY={TY} nextOrder={(all.at(-1)?.sortOrder ?? 0) + 1} />
+              <PersonFields TY={TY} nextOrder={(all.at(-1)?.sortOrder ?? 0) + 1} bilingual={isBilingual(event)} />
             </FormDialog>
           </div>
         )}
@@ -83,7 +84,7 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
                     <td className="whitespace-nowrap text-right">
                       <div className="inline-flex gap-2">
                         <FormDialog action={savePerson.bind(null, slug, p.id)} label="Edit" className="btn secondary sm" title={`Edit ${p.name}`} submitLabel="Save changes" wide>
-                          <PersonFields TY={TY} person={p} />
+                          <PersonFields TY={TY} person={p} bilingual={isBilingual(event)} />
                           <div className="fld !mb-0 mt-4">
                             <span className="lbl">Photo</span>
                             <div className="flex flex-wrap items-center gap-4">
@@ -120,7 +121,7 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
   );
 }
 
-function PersonFields({ TY, person, nextOrder }: { TY: EventTypeDef; person?: Person; nextOrder?: number }) {
+function PersonFields({ TY, person, nextOrder, bilingual }: { TY: EventTypeDef; person?: Person; nextOrder?: number; bilingual?: boolean }) {
   const id = (k: string) => `${k}-${person?.id ?? 'new'}`;
   return (
     <>
@@ -141,6 +142,12 @@ function PersonFields({ TY, person, nextOrder }: { TY: EventTypeDef; person?: Pe
         <textarea id={id('b')} name="bio" className="inp !min-h-[130px]" defaultValue={person?.bio} maxLength={4000} />
         <span className="help">Shown when visitors select this {TY.person} on the website.</span>
       </div>
+      {bilingual && (
+        <>
+          <ArabicInput name="name" label="Name" defaultValue={arText(person, 'name')} maxLength={120} idSuffix={person?.id ?? 'new'} />
+          <ArabicInput name="bio" label="Biography" defaultValue={arText(person, 'bio')} maxLength={4000} textarea rows={4} idSuffix={person?.id ?? 'new'} />
+        </>
+      )}
       <div className="grid gap-x-4 sm:grid-cols-2">
         {TY.gates ? (
           <div className="fld !mb-0">
