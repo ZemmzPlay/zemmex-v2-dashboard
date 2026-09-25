@@ -32,30 +32,23 @@ docs/             HANDOVER.md, and the prototype specs and HTML under prototype/
 
 Needs Node 22 and PostgreSQL 16 (native, or `docker compose up -d db`).
 
-macOS or Linux:
-
 ```bash
-cp .env.example .env          # then set DATABASE_URL and SESSION_SECRET
 npm install
-npm run db:migrate            # creates tables
-npm run db:seed               # four sample events, ~2,700 registrations
 npm run dev                   # web on http://localhost:3000 + worker
 ```
 
-Windows (Command Prompt), in a folder you own such as `%USERPROFILE%`:
+That's all, on macOS, Linux and Windows alike. Before starting, `npm run dev`
+(and `npm start`) runs `scripts/prepare.mjs`, which:
 
-```bat
-copy .env.example .env
-notepad .env
-npm install
-npm run db:migrate
-npm run db:seed
-npm run dev
-```
+- creates `.env` from `.env.example` the first time, with a random `SESSION_SECRET`;
+- applies any new database migrations, so pulling new code never needs a manual step;
+- adds the four sample events (~2,700 registrations) when the database is empty.
 
-In `.env`, put your PostgreSQL password in `DATABASE_URL` and any 32 or more
-random characters in `SESSION_SECRET`. Right after installing Node,
-`scripts\dev-windows.cmd` runs the last step without needing a new terminal.
+If your PostgreSQL password isn't `zemmz_local`, change it in `DATABASE_URL`
+in `.env` and run `npm run dev` again. Set `AUTO_SEED=false` to start from an
+empty database. `npm run db:seed` resets the sample data at any time. On
+Windows, right after installing Node, `scripts\dev-windows.cmd` does the same
+without needing a new terminal.
 
 Open http://localhost:3000 for the marketing site. Sign in at `/login` with
 `owner@zemmz.test`, `editor@zemmz.test` or `desk@zemmz.test` (check-in staff);

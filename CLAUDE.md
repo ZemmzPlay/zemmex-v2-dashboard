@@ -12,7 +12,7 @@ open the matching prototype and follow its flow, copy and states.
 ## Commands
 
 ```bash
-npm run dev          # web :3000 + worker
+npm run dev          # web :3000 + worker (applies migrations first)
 npm run typecheck
 npm test             # vitest; integration tests use a separate zemmz_test database
 npm run build
