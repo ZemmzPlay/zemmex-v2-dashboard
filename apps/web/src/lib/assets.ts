@@ -1,6 +1,6 @@
 import 'server-only';
 import { createId } from './id';
-import { prisma, type Asset, type AssetKind, type Event } from '@zemmz/db';
+import { prisma, type Asset, type AssetKind, type Event, type PlayProject } from '@zemmz/db';
 import { fileUrl, LIMITS, sniff, storage, type FileKind } from './storage';
 import { sealData, unsealData } from './order-tokens';
 
@@ -23,6 +23,18 @@ export async function storeUpload(event: Event, kind: AssetKind, file: File, opt
   await storage().put(key, bytes, t.type);
   const name = (file.name || `file.${t.ext}`).replace(/[^\w.\- ()]/g, '_').slice(-120);
   return prisma.asset.create({ data: { organisationId: event.organisationId, eventId: event.id, kind, key, name, contentType: t.type, size: file.size, attendeesOnly: !!opts.attendeesOnly } });
+}
+
+/** Checks and stores an image for a zemmz Play website (logo or tournament banner). */
+export async function storePlayUpload(project: PlayProject, kind: 'PLAY_LOGO' | 'TOURNAMENT_BANNER', file: File): Promise<Asset> {
+  if (!file.size) throw new UploadError('That file is empty. Choose another.');
+  const t = sniff(new Uint8Array(await file.slice(0, 16).arrayBuffer()));
+  if (!t || t.kind !== 'image') throw new UploadError('Use a PNG, JPG, WebP or GIF image.');
+  if (file.size > LIMITS.image) throw new UploadError(`That image is ${(file.size / 1048576).toFixed(1)} MB. The limit is ${LIMITS.image / 1048576} MB.`);
+  const key = `${project.organisationId}/play/${project.id}/${kind.toLowerCase()}/${createId()}.${t.ext}`;
+  await storage().put(key, new Uint8Array(await file.arrayBuffer()), t.type);
+  const name = (file.name || `image.${t.ext}`).replace(/[^\w.\- ()]/g, '_').slice(-120);
+  return prisma.asset.create({ data: { organisationId: project.organisationId, playProjectId: project.id, kind, key, name, contentType: t.type, size: file.size } });
 }
 
 /** Removes the row and the bytes. References to it are cleared by the database. */

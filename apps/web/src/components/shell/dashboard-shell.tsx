@@ -64,6 +64,7 @@ function playNav(p: PlayProject, role: Role, counts: { reports: number; pending:
     ['Content', [
       { href: `${base}/website`, icon: 'globe', label: 'Website' },
       { href: `${base}/settings`, icon: 'settings', label: 'Settings' },
+      ...(can.manageEvent(role) ? [{ href: '/play/plan', icon: 'star' as const, label: 'Plan' }] : []),
     ]],
   ];
 }
@@ -114,7 +115,7 @@ export async function DashboardShell({ user, event, play, product, children }: {
   } else {
     groups = [
       inPlay
-        ? ['Tournament websites', [{ href: '/play', icon: 'trophy', label: 'All websites', exact: true }]]
+        ? ['Tournament websites', [{ href: '/play', icon: 'trophy', label: 'All websites', exact: true }, ...(can.manageEvent(user.role) ? [{ href: '/play/plan', icon: 'star' as const, label: 'Plan' }] : [])]]
         : ['Events', [{ href: '/events', icon: 'folder', label: 'All events', exact: true }, ...(can.manageEvent(user.role) ? [{ href: '/events/new', icon: 'plus' as const, label: 'New event' }] : [])]],
       ['Products', ([
         { href: '/events', icon: 'ticket', label: 'zemmz Live', exact: true },

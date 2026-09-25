@@ -14,9 +14,12 @@ const LISTS: Cmd[] = [['insertUnorderedList', '• List'], ['insertOrderedList',
  * the same allowlist the website uses, so formatting it can't keep (colours,
  * alignment) is never offered.
  */
-export function PageEditor({ action, deleteAction, pageId, initial, arabic, canEdit }: {
+export function PageEditor({ action, deleteAction, pageId, initial, arabic, canEdit, fixedTitle, saveLabel = 'Publish page' }: {
   action: (p: ActionState, fd: FormData) => Promise<ActionState>;
-  deleteAction: (fd: FormData) => Promise<void>;
+  /** Pages that can't be deleted or renamed (a tournament website's rules) leave this out and pass fixedTitle. */
+  deleteAction?: (fd: FormData) => Promise<void>;
+  fixedTitle?: string;
+  saveLabel?: string;
   pageId: string;
   initial: { title: string; bodyHtml: string };
   /** The Arabic version, when the website is in Arabic or both. Empty falls back to the English. */
@@ -69,11 +72,13 @@ export function PageEditor({ action, deleteAction, pageId, initial, arabic, canE
     <div className="card min-w-0 overflow-hidden">
       <form id={`pg-${pageId}`} action={formAction} onSubmit={(e) => { sync(); keepValues(formAction)(e); }}>
       <div className="flex flex-wrap items-end gap-3 border-b border-line p-3.5">
+        {fixedTitle ? <h2 className="m-0 flex-1 self-center text-[15px] font-semibold">{fixedTitle}</h2> : (
         <div className="fld !mb-0 min-w-[220px] flex-1" hidden={lang === 'ar'}>
           <label htmlFor="pg-title">Page title</label>
           <input id="pg-title" name="title" className="inp" defaultValue={initial.title} maxLength={60} required disabled={!canEdit} />
         </div>
-        {arabic && (
+        )}
+        {arabic && !fixedTitle && (
           <div className="fld !mb-0 min-w-[220px] flex-1" hidden={lang === 'en'}>
             <label htmlFor="pg-title-ar">Page title in Arabic<span className="opt">optional</span></label>
             <input id="pg-title-ar" name="ar_title" dir="rtl" lang="ar" className="inp" defaultValue={arabic.title} maxLength={60} disabled={!canEdit} />
@@ -117,8 +122,8 @@ export function PageEditor({ action, deleteAction, pageId, initial, arabic, canE
         </span>
         {canEdit && (
           <>
-            <ConfirmButton action={deleteAction} hidden={{ id: pageId }} label="Delete page" className="btn danger-ghost sm" title={`Delete ${initial.title}?`} body="The page and its menu link disappear from the website straight away. This can’t be undone." confirmLabel="Delete page" />
-            <button form={`pg-${pageId}`} className="btn primary sm" disabled={pending} onClick={sync}>{pending ? 'Publishing…' : 'Publish page'}</button>
+            {deleteAction && <ConfirmButton action={deleteAction} hidden={{ id: pageId }} label="Delete page" className="btn danger-ghost sm" title={`Delete ${initial.title}?`} body="The page and its menu link disappear from the website straight away. This can’t be undone." confirmLabel="Delete page" />}
+            <button form={`pg-${pageId}`} className="btn primary sm" disabled={pending} onClick={sync}>{pending ? 'Saving…' : saveLabel}</button>
           </>
         )}
       </div>

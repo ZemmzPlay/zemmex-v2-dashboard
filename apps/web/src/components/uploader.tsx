@@ -8,9 +8,11 @@ import { Icon } from './icon';
  * A file button that uploads as soon as a file is chosen, one or several,
  * then refreshes the page so the new file shows. Errors say what to change.
  */
-export function Uploader({ slug, kind, target, label, accept, multiple, hint, className = 'btn secondary sm', disabled }: {
+export function Uploader({ slug, kind, target, label, accept, multiple, hint, className = 'btn secondary sm', disabled, endpoint }: {
   slug: string;
-  kind: 'LOGO' | 'PERSON_PHOTO' | 'GALLERY_PHOTO' | 'SLIDES';
+  kind: 'LOGO' | 'PERSON_PHOTO' | 'GALLERY_PHOTO' | 'SLIDES' | 'PLAY_LOGO' | 'TOURNAMENT_BANNER';
+  /** Where to post; events by default. */
+  endpoint?: string;
   target?: string;
   label: string;
   accept: string;
@@ -34,7 +36,7 @@ export function Uploader({ slug, kind, target, label, accept, multiple, hint, cl
       fd.set('kind', kind);
       if (target) fd.set('target', target);
       try {
-        const r = await fetch(`/events/${slug}/files`, { method: 'POST', body: fd });
+        const r = await fetch(endpoint ?? `/events/${slug}/files`, { method: 'POST', body: fd });
         const body = await r.json().catch(() => ({}));
         if (!r.ok) {
           setError(`${list.length > 1 ? `${f.name}: ` : ''}${body.error ?? 'The upload failed. Try again.'}`);

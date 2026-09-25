@@ -8,6 +8,8 @@ import { done, failed, type ActionState } from '@/lib/action-state';
 import { logPlay, playCan, requireProjectPermission, slugify } from '@/lib/play/core';
 import { BracketError, confirmResult, endTournament, prizeList, reopenResult, startTournament } from '@/lib/play/bracket';
 import { requestProof } from '@/lib/play/reports';
+import { refundEntry, refundTournament } from '@/lib/play/entry-payments';
+import { PaymentError } from '@/lib/payments';
 
 const FORMATS: TournamentFormat[] = ['SINGLE_ELIMINATION', 'DOUBLE_ELIMINATION', 'ROUND_ROBIN', 'SWISS'];
 const g = (fd: FormData, k: string) => String(fd.get(k) ?? '').trim();
@@ -120,8 +122,26 @@ export async function endAction(slug: string, tournamentId: string) {
   await endTournament(t.id).catch((e) => {
     if (!(e instanceof BracketError)) throw e;
   });
-  await logPlay(project.id, user.name, `${t.status === 'LIVE' ? 'ended' : 'cancelled'} ${t.name}`);
+  // A tournament cancelled before it started gives everyone their entry fee back.
+  const refunds = t.status === 'LIVE' ? null : await refundTournament(t.id, `${t.name} was cancelled`);
+  await logPlay(project.id, user.name, `${t.status === 'LIVE' ? 'ended' : 'cancelled'} ${t.name}${refunds?.done ? `, refunding ${refunds.done} entry ${refunds.done === 1 ? 'fee' : 'fees'}` : ''}${refunds?.failed ? ` (${refunds.failed} refunds failed; retry from Participants)` : ''}`);
   refresh(slug);
+}
+
+export async function refundEntryAction(slug: string, entryId: string, _p: ActionState, _fd: FormData): Promise<ActionState> {
+  const { user, project } = await requireProjectPermission(slug, playCan.manageProject);
+  const order = await prisma.entryOrder.findFirst({ where: { entryId, tournament: { projectId: project.id } }, include: { tournament: true } });
+  if (!order || order.status !== 'PAID') return failed('There’s no paid entry fee to refund.');
+  try {
+    await refundEntry(order.id, `Refunded by ${user.name}`);
+  } catch (e) {
+    return failed(e instanceof PaymentError ? `${e.message} Nothing was refunded; try again later.` : 'The payment provider didn’t answer. Nothing was refunded; try again later.');
+  }
+  const entry = await prisma.entry.findUniqueOrThrow({ where: { id: entryId } });
+  if (order.tournament.status === 'DRAFT' || order.tournament.status === 'PUBLISHED') await prisma.entry.update({ where: { id: entryId }, data: { status: 'WITHDRAWN' } });
+  await logPlay(project.id, user.name, `refunded the entry fee for ${entry.name} in ${order.tournament.name}`);
+  refresh(slug);
+  return done('Refunded. It reaches the card in 5 to 10 working days.');
 }
 
 async function matchIn(slug: string, matchId: string, check = playCan.moderate) {

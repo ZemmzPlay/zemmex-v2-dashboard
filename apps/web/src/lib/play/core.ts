@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { prisma, type PlayProject, type Role, type Tournament } from '@zemmz/db';
+import { roundLabel, type Bracket } from '@zemmz/shared';
 import { can, requireUser, type CurrentUser } from '@/lib/auth';
 
 /**
@@ -68,3 +69,10 @@ export function slugify(s: string, fallback = 'tournament') {
 
 /** Where a project's public website lives. */
 export const playSiteUrl = (slug: string) => `/p/${slug}`;
+
+/** Labels matches by round ("Semifinals", "Lower round 2"), from the rounds each bracket has. */
+export function matchLabeller(t: Pick<Tournament, 'format'>, matches: { bracket: string; round: number }[], locale: 'en' | 'ar' = 'en') {
+  const last = new Map<string, number>();
+  for (const m of matches) last.set(m.bracket, Math.max(last.get(m.bracket) ?? 0, m.round));
+  return (m: { bracket: string; round: number }) => roundLabel(t.format, m.bracket as Bracket, m.round, last.get(m.bracket) ?? m.round, locale);
+}

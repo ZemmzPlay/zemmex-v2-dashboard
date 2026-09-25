@@ -2,7 +2,7 @@ import 'server-only';
 import { prisma, type Entry, type EntryOrder, type PlayPlayer, type PlayProject, type Tournament } from '@zemmz/db';
 import { sign } from '@/lib/order-tokens';
 import { appUrl } from '@/lib/email';
-import { cardProcessingMinor, checkPayment, paymentProvider, paymentsReady, PaymentError, startCheckout } from '@/lib/payments';
+import { cardProcessingMinor, checkPayment, paymentProvider, paymentsReady, PaymentError, refundPayment, startCheckout } from '@/lib/payments';
 import { entryPrice } from './entries';
 
 /**
@@ -74,4 +74,31 @@ export async function syncEntryOrder(o: Pick<EntryOrder, 'id' | 'status' | 'prov
     return 'failed';
   }
   return o.status === 'FAILED' ? 'failed' : 'pending';
+}
+
+/**
+ * Refunds an entry fee. As with Live tickets, the platform fee isn't
+ * refunded. Safe to call twice: a refunded order is left alone.
+ */
+export async function refundEntry(orderId: string, reason: string) {
+  const o = await prisma.entryOrder.findUnique({ where: { id: orderId } });
+  if (!o || o.status !== 'PAID' || !o.providerRef) return false;
+  await refundPayment({ provider: o.provider, ref: o.providerRef, amountMinor: o.amountMinor, currency: o.currency, key: `entry-${o.id}`, reason });
+  await prisma.entryOrder.update({ where: { id: o.id }, data: { status: 'REFUNDED', refundedMinor: o.amountMinor } });
+  return true;
+}
+
+/** Refunds every paid entry in a tournament, for a cancellation. Returns how many were refunded and which failed. */
+export async function refundTournament(tournamentId: string, reason: string) {
+  const orders = await prisma.entryOrder.findMany({ where: { tournamentId, status: 'PAID' } });
+  let done = 0;
+  const failed: string[] = [];
+  for (const o of orders) {
+    try {
+      if (await refundEntry(o.id, reason)) done++;
+    } catch {
+      failed.push(o.id);
+    }
+  }
+  return { done, failed: failed.length };
 }

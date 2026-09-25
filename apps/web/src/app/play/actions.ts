@@ -6,7 +6,11 @@ import { prisma } from '@zemmz/db';
 import { can, requireUser } from '@/lib/auth';
 import { failed, type ActionState } from '@/lib/action-state';
 import { logActivity } from '@/lib/activity';
-import { ensurePlayTrial, websiteAllowance } from '@/lib/play/billing';
+import { ensurePlayTrial, playQuote, websiteAllowance } from '@/lib/play/billing';
+import { paymentProvider, paymentsReady, PaymentError, startCheckout } from '@/lib/payments';
+import { sign } from '@/lib/order-tokens';
+import { appUrl } from '@/lib/email';
+import { planDef } from '@/lib/plans';
 import { slugify } from '@/lib/play/core';
 
 const RESERVED = new Set(['new', 'plan', 'admin', 'api', 'www', 'play', 'help']);
@@ -52,3 +56,40 @@ export async function setProjectArchived(slug: string, archived: boolean) {
   revalidatePath('/play');
 }
 
+
+/** Pays for zemmz Play Club or Season, a month or a year at a time, by card. */
+export async function buyPlayPlan(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  if (!can.manageEvent(user.role)) return failed('Only owners and admins can change the plan.');
+  const plan = String(fd.get('plan'));
+  const months = Number(fd.get('months')) === 12 ? 12 : 1;
+  if (plan !== 'PLAY_CLUB' && plan !== 'PLAY_SEASON') return failed('Choose Club or Season.');
+  if (!paymentsReady()) return failed('Card payments aren’t set up yet. Contact us for an invoice instead.');
+  const org = await prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId } });
+  if (plan === 'PLAY_CLUB') {
+    const used = await prisma.playProject.count({ where: { organisationId: org.id, archivedAt: null } });
+    if (used > 1) return failed(`Club includes one website and you have ${used}. Archive the others first, or choose Season.`);
+  }
+  const q = playQuote(plan, months, org.country)!;
+  const purchase = await prisma.planPurchase.create({
+    data: { organisationId: org.id, plan, months, currency: q.currency, amountMinor: q.amountMinor, vatMinor: q.vatMinor, totalMinor: q.totalMinor, provider: paymentProvider(), byLabel: user.name },
+  });
+  const token = sign('plan', purchase.id);
+  let url: string;
+  try {
+    const base = `${appUrl()}/organisation/billing`;
+    const c = await startCheckout({
+      orderId: purchase.id, amountMinor: q.totalMinor, currency: q.currency, locale: 'en',
+      description: `zemmz Play: ${planDef(plan).name}, ${months === 12 ? '12 months' : '1 month'}`,
+      buyer: { name: user.name, email: user.email },
+      returnUrl: `${base}/return?p=${token}&s={SESSION}`, cancelUrl: `${base}/cancel?p=${token}`,
+      webhookUrl: `${appUrl()}/api/payments/${paymentProvider()}`, mockUrl: `/organisation/billing/test/${token}`,
+    });
+    await prisma.planPurchase.update({ where: { id: purchase.id }, data: { providerSession: c.session } });
+    url = c.url;
+  } catch (e) {
+    await prisma.planPurchase.update({ where: { id: purchase.id }, data: { status: 'FAILED' } });
+    return failed(`${e instanceof PaymentError ? e.message : 'The payment provider could not be reached.'} Nothing was charged.`);
+  }
+  redirect(url);
+}

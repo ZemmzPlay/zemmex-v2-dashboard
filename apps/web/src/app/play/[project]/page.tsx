@@ -54,7 +54,7 @@ export default async function PlayDashboard({ params, searchParams }: { params: 
           <h2 className="m-0 mb-3 text-[15px] font-semibold">Get your website ready</h2>
           <ol className="m-0 flex list-none flex-col gap-2 p-0 text-[14px]">
             <li><Link href={`${base}/website`}>Set your colours, logo and homepage text</Link></li>
-            <li><Link href={`${base}/website?tab=pages`}>Check the rules and FAQ</Link></li>
+            <li><Link href={`${base}/website?tab=rules`}>Check the rules and FAQ</Link></li>
             <li><Link href={`${base}/tournaments/new`}>Create your first tournament</Link> and publish it: registration opens on its dates</li>
             <li><a href={`/p/${slug}`} target="_blank" rel="noopener">Visit the website</a> and share the link with players</li>
           </ol>
