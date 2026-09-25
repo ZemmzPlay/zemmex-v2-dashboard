@@ -552,6 +552,19 @@ model Session {
 
 /// One interval in the room. Leaving and coming back creates a new row, so
 /// time in the room is the sum of intervals (for CME) and pass-outs are exact.
+/// A scan made on a device without a connection, uploaded later. The id is
+/// made on the device, so uploading the same scan twice records it once.
+model OfflineScan {
+  id         String   @id
+  sessionId  String
+  kind       String
+  title      String
+  scannedAt  DateTime
+  receivedAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
 model Attendance {
   id             String       @id @default(cuid())
   registrationId String

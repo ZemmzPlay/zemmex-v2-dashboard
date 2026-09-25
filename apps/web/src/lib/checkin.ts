@@ -15,10 +15,11 @@ export interface ScanResult extends ScanOutcome {
  * reading the same badge can't open two intervals, and a full workshop can't
  * be overfilled by simultaneous scans.
  */
-export async function performScan(opts: { event: Event; sessionId: string; mode: ScanMode; input: string; userId: string }): Promise<ScanResult> {
+export async function performScan(opts: { event: Event; sessionId: string; mode: ScanMode; input: string; userId: string; at?: Date }): Promise<ScanResult> {
   const { event } = opts;
   const TY = eventType(event.type);
-  const now = new Date();
+  // Offline scans are recorded at the time they were made on the device.
+  const now = opts.at ?? new Date();
   const tf = (d: Date) => formatTime(d, event.timezone);
 
   return prisma.$transaction(async (tx) => {
@@ -96,3 +97,27 @@ export async function recentScans(event: Event, sessionId: string, take = 20): P
 }
 
 export { shortTitle };
+
+/**
+ * Scans made while a console was offline, applied in the order they happened
+ * at the time they happened. The device's id for each scan makes a retried
+ * upload safe; device clocks are kept within the last day and not ahead.
+ */
+export async function applyOfflineScans(opts: { event: Event; sessionId: string; userId: string; scans: { id: string; mode: ScanMode; input: string; at: string }[]; now?: number }) {
+  const now = opts.now ?? Date.now();
+  const results: { id: string; kind: string; title: string; detail: string; at: string }[] = [];
+  let counts: { inRoom: number; checkedIn: number } | null = null;
+  for (const s of [...opts.scans].sort((a, b) => a.at.localeCompare(b.at))) {
+    const seen = await prisma.offlineScan.findUnique({ where: { id: s.id } });
+    if (seen) {
+      results.push({ id: s.id, kind: seen.kind, title: seen.title, detail: '', at: '' });
+      continue;
+    }
+    const at = new Date(Math.min(now, Math.max(now - 86_400_000, Date.parse(s.at) || now)));
+    const r = await performScan({ event: opts.event, sessionId: opts.sessionId, mode: s.mode, input: s.input, userId: opts.userId, at });
+    await prisma.offlineScan.create({ data: { id: s.id, sessionId: opts.sessionId, kind: r.kind, title: r.title, scannedAt: at } }).catch(() => undefined);
+    results.push({ id: s.id, kind: r.kind, title: r.title, detail: r.detail, at: r.at });
+    counts = { inRoom: r.inRoom, checkedIn: r.checkedIn };
+  }
+  return { results, counts };
+}

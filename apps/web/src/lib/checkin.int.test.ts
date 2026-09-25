@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { prisma } from '@zemmz/db';
 import { makeEvent, person, resetDb } from '../../../../tests/factory';
-import { performScan } from './checkin';
+import { applyOfflineScans, performScan } from './checkin';
 import { createRegistrations } from './registrations';
 
 beforeEach(resetDb);
@@ -64,5 +64,30 @@ describe('performScan', () => {
     const b = await makeEvent();
     const s = await liveSession(b.event.id);
     await expect(performScan({ event: a.event, sessionId: s.id, mode: 'in', input: '1001', userId: a.user.id })).rejects.toThrow('Session not found');
+  });
+});
+
+describe('offline scans', () => {
+  it('applies them in order at their own times, once, and the server has the last word', async () => {
+    const { event, user } = await makeEvent();
+    const s = await liveSession(event.id);
+    await createRegistrations({ event, people: [person(1, event.ticketTypes[0].id)], source: 'WEBSITE' });
+    const t = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    const id = () => crypto.randomUUID();
+    const scans = [
+      { id: id(), mode: 'out' as const, input: '1001', at: t(5) },
+      { id: id(), mode: 'in' as const, input: '1001', at: t(20) },
+      // A second desk, also offline, let the same person in: refused on upload.
+      { id: id(), mode: 'in' as const, input: '1001', at: t(15) },
+    ];
+    const first = await applyOfflineScans({ event, sessionId: s.id, userId: user.id, scans });
+    expect(first.results.map((r) => r.kind)).toEqual(['ok', 'warn', 'out']);
+    const rows = await prisma.attendance.findMany({ where: { sessionId: s.id } });
+    expect(rows).toHaveLength(1);
+    expect(Math.round((Date.now() - rows[0].inAt.getTime()) / 60_000)).toBe(20);
+    expect(Math.round((Date.now() - rows[0].outAt!.getTime()) / 60_000)).toBe(5);
+    // Uploading the same batch again changes nothing.
+    await applyOfflineScans({ event, sessionId: s.id, userId: user.id, scans });
+    expect(await prisma.attendance.count({ where: { sessionId: s.id } })).toBe(1);
   });
 });

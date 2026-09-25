@@ -50,6 +50,9 @@ export default async function ConsolePage({ params }: { params: Promise<{ slug: 
         )}
       </div>
       <Console
+        sessionId={sessionId}
+        rosterUrl={`/events/${slug}/check-in/${sessionId}/roster`}
+        syncUrl={`/events/${slug}/check-in/${sessionId}/sync`}
         endpoint={`/events/${slug}/check-in/${sessionId}/scan`}
         labels={{ inLbl: TY.inLbl, outLbl: TY.outLbl, roomLbl: TY.roomLbl, badge: TY.badge, gates: TY.gates, checkedInLbl: TY.gates ? 'Came in tonight' : 'Checked in so far' }}
         capacity={session.capacity}
