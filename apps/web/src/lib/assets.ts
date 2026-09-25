@@ -6,7 +6,7 @@ import { sealData, unsealData } from './order-tokens';
 
 export class UploadError extends Error {}
 
-const ALLOWED: Record<AssetKind, FileKind[]> = { LOGO: ['image'], PERSON_PHOTO: ['image'], GALLERY_PHOTO: ['image'], SLIDES: ['pdf'], VIDEO: ['video'] };
+const ALLOWED: Record<AssetKind, FileKind[]> = { LOGO: ['image'], PERSON_PHOTO: ['image'], GALLERY_PHOTO: ['image'], SLIDES: ['pdf'], VIDEO: ['video'], PLAY_LOGO: ['image'], TOURNAMENT_BANNER: ['image'], SCREENSHOT: ['image'] };
 
 /** Checks and stores one file for an event. Nothing is written if it's the wrong type or too big. */
 export async function storeUpload(event: Event, kind: AssetKind, file: File, opts: { attendeesOnly?: boolean } = {}): Promise<Asset> {

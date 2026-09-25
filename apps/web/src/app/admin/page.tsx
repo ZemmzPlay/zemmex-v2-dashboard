@@ -5,7 +5,7 @@ import { prisma } from '@zemmz/db';
 import { formatMoney, formatShortDateTime, fromMinor, isCurrency } from '@zemmz/shared';
 import { isPlatformAdmin, requireUser } from '@/lib/auth';
 import { fmt } from '@/lib/format';
-import { PLANS, planDef, TRIAL_ATTENDEES } from '@/lib/plans';
+import { LIVE_PLANS as PLANS, planDef, TRIAL_ATTENDEES } from '@/lib/plans';
 import { DashboardShell } from '@/components/shell/dashboard-shell';
 import { FormDialog } from '@/components/form-dialog';
 import { markHandled, recordPayout, setPlan } from './actions';
@@ -100,7 +100,13 @@ async function Requests() {
 
 /** Every organisation zemmz owes ticket money to, with their bank details. */
 async function Payouts() {
-  const orgs = await prisma.organisation.findMany({ where: { events: { some: { orders: { some: { provider: { not: 'free' }, status: { in: ['PAID', 'PARTIALLY_REFUNDED', 'REFUNDED'] } } } } } }, orderBy: { name: 'asc' } });
+  const orgs = await prisma.organisation.findMany({
+    where: { OR: [
+      { events: { some: { orders: { some: { provider: { not: 'free' }, status: { in: ['PAID', 'PARTIALLY_REFUNDED', 'REFUNDED'] } } } } } },
+      { playProjects: { some: { tournaments: { some: { entryOrders: { some: { status: { in: ['PAID', 'PARTIALLY_REFUNDED', 'REFUNDED'] } } } } } } } },
+    ] },
+    orderBy: { name: 'asc' },
+  });
   const rows = (await Promise.all(orgs.map(async (o) => (await balances(o.id)).map((b) => ({ o, b }))))).flat().filter((r) => r.b.balanceMinor !== 0 || r.b.paidOutMinor > 0);
   if (!rows.length) return <div className="card p-8 text-center text-muted">No ticket money is owed to anyone yet.</div>;
   return (

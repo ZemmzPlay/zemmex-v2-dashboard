@@ -30,6 +30,16 @@ export async function markPurchasePaid(purchaseId: string, ref: string) {
     const p = await tx.planPurchase.findUniqueOrThrow({ where: { id: purchaseId }, include: { organisation: true } });
     const org = p.organisation;
     const now = new Date();
+    if (planDef(p.plan).product === 'play') {
+      // zemmz Play: months from the current end (or now), on the plan bought.
+      const from = org.playPlan === p.plan && org.playPlanEndsAt && org.playPlanEndsAt > now ? org.playPlanEndsAt : now;
+      const end = new Date(from);
+      end.setUTCMonth(end.getUTCMonth() + p.months);
+      await tx.planPurchase.update({ where: { id: p.id }, data: { status: 'PAID', paidAt: now, providerRef: ref, periodEnd: end } });
+      await tx.organisation.update({ where: { id: org.id }, data: { playPlan: p.plan, playPlanEndsAt: end } });
+      await tx.activityLog.create({ data: { organisationId: org.id, actorLabel: p.byLabel || 'zemmz', action: `paid ${formatMoney(p.totalMinor, p.currency)} for zemmz Play ${planDef(p.plan).name}, until ${formatDate(end, 'Asia/Dubai')}` } });
+      return true;
+    }
     // Renewing early adds a year to the current end; after it ended, a year from now.
     const samePlan = org.plan === p.plan && org.planStatus === 'ACTIVE';
     const from = samePlan && org.planEndsAt && org.planEndsAt > now ? org.planEndsAt : now;

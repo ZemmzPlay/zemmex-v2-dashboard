@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { prisma } from '@zemmz/db';
 import { formatDate, formatMoney } from '@zemmz/shared';
 import { fmt, pct } from '@/lib/format';
-import { PLAN_GRACE_DAYS, planDef, PLANS, TRIAL_ATTENDEES, type PlanDef } from '@/lib/plans';
+import { PLAN_GRACE_DAYS, planDef, LIVE_PLANS as PLANS, TRIAL_ATTENDEES, type PlanDef } from '@/lib/plans';
 import { daysLeft, eventsThisYear, planQuote, purchaseInvoiceNumber } from '@/lib/billing';
 import { paymentsReady } from '@/lib/payments';
 import { PlanButtons } from './plan-buttons';

@@ -115,14 +115,22 @@ export const RELEASE_AFTER_MINUTES = 60;
 
 export async function releaseHeldOrders(now = new Date()) {
   const cutoff = new Date(now.getTime() - RELEASE_AFTER_MINUTES * 60_000);
+  // zemmz Play entry fees held the same way.
+  const staleEntries = await prisma.entryOrder.findMany({ where: { status: 'PENDING', createdAt: { lt: cutoff } }, select: { id: true, entryId: true }, take: 200 });
+  if (staleEntries.length) {
+    await prisma.$transaction([
+      prisma.entryOrder.updateMany({ where: { id: { in: staleEntries.map((o) => o.id) }, status: 'PENDING' }, data: { status: 'FAILED' } }),
+      prisma.entry.updateMany({ where: { id: { in: staleEntries.map((o) => o.entryId) }, status: 'PENDING_PAYMENT' }, data: { status: 'WITHDRAWN' } }),
+    ]);
+  }
   const stale = await prisma.order.findMany({ where: { status: 'PENDING', createdAt: { lt: cutoff } }, select: { id: true }, take: 200 });
-  if (!stale.length) return 0;
+  if (!stale.length) return staleEntries.length;
   const ids = stale.map((o) => o.id);
   await prisma.$transaction([
     prisma.order.updateMany({ where: { id: { in: ids }, status: 'PENDING' }, data: { status: 'FAILED' } }),
     prisma.registration.updateMany({ where: { orderId: { in: ids }, status: 'PENDING' }, data: { status: 'CANCELLED' } }),
   ]);
-  return ids.length;
+  return ids.length + staleEntries.length;
 }
 
 /**

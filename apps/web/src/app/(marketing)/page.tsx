@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { TICKET_FEE } from '@zemmz/shared';
 import { getCurrentUser } from '@/lib/auth';
-import { TRIAL_ATTENDEES, PLANS } from '@/lib/plans';
+import { TRIAL_ATTENDEES, LIVE_PLANS as PLANS } from '@/lib/plans';
 import { MarketingNav } from '@/components/marketing/nav';
 import { MarketingFooter } from '@/components/marketing/footer';
 
