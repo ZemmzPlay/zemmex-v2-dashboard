@@ -3,14 +3,16 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { prisma, type Prisma } from '@zemmz/db';
-import { emailSchema, eventType, isCurrency, mobileSchema, ticketFee, type CurrencyCode, type SiteText } from '@zemmz/shared';
+import { emailSchema, eventType, formatMoney, isCurrency, mobileSchema, ticketFee, type CurrencyCode, type SiteText } from '@zemmz/shared';
 import { siteTextFor } from '@/lib/site-locale';
 import { createRegistrations, RegistrationError, resendConfirmation, validateAgainstForm, type PersonInput } from '@/lib/registrations';
 import { getPublicEvent, homeState } from '@/lib/public-event';
 import { rateLimit } from '@/lib/rate-limit';
 import { ticketToken } from '@/lib/tokens';
 import { sign, verify } from '@/lib/order-tokens';
-import { chargeMock } from '@/lib/payments';
+import { cardProcessingMinor, paymentProvider, paymentsReady, PaymentError, startCheckout } from '@/lib/payments';
+import { markOrderFailed, refundTickets, RefundError, selfRefundBlock } from '@/lib/orders';
+import { appUrl } from '@/lib/email';
 
 export interface PublicFormState {
   error?: string;
@@ -84,41 +86,53 @@ export async function registerFree(slug: string, _p: PublicFormState, fd: FormDa
 /* ------------------------------------------------------------------ */
 
 export interface CheckoutQuote {
-  lines: { ticketTypeId: string; name: string; qty: number; unitMinor: number }[];
+  lines: { ticketTypeId: string; name: string; qty: number; unitMinor: number; paidEachMinor: number }[];
   subtotalMinor: number;
   discountMinor: number;
+  /** VAT on the tickets after discount. */
+  vatMinor: number;
+  vatBps: number;
+  /** The platform fee; added to the total only when passed on. */
   feeMinor: number;
+  feePassedOn: boolean;
   totalMinor: number;
   promo: { code: string; percentOff: number } | null;
   currency: string;
   error?: string;
 }
 
-async function quote(eventId: string, currency: string, wanted: Record<string, number>, promoCode: string, t: SiteText): Promise<CheckoutQuote> {
-  const cur: CurrencyCode = isCurrency(currency) ? currency : 'AED';
-  const types = await prisma.ticketType.findMany({ where: { eventId, onSale: true, id: { in: Object.keys(wanted) } }, orderBy: { sortOrder: 'asc' } });
-  const lines = types.filter((t) => wanted[t.id] > 0).map((t) => ({ ticketTypeId: t.id, name: t.name, qty: Math.min(10, Math.floor(wanted[t.id])), unitMinor: t.priceMinor }));
+type QuoteEvent = { id: string; currency: string; vatBps: number; feePassedOn: boolean };
+
+async function quote(event: QuoteEvent, wanted: Record<string, number>, promoCode: string, t: SiteText): Promise<CheckoutQuote> {
+  const cur: CurrencyCode = isCurrency(event.currency) ? event.currency : 'AED';
+  const types = await prisma.ticketType.findMany({ where: { eventId: event.id, onSale: true, id: { in: Object.keys(wanted) } }, orderBy: { sortOrder: 'asc' } });
   let promo: CheckoutQuote['promo'] = null;
   let error: string | undefined;
   if (promoCode) {
-    const p = await prisma.promoCode.findUnique({ where: { eventId_code: { eventId, code: promoCode.toUpperCase() } } });
+    const p = await prisma.promoCode.findUnique({ where: { eventId_code: { eventId: event.id, code: promoCode.toUpperCase() } } });
     if (!p || !p.active || (p.maxUses != null && p.uses >= p.maxUses)) error = t.err.promoInvalid(promoCode.toUpperCase());
     else promo = { code: p.code, percentOff: p.percentOff };
   }
-  let subtotal = 0, discount = 0, fee = 0;
-  for (const l of lines) {
-    const unitDiscount = promo ? Math.round((l.unitMinor * promo.percentOff) / 100) : 0;
-    subtotal += l.unitMinor * l.qty;
-    discount += unitDiscount * l.qty;
-    // The platform fee is per paid ticket, on what the buyer actually pays, capped (docs/05).
-    fee += ticketFee(l.unitMinor - unitDiscount, cur) * l.qty;
-  }
-  return { lines, subtotalMinor: subtotal, discountMinor: discount, feeMinor: fee, totalMinor: subtotal - discount + fee, promo, currency, error };
+  let subtotal = 0, discount = 0, vat = 0, fee = 0;
+  const lines = types.filter((x) => wanted[x.id] > 0).map((x) => {
+    const qty = Math.min(10, Math.floor(wanted[x.id]));
+    const unitDiscount = promo ? Math.round((x.priceMinor * promo.percentOff) / 100) : 0;
+    const net = x.priceMinor - unitDiscount;
+    const unitVat = Math.round((net * event.vatBps) / 10_000);
+    subtotal += x.priceMinor * qty;
+    discount += unitDiscount * qty;
+    vat += unitVat * qty;
+    // The platform fee is per paid ticket, on the ticket price after discount, capped (docs/05).
+    fee += ticketFee(net, cur) * qty;
+    return { ticketTypeId: x.id, name: x.name, qty, unitMinor: x.priceMinor, paidEachMinor: net + unitVat };
+  });
+  const total = subtotal - discount + vat + (event.feePassedOn ? fee : 0);
+  return { lines, subtotalMinor: subtotal, discountMinor: discount, vatMinor: vat, vatBps: event.vatBps, feeMinor: fee, feePassedOn: event.feePassedOn, totalMinor: total, promo, currency: event.currency, error };
 }
 
 export async function getQuote(slug: string, wanted: Record<string, number>, promoCode: string): Promise<CheckoutQuote> {
   const event = await getPublicEvent(slug);
-  return quote(event.id, event.currency, wanted, promoCode.trim(), (await siteTextFor(event)).t);
+  return quote(event, wanted, promoCode.trim(), (await siteTextFor(event)).t);
 }
 
 export async function placeOrder(slug: string, _p: PublicFormState, fd: FormData): Promise<PublicFormState> {
@@ -135,10 +149,12 @@ export async function placeOrder(slug: string, _p: PublicFormState, fd: FormData
   } catch {
     wanted = {};
   }
-  const q = await quote(event.id, event.currency, wanted, s(fd, 'promo'), t);
+  const q = await quote(event, wanted, s(fd, 'promo'), t);
   if (q.error) return { error: q.error, values };
   const count = q.lines.reduce((n, l) => n + l.qty, 0);
   if (!count) return { error: t.err.chooseTicket, values };
+  const paid = q.totalMinor > 0;
+  if (paid && !paymentsReady()) return { error: t.locale === 'ar' ? 'لم يتم إعداد الدفع لهذه الفعالية بعد. لم يُخصم أي مبلغ.' : 'Payments are not set up for this event yet. Nothing was charged.', values };
 
   // Buyer details, then one name per ticket (defaults to the buyer).
   const { p: buyer, errors } = await readPerson(event.id, fd, t, 'b_');
@@ -149,40 +165,55 @@ export async function placeOrder(slug: string, _p: PublicFormState, fd: FormData
     for (let k = 0; k < l.qty; k++, i++) {
       const first = s(fd, `h${i}_first`) || buyer.firstName;
       const last = s(fd, `h${i}_last`) || buyer.lastName;
-      people.push({ ...buyer, ticketTypeId: l.ticketTypeId, firstName: first, lastName: last });
+      people.push({ ...buyer, ticketTypeId: l.ticketTypeId, firstName: first, lastName: last, paidMinor: l.paidEachMinor });
     }
   }
 
-  const outcome = s(fd, 'pay');
+  // Seats are taken (and capacity checked) in the same transaction as the
+  // order. A paid order holds them as PENDING until the provider confirms.
   let orderId: string;
   try {
     orderId = await prisma.$transaction(async (tx) => {
       const order = await tx.order.create({
         data: {
           eventId: event.id, buyerName: `${buyer.firstName} ${buyer.lastName}`, buyerEmail: buyer.email, currency: event.currency,
-          subtotalMinor: q.subtotalMinor, discountMinor: q.discountMinor, feeMinor: q.feeMinor, totalMinor: q.totalMinor,
+          subtotalMinor: q.subtotalMinor, discountMinor: q.discountMinor, vatMinor: q.vatMinor, vatBps: q.vatBps, feeMinor: q.feeMinor, feePassedOn: q.feePassedOn, totalMinor: q.totalMinor,
           promoCodeId: q.promo ? (await tx.promoCode.findUnique({ where: { eventId_code: { eventId: event.id, code: q.promo.code } } }))?.id : null,
-          provider: process.env.PAYMENT_PROVIDER ?? 'mock',
+          provider: paid ? paymentProvider() : 'free', locale: t.locale, processingMinor: paid ? cardProcessingMinor(q.totalMinor) : 0,
+          ...(paid ? {} : { status: 'PAID' as const, paidAt: new Date(), providerRef: 'free' }),
         },
       });
-      // Seats are taken (and capacity checked) before the charge, inside the same
-      // transaction, so a failed payment releases them by rolling back.
-      await createRegistrations({ event, people, source: 'WEBSITE', orderId: order.id, tx });
-      if (q.totalMinor > 0) {
-        const charge = await chargeMock({ amountMinor: q.totalMinor, currency: event.currency, outcome });
-        if (!charge.ok) throw new RegistrationError(t.locale === 'ar' ? (outcome === 'decline' ? 'رفض المصرف الدفع ولم يُخصم أي مبلغ. جرّب بطاقة أو وسيلة دفع أخرى.' : 'لم يتم إعداد الدفع لهذه الفعالية بعد. لم يُخصم أي مبلغ.') : charge.message);
-        await tx.order.update({ where: { id: order.id }, data: { status: 'PAID', paidAt: new Date(), providerRef: charge.ref } });
-      } else {
-        await tx.order.update({ where: { id: order.id }, data: { status: 'PAID', paidAt: new Date(), providerRef: 'free' } });
-      }
-      if (q.promo) await tx.promoCode.update({ where: { eventId_code: { eventId: event.id, code: q.promo.code } }, data: { uses: { increment: 1 } } });
+      await createRegistrations({ event, people, source: 'WEBSITE', orderId: order.id, tx, pending: paid });
+      if (!paid && q.promo) await tx.promoCode.update({ where: { eventId_code: { eventId: event.id, code: q.promo.code } }, data: { uses: { increment: 1 } } });
       return order.id;
     });
   } catch (e) {
     if (e instanceof RegistrationError) return { error: e.message, values };
     throw e;
   }
-  redirect(`/e/${slug}/order/${sign('order', orderId)}`);
+  const token = sign('order', orderId);
+  if (!paid) redirect(`/e/${slug}/order/${token}`);
+
+  let url: string;
+  try {
+    const base = `${appUrl()}/e/${slug}/pay`;
+    const checkout = await startCheckout({
+      orderId, amountMinor: q.totalMinor, currency: event.currency, locale: t.locale,
+      description: `${event.name}: ${t.ticketCount(count)}`,
+      buyer: { name: `${buyer.firstName} ${buyer.lastName}`, email: buyer.email },
+      returnUrl: `${base}/return?o=${token}&s={SESSION}`,
+      cancelUrl: `${base}/cancel?o=${token}`,
+      webhookUrl: `${appUrl()}/api/payments/${paymentProvider()}`,
+      mockUrl: `/e/${slug}/pay/test/${token}`,
+    });
+    await prisma.order.update({ where: { id: orderId }, data: { providerSession: checkout.session } });
+    url = checkout.url;
+  } catch (e) {
+    await markOrderFailed(orderId);
+    const why = e instanceof PaymentError ? e.message : t.locale === 'ar' ? 'تعذّر الوصول إلى مزوّد الدفع.' : 'The payment provider could not be reached.';
+    return { error: t.payment.failed(why), values };
+  }
+  redirect(url);
 }
 
 /* ------------------------------------------------------------------ */
@@ -207,7 +238,7 @@ export async function claim(slug: string, _p: PublicFormState, fd: FormData): Pr
   const reg = await prisma.registration.findUnique({ where: { eventId_publicId: { eventId: event.id, publicId: id } }, include: { _count: { select: { attendance: true } } } });
   // Same message whether the ID or the email is wrong, so IDs can't be probed.
   if (!reg || reg.email !== email) return { error: t.err.notFound(id), values };
-  if (reg.status === 'CANCELLED') return { error: t.err.cancelled, values };
+  if (reg.status !== 'CONFIRMED') return { error: t.err.cancelled, values };
 
   const after = await prisma.afterEventPage.findUnique({ where: { eventId: event.id } });
   const attended = reg._count.attendance > 0;
@@ -245,4 +276,30 @@ export async function submitEvaluation(slug: string, token: string, _p: PublicFo
     create: { eventId: event.id, registrationId: reg.id, answers: { createMany: { data: answers } } },
   });
   redirect(`/e/${slug}/after/${token}`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Buyer cancels a ticket within the refund window                      */
+/* ------------------------------------------------------------------ */
+
+export async function cancelOwnTicket(slug: string, orderToken: string, registrationId: string): Promise<PublicFormState> {
+  const event = await getPublicEvent(slug);
+  const { t } = await siteTextFor(event);
+  if (!rateLimit(`refund:${await clientIp()}`, 10, 10 * 60_000)) return { error: t.err.busy };
+  const orderId = verify('order', orderToken);
+  const reg = orderId
+    ? await prisma.registration.findFirst({ where: { id: registrationId, orderId, eventId: event.id }, include: { _count: { select: { attendance: true } } } })
+    : null;
+  if (!reg || !orderId) return { error: t.err.linkExpired };
+  const block = await selfRefundBlock(event, reg);
+  if (block === 'closed') return { error: t.payment.cancelTooLate(event.refundHours ?? 0) };
+  if (block === 'used') return { error: t.payment.cancelUsed };
+  if (block) return { error: t.payment.refundPolicy(null) };
+  try {
+    const r = await refundTickets({ orderId, registrationIds: [reg.id], requestedBy: 'buyer', byLabel: reg.email });
+    return { info: t.payment.cancelDone(formatMoney(r.amount, event.currency)) };
+  } catch (e) {
+    if (e instanceof RefundError) return { error: t.payment.refundFailed };
+    throw e;
+  }
 }

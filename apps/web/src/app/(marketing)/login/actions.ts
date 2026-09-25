@@ -25,6 +25,10 @@ export async function login(_prev: LoginState, form: FormData): Promise<LoginSta
     return { error: 'Too many attempts. Wait ten minutes and try again.', email };
   }
 
+  // Organisations on single sign-on can require it for everyone at their domain.
+  const sso = await prisma.organisation.findFirst({ where: { ssoDomain: parsed.data.email.split('@')[1], ssoRequired: true, ssoDomainVerifiedAt: { not: null } }, select: { name: true } });
+  if (sso) return { error: `${sso.name} signs in with single sign-on. Use the Microsoft or Google button below.`, email };
+
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   const ok = await verifyPassword(parsed.data.password, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !ok) return { error: 'That email and password don’t match. Check both and try again.', email };

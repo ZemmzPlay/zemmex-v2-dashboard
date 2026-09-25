@@ -6,6 +6,8 @@ import { notFound, redirect } from 'next/navigation';
 import { prisma, type Role } from '@zemmz/db';
 
 export const SESSION_COOKIE = 'zemmz_session';
+/** Which of the user's organisations the dashboard is showing. */
+export const ORG_COOKIE = 'zemmz_org';
 const SESSION_DAYS = 14;
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -38,6 +40,8 @@ export interface CurrentUser {
   organisationId: string;
   organisationName: string;
   role: Role;
+  /** Every organisation this person belongs to, for the switcher. */
+  organisations: { id: string; name: string; role: Role }[];
 }
 
 /**
@@ -50,7 +54,7 @@ export const getSessionAccount = cache(async () => {
   if (!token) return null;
   const session = await prisma.authSession.findUnique({
     where: { tokenHash: sha256(token) },
-    include: { user: { include: { memberships: { include: { organisation: true }, orderBy: { createdAt: 'asc' }, take: 1 } } } },
+    include: { user: { include: { memberships: { include: { organisation: true }, orderBy: { createdAt: 'asc' } } } } },
   });
   if (!session || session.expiresAt < new Date()) return null;
   return session.user;
@@ -59,8 +63,9 @@ export const getSessionAccount = cache(async () => {
 /** The signed-in user and their organisation, or null. Cached per request. */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const user = await getSessionAccount();
-  const m = user?.memberships[0];
-  if (!user || !m || !user.emailVerifiedAt) return null;
+  if (!user || !user.memberships.length || !user.emailVerifiedAt) return null;
+  const chosen = (await cookies()).get(ORG_COOKIE)?.value;
+  const m = user.memberships.find((x) => x.organisationId === chosen) ?? user.memberships[0];
   return {
     id: user.id,
     name: user.name,
@@ -68,6 +73,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     organisationId: m.organisationId,
     organisationName: m.organisation.name,
     role: m.role,
+    organisations: user.memberships.map((x) => ({ id: x.organisationId, name: x.organisation.name, role: x.role })),
   };
 });
 
@@ -110,7 +116,12 @@ export const ROLE_LABEL: Record<Role, string> = {
 export const requireEvent = cache(async (slug: string) => {
   const user = await requireUser();
   const event = await prisma.event.findFirst({ where: { slug, organisationId: user.organisationId } });
-  if (!event) notFound();
+  if (!event) {
+    // A link to an event in another of their organisations: switch to it.
+    const other = await prisma.event.findFirst({ where: { slug, organisationId: { in: user.organisations.map((o) => o.id) } }, select: { organisationId: true } });
+    if (other) redirect(`/switch?org=${other.organisationId}&next=${encodeURIComponent(`/events/${slug}`)}`);
+    notFound();
+  }
   return { user, event };
 });
 

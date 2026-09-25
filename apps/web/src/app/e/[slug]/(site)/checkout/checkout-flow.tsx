@@ -13,7 +13,7 @@ interface Ticket { id: string; name: string; description: string; priceMinor: nu
  * not unmounted, so nothing typed is lost when going back.
  */
 export function CheckoutFlow({
-  slug, currency, tickets, initial, fields, quoteAction, orderAction, type, locale,
+  slug, currency, tickets, initial, fields, quoteAction, orderAction, type, locale, provider, testMode, refundHours, notice, initialValues,
 }: {
   slug: string;
   currency: string;
@@ -24,6 +24,14 @@ export function CheckoutFlow({
   orderAction: (p: PublicFormState, fd: FormData) => Promise<PublicFormState>;
   type: string;
   locale: Locale;
+  /** The payment provider's name, for "you'll pay on X's secure page". */
+  provider: string;
+  testMode: boolean;
+  refundHours: number | null;
+  /** Why the buyer is back here: a cancelled or failed payment. */
+  notice?: string;
+  /** Details from a payment that didn't go through, so nothing is typed twice. */
+  initialValues?: Record<string, string>;
 }) {
   const TY = eventType(type);
   const tx = siteText(TY, locale);
@@ -34,7 +42,7 @@ export function CheckoutFlow({
   const [appliedPromo, setAppliedPromo] = useState('');
   const [q, setQ] = useState<CheckoutQuote | null>(null);
   const [quoting, startQuote] = useTransition();
-  const [state, formAction, placing] = useActionState(orderAction, {});
+  const [state, formAction, placing] = useActionState(orderAction, { values: initialValues });
   const count = Object.values(qty).reduce((a, b) => a + b, 0);
   const free = q ? q.totalMinor === 0 : false;
 
@@ -73,7 +81,7 @@ export function CheckoutFlow({
       <ol className="steps3" aria-label="Checkout steps">
         {steps.map((s, n) => <li key={s} aria-current={n === step ? 'step' : undefined} className={n < step ? 'done' : ''}>{n + 1}. {s}</li>)}
       </ol>
-      {state.error && <div className="note err" role="alert">{state.error}</div>}
+      {state.error ? <div className="note err" role="alert">{state.error}</div> : notice && <div className="note warn" role="status">{notice}</div>}
 
       {/* 1. Tickets */}
       <fieldset hidden={step !== 0} className="m-0 border-0 p-0">
@@ -145,14 +153,9 @@ export function CheckoutFlow({
           <button className="btn accent block mt-4" name="pay" value="approve" disabled={placing}>{placing ? tx.confirming : tx.confirm}</button>
         ) : (
           <>
-            <div className="note warn mt-4">
-              <b>{tx.testPayments}</b> {tx.testPaymentsBody}
-            </div>
-            <div className="grid gap-2.5 sm:grid-cols-2">
-              <button className="btn accent" name="pay" value="approve" disabled={placing || !q}>{placing ? tx.paying : tx.pay(q ? money(q.totalMinor) : '')}</button>
-              <button className="btn line" name="pay" value="applepay" disabled={placing || !q} style={{ background: '#000', color: '#fff', borderColor: '#000' }}>{tx.applePay}</button>
-            </div>
-            <button className="mt-3 border-0 bg-transparent p-0 text-[13px] font-semibold text-[var(--muted)] underline" name="pay" value="decline" disabled={placing}>{tx.tryDecline}</button>
+            <p className="mt-4 text-[13.5px] text-[var(--ink-2)]">{testMode ? tx.payment.testMode : tx.payment.securePage(provider)}</p>
+            <button className="btn accent block" name="pay" value="go" disabled={placing || !q}>{placing ? tx.payment.redirecting : tx.payment.toPayment(q ? money(q.totalMinor) : '')}</button>
+            <p className="fine">{tx.payment.refundPolicy(refundHours)}{q?.feePassedOn && q.feeMinor > 0 ? ` ${tx.payment.feeNotRefundable}` : ''}</p>
           </>
         )}
         <div className="mt-4"><button type="button" className="btn line sm" onClick={() => setStep(1)}>{tx.back}</button></div>
@@ -170,7 +173,8 @@ function Summary({ q, money, busy, tx }: { q: CheckoutQuote | null; money: (n: n
     <div className="mt-4 rounded-xl border border-[var(--line)] p-4" aria-busy={busy}>
       {q.lines.map((l) => <div className="sumrow" key={l.ticketTypeId}><span>{l.qty} × {l.name}</span><span>{money(l.unitMinor * l.qty)}</span></div>)}
       {q.discountMinor > 0 && <div className="sumrow"><span>{tx.discount(q.promo?.code ?? '')}</span><span>−{money(q.discountMinor)}</span></div>}
-      {q.feeMinor > 0 && <div className="sumrow"><span>{tx.bookingFee}</span><span>{money(q.feeMinor)}</span></div>}
+      {q.vatMinor > 0 && <div className="sumrow"><span>{tx.payment.vat(`${q.vatBps / 100}%`)}</span><span>{money(q.vatMinor)}</span></div>}
+      {q.feePassedOn && q.feeMinor > 0 && <div className="sumrow"><span>{tx.bookingFee}</span><span>{money(q.feeMinor)}</span></div>}
       <div className="sumrow tot"><span>{tx.total}</span><span>{money(q.totalMinor)}</span></div>
     </div>
   );

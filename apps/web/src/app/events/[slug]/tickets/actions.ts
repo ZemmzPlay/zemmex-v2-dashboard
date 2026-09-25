@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@zemmz/db';
-import { CURRENCIES, isCurrency } from '@zemmz/shared';
+import { CURRENCIES, formatMoney, isCurrency } from '@zemmz/shared';
+import { refundTickets, RefundError } from '@/lib/orders';
 import { can, requirePermission } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { done, failed, type ActionState } from '@/lib/action-state';
@@ -101,4 +102,43 @@ export async function setPromoActive(slug: string, id: string, active: boolean) 
   const p = await prisma.promoCode.update({ where: { id, eventId: event.id }, data: { active } });
   await logActivity(user, event.id, `turned ${active ? 'on' : 'off'} the promo code ${p.code}`);
   refresh(slug);
+}
+
+/* ------------------------------------------------------------------ */
+/* Payments: VAT, who pays the fee, refunds                             */
+/* ------------------------------------------------------------------ */
+
+export async function savePaymentSettings(slug: string, _p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user, event } = await requirePermission(slug, can.manageEvent);
+  const vatOn = fd.get('vatOn') === 'on';
+  const vat = Number(String(fd.get('vatPercent') ?? '').trim() || '0');
+  if (vatOn && (!Number.isFinite(vat) || vat <= 0 || vat > 30)) return failed('Enter the VAT rate as a percentage between 0 and 30, for example 5');
+  const vatBps = vatOn ? Math.round(vat * 100) : 0;
+  const refundsOn = fd.get('refundsOn') === 'on';
+  const hours = Number(String(fd.get('refundHours') ?? '').trim());
+  if (refundsOn && (!Number.isInteger(hours) || hours < 0 || hours > 24 * 90)) return failed('Enter the refund cut-off as a whole number of hours, for example 48');
+  const feePassedOn = fd.get('feePassedOn') === 'on';
+  if (vatBps > 0) {
+    const org = await prisma.organisation.findUniqueOrThrow({ where: { id: event.organisationId }, select: { vatNumber: true } });
+    if (!org.vatNumber) return failed('Add your VAT number under Organisation, Details first: tax invoices need it');
+  }
+  await prisma.event.update({ where: { id: event.id }, data: { vatBps, feePassedOn, refundHours: refundsOn ? hours : null } });
+  await logActivity(user, event.id, `changed payment settings: VAT ${vatBps / 100}%, fee ${feePassedOn ? 'passed on' : 'absorbed'}, refunds ${refundsOn ? `until ${hours}h before` : 'off'}`);
+  refresh(slug);
+  return done('Payment settings saved. They apply to orders from now on.');
+}
+
+export async function refundOrder(slug: string, orderId: string, registrationIds: string[] | null, _p: ActionState, _fd: FormData): Promise<ActionState> {
+  const { user, event } = await requirePermission(slug, can.manageEvent);
+  const order = await prisma.order.findFirst({ where: { id: orderId, eventId: event.id } });
+  if (!order) return failed('That order no longer exists');
+  try {
+    const r = await refundTickets({ orderId, registrationIds: registrationIds ?? undefined, requestedBy: 'organiser', byLabel: user.name });
+    await logActivity(user, event.id, `refunded ${formatMoney(r.amount, order.currency)} to ${order.buyerName} (${r.count} ${r.count === 1 ? 'ticket' : 'tickets'})`);
+    refresh(slug);
+    return done(`Refunded ${formatMoney(r.amount, order.currency)} and cancelled ${r.count} ${r.count === 1 ? 'ticket' : 'tickets'}. The buyer has been emailed.`);
+  } catch (e) {
+    if (e instanceof RefundError) return failed(e.message);
+    throw e;
+  }
 }

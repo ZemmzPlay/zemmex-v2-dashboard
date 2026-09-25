@@ -1,5 +1,5 @@
 import 'server-only';
-import { prisma, Prisma, type Event, type FormField, type RegistrationSource } from '@zemmz/db';
+import { prisma, Prisma, type Event, type FormField, type RegistrationSource, type RegistrationStatus } from '@zemmz/db';
 import { renderConfirmation } from './email';
 import { TRIAL_ATTENDEES } from './plans';
 
@@ -16,6 +16,8 @@ export interface PersonInput {
   consentMarketing?: boolean;
   /** Website language they used: 'en' or 'ar'. */
   locale?: string;
+  /** What this ticket cost the buyer, VAT included, booking fee excluded. */
+  paidMinor?: number;
 }
 
 export class RegistrationError extends Error {
@@ -80,6 +82,8 @@ export async function createRegistrations(opts: {
   orderId?: string | null;
   /** Organisers can add people to sold-out or closed ticket types. */
   bypassSales?: boolean;
+  /** Hold the seats while the buyer pays: PENDING, and no email until confirmed. */
+  pending?: boolean;
   tx?: Prisma.TransactionClient;
 }) {
   const run = async (tx: Prisma.TransactionClient) => {
@@ -95,7 +99,7 @@ export async function createRegistrations(opts: {
       if (org.planStatus === 'SUSPENDED') {
         throw new RegistrationError(organiser ? 'This account is paused. Contact zemmz to reactivate it.' : opts.people[0]?.locale === 'ar' ? 'التسجيل في هذه الفعالية متوقف مؤقتًا. تواصل مع المنظم.' : 'Registration for this event is paused. Contact the organiser.');
       }
-      const used = await tx.registration.count({ where: { status: 'CONFIRMED', event: { organisationId: opts.event.organisationId } } });
+      const used = await tx.registration.count({ where: { status: { in: HOLDING }, event: { organisationId: opts.event.organisationId } } });
       if (used + n > TRIAL_ATTENDEES) {
         throw new RegistrationError(organiser
           ? `Your free trial covers ${TRIAL_ATTENDEES} attendees and you have ${used}. Choose a plan under Organisation, Plan to add more.`
@@ -113,7 +117,7 @@ export async function createRegistrations(opts: {
       if (opts.bypassSales) continue;
       if (!t.onSale) throw new RegistrationError(ar ? `تذاكر ${t.name} غير معروضة للبيع.` : `${t.name} tickets are not on sale.`, 'ticketTypeId');
       if (t.capacity != null) {
-        const sold = await tx.registration.count({ where: { ticketTypeId: id, status: 'CONFIRMED' } });
+        const sold = await tx.registration.count({ where: { ticketTypeId: id, status: { in: HOLDING } } });
         if (sold + count > t.capacity) {
           const left = Math.max(0, t.capacity - sold);
           throw new RegistrationError(
@@ -133,9 +137,10 @@ export async function createRegistrations(opts: {
           eventId: opts.event.id, publicId: first + i, title: p.title, firstName: p.firstName, lastName: p.lastName,
           email: p.email.toLowerCase(), mobile: p.mobile, field1: p.field1, field2: p.field2, answers: p.answers,
           ticketTypeId: p.ticketTypeId, orderId: opts.orderId ?? null, source: opts.source, consentMarketing: !!p.consentMarketing, locale: p.locale === 'ar' ? 'ar' : 'en',
+          status: opts.pending ? 'PENDING' : 'CONFIRMED', paidMinor: p.paidMinor ?? 0,
         },
       });
-      if (template) {
+      if (template && !opts.pending) {
         const ticket = types.find((t) => t.id === p.ticketTypeId) ?? null;
         const m = renderConfirmation(opts.event, template, reg, ticket);
         await tx.outboundMessage.create({
@@ -147,6 +152,22 @@ export async function createRegistrations(opts: {
     return created;
   };
   return opts.tx ? run(opts.tx) : prisma.$transaction(run);
+}
+
+/** Seats taken: confirmed, plus held while someone pays. */
+export const HOLDING: RegistrationStatus[] = ['CONFIRMED', 'PENDING'];
+
+/** Queues confirmation emails for registrations that were held while paying. */
+export async function queueConfirmations(tx: Prisma.TransactionClient, event: Event, registrationIds: string[]) {
+  const template = await tx.messageTemplate.findUnique({ where: { eventId_kind: { eventId: event.id, kind: 'CONFIRMATION' } } });
+  if (!template) return;
+  const regs = await tx.registration.findMany({ where: { id: { in: registrationIds } }, include: { ticketType: true } });
+  for (const reg of regs) {
+    const m = renderConfirmation(event, template, reg, reg.ticketType);
+    await tx.outboundMessage.create({
+      data: { eventId: event.id, registrationId: reg.id, channel: 'EMAIL', toAddress: reg.email, toName: `${reg.firstName} ${reg.lastName}`, subject: m.subject, html: m.html, text: m.text },
+    });
+  }
 }
 
 /** Queues the confirmation email again, e.g. from the dashboard. */

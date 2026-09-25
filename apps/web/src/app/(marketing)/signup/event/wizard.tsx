@@ -191,7 +191,7 @@ export function EventWizard({ country, plan }: { country: string; plan: Onboardi
         </div>
       ))}
       <button type="button" className="btn ghost sm" onClick={() => set('tickets', [...d.tickets, { name: '', price: 0 }])} disabled={d.tickets.length >= 12}>+ Add {d.paid === 'free' ? 'type' : 'ticket type'}</button>
-      <p className="hintnote">Prices in {d.currency}. {d.paid === 'free' ? 'Free registration has no per-attendee fee.' : 'Paid tickets add 2.5% plus a small fixed fee per ticket, capped, plus card fees. Ticket sales open once a payment provider is connected.'}</p>
+      <p className="hintnote">Prices in {d.currency}. {d.paid === 'free' ? 'Free registration has no per-attendee fee.' : 'Paid tickets add 2.5% plus a small fixed fee per ticket, capped. Buyers pay by card on a secure page and we pay you out weekly, less card processing at cost.'}</p>
     </>
   );
 

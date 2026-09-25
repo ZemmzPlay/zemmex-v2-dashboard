@@ -210,7 +210,7 @@ async function seedEvent(e: SeedEvent, orgId: string) {
 
     regs.push({
       id, eventId: event.id, publicId, title: t, firstName: f, lastName: l, email, mobile, field1, field2,
-      ticketTypeId: ticket?.id ?? null, orderId, source: 'WEBSITE', createdAt,
+      ticketTypeId: ticket?.id ?? null, orderId, paidMinor: orderId ? ticket!.priceMinor : 0, source: 'WEBSITE', createdAt,
       badgePrintedAt: printed ? new Date(Math.min(createdAt.getTime() + DAY, nowMin)) : null,
     });
   }
@@ -270,7 +270,7 @@ async function main() {
   await prisma.organisation.deleteMany();
   await prisma.user.deleteMany();
 
-  const org = await prisma.organisation.create({ data: { name: 'Demo organisation', slug: 'demo', kind: 'Event company or agency', country: 'United Arab Emirates', plan: 'SEASON', planStatus: 'ACTIVE', activatedAt: new Date() } });
+  const org = await prisma.organisation.create({ data: { name: 'Demo organisation', slug: 'demo', kind: 'Event company or agency', country: 'United Arab Emirates', plan: 'SEASON', planStatus: 'ACTIVE', activatedAt: new Date(), planEndsAt: new Date(Date.now() + 365 * 86_400_000) } });
 
   const password = process.env.SEED_PASSWORD ?? 'zemmz-demo-2026';
   const hash = await hashPassword(password);

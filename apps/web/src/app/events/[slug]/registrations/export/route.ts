@@ -20,7 +20,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   const lines = [header.map(cell).join(',')];
   for (const r of rows) {
     lines.push(
-      [r.publicId, r.title, r.firstName, r.lastName, r.email, r.mobile, r.field1, r.field2, r.ticketType?.name ?? '', r.status === 'CANCELLED' ? 'Cancelled' : 'Confirmed', new Set(r.attendance.map((a) => a.sessionId)).size, r.createdAt.toISOString()]
+      [r.publicId, r.title, r.firstName, r.lastName, r.email, r.mobile, r.field1, r.field2, r.ticketType?.name ?? '', r.status === 'CONFIRMED' ? 'Confirmed' : r.status === 'PENDING' ? 'Awaiting payment' : r.refundedAt ? 'Refunded' : 'Cancelled', new Set(r.attendance.map((a) => a.sessionId)).size, r.createdAt.toISOString()]
         .map(cell)
         .join(','),
     );

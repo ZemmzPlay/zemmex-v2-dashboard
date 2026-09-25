@@ -25,7 +25,7 @@ export default async function TicketPage({ params, searchParams }: { params: Pro
 
   return (
     <div className="mx-auto max-w-[520px] text-center">
-      {reg.status === 'CANCELLED' ? (
+      {reg.status !== 'CONFIRMED' ? (
         <div className="note err">{t.cancelledTicket}</div>
       ) : (
         <>

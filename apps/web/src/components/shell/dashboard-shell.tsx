@@ -6,7 +6,9 @@ import { eventType, formatDateRange } from '@zemmz/shared';
 import { prisma } from '@zemmz/db';
 import { can, isPlatformAdmin, ROLE_LABEL, type CurrentUser } from '@/lib/auth';
 import { kfmt } from '@/lib/format';
-import { TRIAL_ATTENDEES } from '@/lib/plans';
+import { PLAN_GRACE_DAYS, TRIAL_ATTENDEES } from '@/lib/plans';
+import { daysLeft } from '@/lib/billing';
+import { OrgSwitcher } from './org-switcher';
 import { Avatar } from '../avatar';
 import { Icon } from '../icon';
 import { DrawerToggle, Sidebar, type NavItem, type SwitcherEvent } from './sidebar';
@@ -47,8 +49,9 @@ export function toSwitcher(e: Event): SwitcherEvent {
 export async function DashboardShell({ user, event, children }: { user: CurrentUser; event?: Event; children: React.ReactNode }) {
   const [events, org] = await Promise.all([
     prisma.event.findMany({ where: { organisationId: user.organisationId, archivedAt: null }, orderBy: { startsOn: 'desc' } }),
-    prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId }, select: { planStatus: true } }),
+    prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId }, select: { planStatus: true, planEndsAt: true } }),
   ]);
+  const left = daysLeft(org);
   const trialUsed = org.planStatus === 'TRIAL' ? await prisma.registration.count({ where: { status: 'CONFIRMED', event: { organisationId: user.organisationId } } }) : 0;
   let groups: [string, NavItem[]][];
   if (event) {
@@ -82,6 +85,7 @@ export async function DashboardShell({ user, event, children }: { user: CurrentU
                 <Icon name="ext" size={15} /> View event website
               </Link>
             )}
+            {(user.organisations.length > 1 || can.manageEvent(user.role)) && <div className="max-sm:hidden"><OrgSwitcher user={user} /></div>}
             <div className="flex items-center gap-2.5">
               <Avatar name={user.name} size={36} />
               <Link href="/account" className="text-ink no-underline max-sm:hidden" title="Your account">
@@ -107,7 +111,22 @@ export async function DashboardShell({ user, event, children }: { user: CurrentU
               <Link href="/organisation?tab=plan" className="btn secondary sm">{trialUsed >= TRIAL_ATTENDEES ? 'Activate your plan' : 'Choose a plan'}</Link>
             </div>
           )}
-          {org.planStatus === 'SUSPENDED' && <div className="notice err no-print mb-5" role="alert">This account is paused, so registrations are closed on your event websites. Email hello@zemmz.com to reactivate it.</div>}
+          {org.planStatus === 'SUSPENDED' && can.seeDashboard(user.role) && (
+            <div className="notice err no-print mb-5 items-center" role="alert">
+              <span className="flex-1">This account is paused, so registrations are closed on your event websites.</span>
+              <Link href="/organisation?tab=plan" className="btn secondary sm">Renew your plan</Link>
+            </div>
+          )}
+          {left != null && left <= 14 && can.seeDashboard(user.role) && (
+            <div className={`notice ${left < 0 ? 'err' : 'warn'} no-print mb-5 items-center`} role="status">
+              <span className="flex-1">
+                {left < 0
+                  ? `Your plan ended ${-left} ${left === -1 ? 'day' : 'days'} ago. Registrations close ${PLAN_GRACE_DAYS + left <= 0 ? 'today' : `in ${PLAN_GRACE_DAYS + left} ${PLAN_GRACE_DAYS + left === 1 ? 'day' : 'days'}`} unless it’s renewed.`
+                  : `Your plan ends in ${left} ${left === 1 ? 'day' : 'days'}.`}
+              </span>
+              <Link href="/organisation?tab=plan" className="btn secondary sm">Renew</Link>
+            </div>
+          )}
           {children}
         </main>
         <Suspense fallback={null}><TourRunner /></Suspense>

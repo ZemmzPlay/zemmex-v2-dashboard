@@ -2,13 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@zemmz/db';
-import { formatShortDateTime } from '@zemmz/shared';
+import { formatMoney, formatShortDateTime, fromMinor, isCurrency } from '@zemmz/shared';
 import { isPlatformAdmin, requireUser } from '@/lib/auth';
 import { fmt } from '@/lib/format';
 import { PLANS, planDef, TRIAL_ATTENDEES } from '@/lib/plans';
 import { DashboardShell } from '@/components/shell/dashboard-shell';
 import { FormDialog } from '@/components/form-dialog';
-import { markHandled, setPlan } from './actions';
+import { markHandled, recordPayout, setPlan } from './actions';
+import { balances, formatIban, PAYOUT_DELAY_DAYS } from '@/lib/payouts';
 
 export const metadata: Metadata = { title: 'zemmz admin', robots: { index: false } };
 
@@ -17,7 +18,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const user = await requireUser();
   if (!isPlatformAdmin(user.email)) notFound();
   const { tab = 'orgs' } = await searchParams;
-  const tabs: [string, string][] = [['orgs', 'Organisations'], ['requests', 'Requests']];
+  const tabs: [string, string][] = [['orgs', 'Organisations'], ['payouts', 'Payouts'], ['requests', 'Requests']];
   const open = await prisma.contactRequest.count({ where: { handledAt: null } });
 
   return (
@@ -26,7 +27,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <nav className="tabs" aria-label="Admin">
         {tabs.map(([k, l]) => <Link key={k} href={`/admin?tab=${k}`} aria-current={tab === k ? 'page' : undefined}>{l}{k === 'requests' && open ? ` · ${open}` : ''}</Link>)}
       </nav>
-      {tab === 'orgs' ? <Orgs /> : <Requests />}
+      {tab === 'orgs' ? <Orgs /> : tab === 'payouts' ? <Payouts /> : <Requests />}
     </DashboardShell>
   );
 }
@@ -53,11 +54,15 @@ async function Orgs() {
                 <td><span className={`badge ${o.planStatus === 'ACTIVE' ? 'b-ok' : o.planStatus === 'TRIAL' ? 'b-info' : 'b-danger'}`}>{o.planStatus === 'TRIAL' ? 'Trial' : o.planStatus === 'ACTIVE' ? 'Active' : 'Paused'}</span></td>
                 <td className="num">{fmt(n)}{o.planStatus === 'TRIAL' && <span className="muted"> / {TRIAL_ATTENDEES}</span>}</td>
                 <td className="num">{o._count.events}</td>
-                <td className="muted whitespace-nowrap">{formatShortDateTime(o.createdAt, 'UTC')}</td>
+                <td className="muted whitespace-nowrap">{formatShortDateTime(o.createdAt, 'UTC')}{o.planEndsAt && <div>paid until {formatShortDateTime(o.planEndsAt, 'UTC').split(',')[0]}</div>}</td>
                 <td className="text-right">
                   <FormDialog action={setPlan.bind(null, o.id)} label="Change" className="btn secondary sm" title={`Plan for ${o.name}`} submitLabel="Save">
                     <div className="fld"><label htmlFor={`p-${o.id}`}>Plan</label><select id={`p-${o.id}`} name="plan" className="sel" defaultValue={o.plan}>{PLANS.map((p) => <option key={p.key} value={p.key}>{p.name} · {p.price} {p.per}</option>)}</select></div>
                     <div className="fld !mb-0"><label htmlFor={`s-${o.id}`}>Status</label><select id={`s-${o.id}`} name="planStatus" className="sel" defaultValue={o.planStatus}><option value="TRIAL">Free trial ({TRIAL_ATTENDEES} attendees)</option><option value="ACTIVE">Active: invoice paid</option><option value="SUSPENDED">Paused: registrations closed</option></select><span className="help">Activating emails the owners.</span></div>
+                    <div className="mt-4 grid gap-x-4 sm:grid-cols-2">
+                      <div className="fld !mb-0"><label htmlFor={`e-${o.id}`}>Paid until<span className="opt">optional</span></label><input id={`e-${o.id}`} name="planEndsAt" type="date" className="inp" defaultValue={o.planEndsAt?.toISOString().slice(0, 10)} /><span className="help">Empty: a year from activation.</span></div>
+                      <div className="fld !mb-0"><label htmlFor={`c-${o.id}`}>Events paid for</label><input id={`c-${o.id}`} name="eventCredits" type="number" min={0} className="inp" defaultValue={o.eventCredits} /><span className="help">Single-event plan only.</span></div>
+                    </div>
                   </FormDialog>
                 </td>
               </tr>
@@ -90,5 +95,41 @@ async function Requests() {
         </tbody>
       </table>
     </div>
+  );
+}
+
+/** Every organisation zemmz owes ticket money to, with their bank details. */
+async function Payouts() {
+  const orgs = await prisma.organisation.findMany({ where: { events: { some: { orders: { some: { provider: { not: 'free' }, status: { in: ['PAID', 'PARTIALLY_REFUNDED', 'REFUNDED'] } } } } } }, orderBy: { name: 'asc' } });
+  const rows = (await Promise.all(orgs.map(async (o) => (await balances(o.id)).map((b) => ({ o, b }))))).flat().filter((r) => r.b.balanceMinor !== 0 || r.b.paidOutMinor > 0);
+  if (!rows.length) return <div className="card p-8 text-center text-muted">No ticket money is owed to anyone yet.</div>;
+  return (
+    <>
+      <p className="mt-0 text-[13.5px] text-muted">Pay by bank transfer each week, then record it here: the organiser is emailed and sees it under Organisation, Payouts. “Ready” is money from orders at least {PAYOUT_DELAY_DAYS} days old.</p>
+      <div className="tbl-wrap">
+        <table className="tbl">
+          <thead><tr><th>Organisation</th><th>Bank account</th><th className="num">Owed</th><th className="num">Ready</th><th className="num">Paid so far</th><th className="text-right">Action</th></tr></thead>
+          <tbody>
+            {rows.map(({ o, b }) => (
+              <tr key={`${o.id}-${b.currency}`}>
+                <td><b className="font-semibold">{o.name}</b>{o.legalName && <div className="muted">{o.legalName}</div>}</td>
+                <td>{o.payoutIban ? <><span className="font-mono text-[12.5px]">{formatIban(o.payoutIban)}</span><div className="muted">{o.payoutAccountName} · {o.payoutBankName}{o.payoutSwift ? ` · ${o.payoutSwift}` : ''}</div></> : <span className="badge b-warn">Not added</span>}</td>
+                <td className="num">{formatMoney(b.balanceMinor, b.currency)}</td>
+                <td className="num">{formatMoney(b.availableMinor, b.currency)}</td>
+                <td className="num">{formatMoney(b.paidOutMinor, b.currency)}</td>
+                <td className="text-right">
+                  {o.payoutIban && b.balanceMinor > 0 && (
+                    <FormDialog action={recordPayout.bind(null, o.id, b.currency)} label="Record payout" className="btn secondary sm" title={`Payout to ${o.name}`} submitLabel="Record payout">
+                      <div className="fld"><label htmlFor={`a-${o.id}-${b.currency}`}>Amount transferred ({b.currency})</label><input id={`a-${o.id}-${b.currency}`} name="amount" type="number" step="any" min={0} className="inp" defaultValue={isCurrency(b.currency) ? fromMinor(b.availableMinor || b.balanceMinor, b.currency) : ''} /></div>
+                      <div className="fld !mb-0"><label htmlFor={`r-${o.id}-${b.currency}`}>Transfer reference</label><input id={`r-${o.id}-${b.currency}`} name="reference" className="inp" maxLength={80} /><span className="help">The owners are emailed that it’s on its way.</span></div>
+                    </FormDialog>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

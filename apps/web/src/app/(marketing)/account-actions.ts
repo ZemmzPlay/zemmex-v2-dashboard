@@ -1,10 +1,10 @@
 'use server';
 
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { hashPassword, prisma, verifyPassword } from '@zemmz/db';
 import { emailSchema } from '@zemmz/shared';
-import { createSession, getCurrentUser } from '@/lib/auth';
+import { createSession, getCurrentUser, ORG_COOKIE } from '@/lib/auth';
 import { findInvitation, findReset, passwordProblem, startPasswordReset } from '@/lib/accounts';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -45,7 +45,7 @@ export async function resetPassword(token: string, _p: AuthFormState, fd: FormDa
 
 /**
  * Accepting an invitation: a new person sets a name and password; someone
- * with an account signs in with it. An account belongs to one organisation.
+ * with an account signs in with it, and gets this organisation next to the ones they have.
  */
 export async function acceptInvitation(token: string, _p: AuthFormState, fd: FormData): Promise<AuthFormState> {
   const inv = await findInvitation(token);
@@ -57,9 +57,6 @@ export async function acceptInvitation(token: string, _p: AuthFormState, fd: For
 
   let userId: string;
   if (existing) {
-    if (existing.memberships.some((m) => m.organisationId !== inv.organisationId)) {
-      return { error: `${inv.email} already belongs to another organisation. For now an account can be in one organisation; ask ${inv.invitedByLabel || 'the person who invited you'} to invite a different email.` };
-    }
     if (current?.id !== existing.id) {
       const ok = await verifyPassword(String(fd.get('password') ?? ''), existing.passwordHash);
       if (!ok) return { error: 'That password doesn’t match this account. Use Forgot password on the sign-in page if you need a new one.', values };
@@ -85,5 +82,6 @@ export async function acceptInvitation(token: string, _p: AuthFormState, fd: For
     prisma.activityLog.create({ data: { organisationId: inv.organisationId, actorId: userId, actorLabel: existing?.name ?? values.name.trim(), action: `joined the organisation as ${inv.role === 'CHECKIN' ? 'check-in staff' : inv.role.toLowerCase()}` } }),
   ]);
   if (current?.id !== userId) await createSession(userId);
+  (await cookies()).set(ORG_COOKIE, inv.organisationId, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 365 });
   redirect('/events');
 }

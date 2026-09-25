@@ -7,6 +7,7 @@ import { can, requirePermission } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { renderBroadcast, renderConfirmation } from '@/lib/email';
 import { AUDIENCES, audienceWhere } from '@/lib/audiences';
+import { smsAvailability } from '@/lib/plans';
 
 export interface MsgState {
   ok?: string;
@@ -32,6 +33,10 @@ export async function sendBroadcast(slug: string, _p: MsgState, fd: FormData): P
   const parsed = broadcastSchema.safeParse({ audience: fd.get('audience'), channel: fd.get('channel'), subject: fd.get('subject'), bodyHtml: fd.get('bodyHtml') });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { audience, channel, subject, bodyHtml } = parsed.data;
+  if (channel === 'sms') {
+    const sms = smsAvailability(await prisma.organisation.findUniqueOrThrow({ where: { id: event.organisationId }, select: { plan: true, planStatus: true } }));
+    if (!sms.ok) return { error: sms.reason };
+  }
 
   const recipients = await prisma.registration.findMany({ where: audienceWhere(event.id, audience), orderBy: { publicId: 'asc' } });
   const usable = recipients.filter((r) => (channel === 'sms' ? !!r.mobile : !!r.email));

@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { hashPassword, prisma } from '@zemmz/db';
 import { emailSchema } from '@zemmz/shared';
 import { createSession, getSessionAccount } from '@/lib/auth';
-import { CODE_MINUTES, passwordProblem, platformEmail, queuePlatformEmail, sha256, sixDigits } from '@/lib/accounts';
+import { passwordProblem, sendEmailCode, sha256 } from '@/lib/accounts';
 import { rateLimit } from '@/lib/rate-limit';
 
 export interface SignupState {
@@ -23,17 +23,6 @@ const withPlan = (fd: FormData) => {
 };
 
 const ip = async () => (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
-
-async function sendCode(user: { id: string; email: string; name: string }) {
-  const code = sixDigits();
-  await prisma.emailCode.create({ data: { userId: user.id, codeHash: sha256(`${user.id}:${code}`), expiresAt: new Date(Date.now() + CODE_MINUTES * 60_000) } });
-  await queuePlatformEmail(user, `${code} is your zemmz Live code`, platformEmail({
-    heading: 'Confirm your email',
-    paragraphs: [`Hi ${user.name.split(' ')[0]},`, `Enter this code to finish creating your zemmz Live account. It works for ${CODE_MINUTES} minutes.`],
-    code,
-    footer: 'If you didn’t try to create an account, ignore this email.',
-  }));
-}
 
 /** Step 1: the account. The email must be proved before anything else is created. */
 export async function createAccount(_p: SignupState, fd: FormData): Promise<SignupState> {
@@ -52,7 +41,7 @@ export async function createAccount(_p: SignupState, fd: FormData): Promise<Sign
   const existing = await prisma.user.findUnique({ where: { email: email.data! } });
   if (existing) return { error: 'There’s already an account with this email. Sign in instead, or reset the password if you’ve forgotten it.', values };
   const user = await prisma.user.create({ data: { name: name.slice(0, 120), email: email.data!, passwordHash: await hashPassword(pw) } });
-  await sendCode(user);
+  await sendEmailCode(user);
   await createSession(user.id);
   redirect(withPlan(fd));
 }
@@ -80,7 +69,7 @@ export async function resendCode(): Promise<SignupState> {
   const user = await getSessionAccount();
   if (!user || user.emailVerifiedAt) return {};
   if (!rateLimit(`code:${user.id}`, 4, 30 * 60_000)) return { error: 'We’ve sent several codes. Wait a few minutes, and check your spam folder.' };
-  await sendCode(user);
+  await sendEmailCode(user);
   return { ok: `New code sent to ${user.email}.` };
 }
 

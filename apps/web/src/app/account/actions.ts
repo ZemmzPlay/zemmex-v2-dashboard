@@ -19,7 +19,8 @@ export async function saveProfile(_p: ActionState, fd: FormData): Promise<Action
 export async function changePassword(_p: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireUser();
   const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
-  if (!(await verifyPassword(String(fd.get('current') ?? ''), row.passwordHash))) return failed('Your current password isn’t right.');
+  // People who joined with Microsoft or Google have no password until they set one.
+  if (row.passwordHash && !(await verifyPassword(String(fd.get('current') ?? ''), row.passwordHash))) return failed('Your current password isn’t right.');
   const pw = String(fd.get('password') ?? '');
   const bad = passwordProblem(pw);
   if (bad) return failed(bad);
@@ -36,5 +37,15 @@ export async function signOutEverywhereElse() {
   const user = await requireUser();
   const token = (await cookies()).get(SESSION_COOKIE)?.value ?? '';
   await prisma.authSession.deleteMany({ where: { userId: user.id, NOT: { tokenHash: sha256(token) } } });
+  revalidatePath('/account');
+}
+
+export async function disconnectIdentity(fd: FormData) {
+  const user = await requireUser();
+  const row = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, include: { identities: true } });
+  const id = String(fd.get('id') ?? '');
+  // Never leave someone with no way to sign in.
+  if (!row.passwordHash && row.identities.length <= 1) return;
+  await prisma.userIdentity.deleteMany({ where: { id, userId: user.id } });
   revalidatePath('/account');
 }

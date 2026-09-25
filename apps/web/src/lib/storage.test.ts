@@ -17,3 +17,13 @@ describe('sniff', () => {
     expect(sniff(new Uint8Array(4))).toBeNull();
   });
 });
+
+describe('video sniffing', () => {
+  const bytes = (...xs: (number | string)[]) => new Uint8Array(xs.flatMap((x) => (typeof x === 'string' ? [...x].map((c) => c.charCodeAt(0)) : [x])));
+  it('recognises MP4, QuickTime and WebM by their bytes', () => {
+    expect(sniff(bytes(0, 0, 0, 0x18, 'ftypisom'))?.type).toBe('video/mp4');
+    expect(sniff(bytes(0, 0, 0, 0x14, 'ftypqt  '))?.type).toBe('video/quicktime');
+    expect(sniff(bytes(0x1a, 0x45, 0xdf, 0xa3, 0, 0))?.type).toBe('video/webm');
+    expect(sniff(bytes('<html>video</html>'))).toBeNull();
+  });
+});

@@ -24,7 +24,7 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
   if (!reg) notFound();
   if (homeState(event) !== 'after') redirect(`/e/${slug}`);
 
-  const sessions = await prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }], include: { slides: { select: { key: true } } } });
+  const sessions = await prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }], include: { slides: { select: { key: true } }, recording: { select: { key: true } } } });
   const attended = sessions.filter((s) => reg.attendance.some((a) => a.sessionId === s.id));
 
   /* ---------- after-event page (summit, concert, gala) ---------- */
@@ -42,9 +42,15 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
           <section className="mb-12" aria-labelledby="rec-h">
             <h2 id="rec-h" className="mb-4 text-[22px] font-bold" style={{ fontFamily: 'var(--serif)' }}>{t.recordingsAndSlides(page.showRecordings, page.showSlides)}</h2>
             <div className="tiles">
-              {sessions.filter((s) => s.kind === 'SESSION' && ((page.showRecordings && s.recordingUrl) || (page.showSlides && s.slides))).map((s) => (
+              {sessions.filter((s) => s.kind === 'SESSION' && ((page.showRecordings && (s.recordingUrl || s.recording)) || (page.showSlides && s.slides))).map((s) => (
                 <div className="tile" key={s.id}>
-                  <div className="th"><Icon name={page.showRecordings && s.recordingUrl ? 'sparkle' : 'form'} size={28} /></div>
+                  {page.showRecordings && s.recording ? (
+                    <video className="block aspect-video w-full bg-black" controls preload="metadata" src={`/files/${s.recording.key}?t=${encodeURIComponent(token)}`}>
+                      <a href={`/files/${s.recording.key}?t=${encodeURIComponent(token)}&download`}>{t.watch}</a>
+                    </video>
+                  ) : (
+                    <div className="th"><Icon name={page.showRecordings && s.recordingUrl ? 'sparkle' : 'form'} size={28} /></div>
+                  )}
                   <div className="tb">
                     <b>{s.title}</b>
                     <small>{s.chairs}</small>
@@ -56,7 +62,7 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
                 </div>
               ))}
             </div>
-            {!sessions.some((s) => s.kind === 'SESSION' && ((page.showRecordings && s.recordingUrl) || (page.showSlides && s.slides))) && <p className="text-[var(--muted)]">{t.notYet}</p>}
+            {!sessions.some((s) => s.kind === 'SESSION' && ((page.showRecordings && (s.recordingUrl || s.recording)) || (page.showSlides && s.slides))) && <p className="text-[var(--muted)]">{t.notYet}</p>}
           </section>
         )}
         {page?.showPhotos && (

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@zemmz/db';
-import { creditsEarned, eventType, formatShortDateTime, formatTime, minutesInRoom, shortTitle, lowerFirst } from '@zemmz/shared';
+import { creditsEarned, eventType, formatMoney, formatShortDateTime, formatTime, minutesInRoom, shortTitle, lowerFirst } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { initialValues, loadFormFields } from '@/lib/form-fields';
 import { fullName } from '@/lib/format';
@@ -12,6 +12,9 @@ import { ConfirmButton } from '@/components/confirm-button';
 import { PersonForm } from '@/components/person-form';
 import { SessionBadge } from '@/components/status';
 import { cancelRegistration, resend, restoreRegistration, updateRegistration } from '../actions';
+import { refundOrder } from '../../tickets/actions';
+import { ConfirmAction } from '@/components/confirm-action';
+import { invoiceNumber } from '@/lib/orders';
 
 export const metadata: Metadata = { title: 'Registration' };
 
@@ -43,7 +46,8 @@ export default async function RegistrationPage({ params, searchParams }: { param
   const attendedCount = rows.filter((r) => r.iv.length).length;
   const points = rows.reduce((t, r) => t + (r.earned ?? 0), 0);
   const pendingPoints = rows.some((r) => r.earned === null);
-  const cancelled = reg.status === 'CANCELLED';
+  const cancelled = reg.status !== 'CONFIRMED';
+  const refundable = !!reg.order && reg.paidMinor > 0 && !reg.refundedAt && reg.status === 'CONFIRMED' && can.manageEvent(user.role) && (reg.order.status === 'PAID' || reg.order.status === 'PARTIALLY_REFUNDED');
   const editable = can.editRegistrations(user.role);
   const name = fullName(reg);
 
@@ -133,25 +137,36 @@ export default async function RegistrationPage({ params, searchParams }: { param
               <dt className="text-muted">{TY.f1}</dt><dd className="m-0">{reg.field1 || '—'}</dd>
               <dt className="text-muted">{TY.f2}</dt><dd className="m-0">{reg.field2 || '—'}</dd>
               <dt className="text-muted">{TY.badge[0].toUpperCase() + TY.badge.slice(1)}</dt><dd className="m-0">{reg.badgePrintedAt ? `Printed ${formatShortDateTime(reg.badgePrintedAt, event.timezone)}` : 'Not printed'}</dd>
-              {reg.order && (<><dt className="text-muted">Order</dt><dd className="m-0">{reg.order.status === 'PAID' ? 'Paid' : reg.order.status.toLowerCase()}</dd></>)}
+              {reg.order && reg.order.provider !== 'free' && (<><dt className="text-muted">Order</dt><dd className="m-0"><Link href={`/events/${slug}/tickets/orders/${reg.order.id}`}>{invoiceNumber(reg.order)}</Link> · {reg.refundedAt ? `refunded ${formatMoney(reg.paidMinor, reg.order.currency)}` : `paid ${formatMoney(reg.paidMinor, reg.order.currency)}`}</dd></>)}
             </dl>
           </section>
-          {editable && (
+          {editable && !reg.refundedAt && reg.status !== 'PENDING' && (
             <section className="card card-b">
               <h2 className="mt-0 mb-1 text-[15px] font-semibold">{cancelled ? `Restore this ${TY.one}` : `Cancel this ${TY.one}`}</h2>
               <p className="mt-0 mb-3 text-[12.5px] text-muted">
-                {cancelled ? 'The ID will work again at check-in.' : `The ID stops working at check-in and after the event. ${reg.order ? 'Refunds are handled separately with the payment provider.' : ''}`}
+                {cancelled ? 'The ID will work again at check-in.' : `The ID stops working at check-in and after the event.${refundable ? ` Refunding returns ${formatMoney(reg.paidMinor, reg.order!.currency)} to the buyer’s card.` : ''}`}
               </p>
               {cancelled ? (
                 <form action={restoreRegistration.bind(null, slug, reg.publicId)}><button className="btn secondary">Restore {TY.one}</button></form>
               ) : (
-                <ConfirmButton
-                  action={cancelRegistration.bind(null, slug, reg.publicId)}
-                  label={<><Icon name="trash" size={16} /> Cancel {TY.one}</>}
-                  title={`Cancel ${TY.one} ${reg.publicId}?`}
-                  body={<p className="m-0">{name} won’t be able to check in, and can’t claim a certificate or recordings. Their attendance so far is kept. You can restore it later.</p>}
-                  confirmLabel={`Cancel ${TY.one}`}
-                />
+                <div className="flex flex-wrap items-center gap-2">
+                  {refundable && (
+                    <ConfirmAction
+                      action={refundOrder.bind(null, slug, reg.order!.id, [reg.id])}
+                      label={<>Refund and cancel</>}
+                      title={`Refund ${formatMoney(reg.paidMinor, reg.order!.currency)} and cancel ${TY.one} ${reg.publicId}?`}
+                      body={<p className="m-0">{name} won’t be able to check in or claim anything after the event, and {reg.order!.buyerName} gets {formatMoney(reg.paidMinor, reg.order!.currency)} back on their card with an email. This can’t be undone.</p>}
+                      confirmLabel="Refund and cancel"
+                    />
+                  )}
+                  <ConfirmButton
+                    action={cancelRegistration.bind(null, slug, reg.publicId)}
+                    label={<><Icon name="trash" size={16} /> {refundable ? 'Cancel without refund' : `Cancel ${TY.one}`}</>}
+                    title={`Cancel ${TY.one} ${reg.publicId}?`}
+                    body={<p className="m-0">{name} won’t be able to check in, and can’t claim a certificate or recordings. Their attendance so far is kept.{refundable ? ' Nothing is refunded.' : ''} You can restore it later.</p>}
+                    confirmLabel={`Cancel ${TY.one}`}
+                  />
+                </div>
               )}
             </section>
           )}

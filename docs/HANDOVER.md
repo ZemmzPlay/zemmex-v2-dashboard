@@ -16,19 +16,24 @@ limitation.
 |---|---|
 | **Marketing site** | `/`: the landing page from `live-marketing.html` (hero, how it works, who it's for, pricing, questions, footer with the wordmark), `/contact` for demos, questions and enterprise enquiries, `/help`, `/terms` and `/privacy` (drafts awaiting legal review). Requests are stored and emailed to `SALES_EMAIL`. |
 | **Signup and onboarding** | `/signup` in the prototype's 11 steps: account, a 6-digit email code, organisation, type of event, the event, tickets, a step that changes by type (CME and accreditation, gates and pass-outs, after-event content, certificates), form fields, logo and colour with a contrast check, team invitations, plan. Finishing creates the event with everything the answers imply and shows a checklist built from the real data. People who stop part-way resume where they left off. |
-| **Plans and trial** | Every new organisation starts on a free trial of 50 confirmed attendees, enforced inside the registration transaction; a dashboard banner shows usage. Owners ask to activate a plan from Organisation → Plan; zemmz staff (`PLATFORM_ADMIN_EMAILS`) activate or pause plans at `/admin`, where website requests also land. |
+| **Plans and trial** | Every new organisation starts on a free trial of 50 confirmed attendees, enforced inside the registration transaction; a dashboard banner shows usage. Owners pay for a plan by card on Organisation → Plan (one year of Season, or one more Single event; same hosted checkout as tickets, UAE VAT for UAE organisations, zemmz tax invoices), or ask for an invoice and zemmz staff activate it at `/admin` with a paid-until date. Limits: Single event covers the events paid for, Season six in any 12 months; creating one more is blocked with a way to buy it. The worker reminds owners 30 and 7 days before the end and on the day, keeps registrations open 14 days, then pauses the account until it's renewed. |
 | **Accounts** | Email and password sign-in, hashed session tokens, four roles (Owner, Admin, Content editor, Check-in staff) enforced on every page and action. Check-in staff only reach the console. Forgot password (single-use link, 2 hours; resets sign out everywhere). Your account: name, password, sign out other devices. |
 | **Team** | Organisation → People with access: invite by email with a role (link valid 7 days), resend or cancel, change roles, remove access (signs them out). Only owners manage owners; the last owner can't be removed. Organisation details and an organisation-wide activity log. |
-| **Files** | Logos (website header, badges, e-tickets), photos of faculty, speakers and artists, after-event photo galleries and slides. Checked by their bytes, never their name; stored on disk or S3. Attendee-only files need the claim link. Recordings are links to the organiser's video host. |
+| **Several organisations** | One login can belong to several organisations (an agency and its clients): a switcher in the top bar, New organisation (starts on the trial), invitations to people who already have an account, and links to another organisation's event switch to it. |
+| **Single sign-on** | "Continue with Microsoft" and "Continue with Google" (OpenID Connect with PKCE, plain `fetch`) on sign-in and signup when configured; connect or disconnect them under Your account. Enterprise organisations verify their email domain with a DNS TXT record; people at the domain then join on first sign-in with a chosen role, and passwords can be turned off for them. Accounts are only matched by email when the provider vouches for it (Google's `email_verified`, Microsoft's `xms_edov`). |
+| **Custom domains** | Enterprise events can live on the organiser's own address (Settings → Web address): a CNAME plus a TXT record, checked from the app. The middleware maps the host to the event; Caddy issues certificates on demand, only for verified domains (`/api/domains/allowed`). |
+| **Files** | Logos (website header, badges, e-tickets), photos of faculty, speakers and artists, after-event photo galleries and slides. Checked by their bytes, never their name; stored on disk or S3. Attendee-only files need the claim link. Recordings are uploaded video files (MP4, MOV, WebM, up to 4 GB, sent straight to S3 with a presigned URL or streamed to disk, checked by their bytes, played with byte-range seeking) or links to the organiser's video host. |
 | **Help centre** | In each event's dashboard: guides for before, on the day and after, in that event's words, and five on-screen tours that highlight the real controls. A public version at `/help`. |
 | **Arabic** | Each event's website can be English, Arabic, or both with a switch. All interface text, error messages, badges, certificates and emails have Arabic versions; the layout is right to left with an Arabic typeface. Organiser text appears as written. |
 | **Events** | All events, New event (type first; defaults per type), event switcher, per-event timezone and currency. Settings: name, dates, timezone (fixed once there's a schedule), currency (fixed after the first order), pass-outs for gates, archive and restore. |
 | **Event type model** | `packages/shared/src/event-types.ts`, ported from the prototype's `TYPES`. Every view takes its nouns from it (Delegates, Attendees, Ticket holders; Faculty, Speakers, Line-up; Sessions, Entrances). All seven types exist; the last three borrow the closest configuration, as the spec says. |
 | **Dashboard** | KPIs by type with a comparison period, quick settings (the client's three switches) with a live homepage preview, today's sessions, 14-day chart, breakdown by the type's first profile field, recent activity. |
 | **Registrations** | Search as you type across name, ID, email and mobile; filters; sort; pagination; CSV export (formula-injection safe); record page with attendance per session, minutes and CME points; edit; resend confirmation; cancel and restore with a confirm dialog; add someone; printable badge or e-ticket with a Code 39 barcode; filter by the type's first profile field or by registered today; tick several to print their badges together. |
-| **Check-in** | Add, edit and delete sessions or gates (times, room, chairs, CME points, capacity, the ticket a gate accepts; gates may close after midnight). Export attendance with in and out times. Sessions or gates by day with live counts. Console: a large scan field for keyboard-wedge scanners, in/out modes, colour-and-words feedback, capacity limits, wrong-gate refusals with directions, pass-outs, recent scans from the database, demo simulate buttons (hidden in production). |
+| **Check-in** | Add, edit and delete sessions or gates (times, room, chairs, CME points, capacity, the ticket a gate accepts; gates may close after midnight). Export attendance with in and out times. Sessions or gates by day with live counts. Console: a large scan field for keyboard-wedge scanners, in/out modes, colour-and-words feedback, capacity limits, wrong-gate refusals with directions, pass-outs, recent scans from the database, demo simulate buttons (hidden in production). Offline: the console keeps the guest list and the session's attendance on the device, refreshed every minute; without a connection it decides scans with the same rules, keeps them in IndexedDB and uploads them in order when it's back (the server's answer wins and refusals are shown). A service worker lets the console page reload offline in production. |
 | **Messages** | Confirmation email editor with merge tags and live preview; send to an audience (everyone, checked in, not checked in, in a session now) by email or SMS; sent log with delivery status; send me a test. |
-| **Tickets** | Ticket types with price, capacity, sold and a progress bar; on-sale switches; add, edit, and delete while unsold; capacity can't drop below what's sold. Promo codes with a percentage, optional use limit and an on/off switch. Payments tab shows the provider's real state and the ticket fee. |
+| **Tickets** | Ticket types with price, capacity, sold and a progress bar; on-sale switches; add, edit, and delete while unsold; capacity can't drop below what's sold. Promo codes with a percentage, optional use limit and an on/off switch. Payments: VAT (added as its own line, with tax invoices), pass the booking fee on or absorb it, and online refunds up to a set number of hours before the start. Orders: search, status, CSV for the accounts, and per-order pages to refund a whole order or single tickets. |
+| **Card payments** | zemmz is the merchant. Buyers pay on the provider's hosted page (`PAYMENT_PROVIDER=stripe` for Stripe Checkout, `tap` for Tap Payments with KNET, mada and Benefit; `mock` is a local test page). Seats are held as PENDING while the buyer pays and confirmed by the return page or the webhook, whichever is first; the provider is always asked for the status. The worker releases unpaid holds after an hour. Refunds go back through the provider and email the buyer; buyers can cancel their own tickets inside the refund window. Receipts and tax invoices at `/e/<slug>/order/<token>/receipt`. |
+| **Payouts** | Organisation → Payouts: what zemmz owes per currency (tickets and VAT, less refunds, card processing at `CARD_PROCESSING_BPS`, and absorbed fees), money ready after 7 days, IBAN-checked bank details, payout history. zemmz staff record bank transfers at `/admin` → Payouts, which emails the owners. |
 | **Certificates & CME / Certificates** | Issuing switch, eligible and not eligible counts, downloads. Medical: how points are earned (time in the room with a threshold, or checking in). Others: minimum sessions. Optional evaluation first. Points or sessions distribution. Certificate template editor with a live preview per eligible person, using the same component as the printed certificate. |
 | **After-event / After-show page** | Summit, concert, gala and exhibition: what to show (recordings, slides, photos, survey), who can open it, the message, and a live preview. |
 | **Evaluation / Feedback** | Report from real answers: responses, averages per rating, tick-box counts, latest comments, CSV export. Form builder: add, edit, reorder, delete questions; reset to the KIMS (medical) or standard template while nobody has answered. |
@@ -39,7 +44,7 @@ limitation.
 | **Public sites** | `/e/<slug>`: four site characters (medical, conference, summit, concert) themed from the event's own colour with automatic contrast; people, programme or set times, venue, custom pages; maintenance mode. |
 | **Registration** | Free: one form built from the event's own form fields; one registration per email (a repeat resends the confirmation instead of duplicating). Paid: three steps (tickets, details, payment), promo codes, the capped ticket fee from `docs/prototype/05`, one ID and e-ticket per ticket. |
 | **After the event** | Claim needs the ID **and** the registration email. People who never checked in are refused with an explanation. Medical: KIMS evaluation, then a printable certificate with CME points from time in the room. Conference: certificate of attendance. Summit: recordings and slides page. Concert: after-show page and survey. |
-| **Worker** | Every 20 s: moves sessions between upcoming, live and ended, and delivers the email outbox (SendGrid via `fetch`, or `log` locally) with retries and backoff. |
+| **Worker** | Every 20 s: moves sessions between upcoming, live and ended; delivers the outbox (email by SendGrid or `log`, SMS by Twilio or Unifonic) with retries and backoff; releases unpaid ticket holds; sends plan renewal reminders and pauses lapsed accounts. |
 | **Deploy** | Standalone Next build, two Dockerfiles, docker-compose, Caddyfile, GitHub Actions (test → ECR → SSH deploy with migrations first), `/api/health`. |
 | **Tests** | 81 vitest tests. Integration tests run on a real Postgres and cover the race conditions that matter at a door (see section 5). |
 
@@ -49,16 +54,9 @@ Everything designed in the Live prototypes is built. What's left is outside
 them, or waits on a decision:
 
 1. **zemmz Play**: all three prototypes. It shares the website builder, theming, roles and messaging but little else (docs/prototype/08).
-2. **A real payment provider** (and refunds). The checkout uses a stand-in that never takes card details; see section 6.
-3. **Card billing for plans.** Plans are invoiced and activated by zemmz staff at `/admin`. Online subscription billing needs the payment provider first.
-4. **Single sign-on** ("Continue with Microsoft" in the prototype) and **custom domains per event**. Both are listed on the enterprise plan; neither is designed.
 5. **Bilingual organiser content.** Arabic sites translate the interface; an event's own text (name, pages, biographies) is in whichever language the organiser writes it. Separate English and Arabic versions of that text would be the next step.
-6. **An offline mode for check-in** (docs/prototype/09, task 12).
-7. **Uploading video files.** Recordings are links to a video host, as the prototype's onboarding offers.
 
-Left out on purpose from the prototype's Tickets → Payments tab: the VAT,
-"pass the fee on" and refund-window switches. Nothing behind them exists yet,
-so a switch would promise something the product doesn't do. From the marketing
+From the marketing
 prototype: the client-logo row and the testimonial, which docs/prototype/07
 lists as unconfirmed.
 
@@ -92,12 +90,17 @@ lists as unconfirmed.
   certificates are HMAC-signed, and claiming after the event needs the email too.
 - **Emails go through an outbox table.** The web app only inserts rows; the
   worker delivers them. A registration and its email commit or fail together.
-- **The payment provider is a stand-in.** It collects no card data: the buyer
-  chooses approve or decline. In production it refuses to take money until a
-  real provider is configured. Seats are taken and the charge made in one
-  transaction, so a decline releases everything. With a real provider that
-  transaction shouldn't wait on a network call: reserve seats with an expiry,
-  redirect to the provider's hosted page, confirm on its webhook.
+- **Payments hold seats, then redirect.** No transaction waits on the provider:
+  the order and PENDING registrations commit, the buyer goes to the hosted
+  page, and `markOrderPaid` confirms under a row lock, so the return page, the
+  webhook and a retry can all arrive at once and only one confirms. Webhooks
+  are only a prompt: the status is always fetched from the provider with our
+  secret key. A payment that lands after its hold was released still confirms,
+  even past a ticket limit, because the buyer has paid.
+- **zemmz is the merchant of record**, with a payout ledger rather than
+  Stripe Connect or Tap marketplace accounts. It works the same with either
+  provider and needs no onboarding from organisers beyond an IBAN. Refunds
+  return what the ticket cost including VAT; the booking fee isn't refunded.
 - **The prototype's demo "simulate" buttons are kept** on the check-in console
   in development only.
 - **Screens that edit the same thing live in one place.** The prototype had
@@ -181,22 +184,19 @@ lists as unconfirmed.
 ## 6. Open questions (new, plus the prototype's still open)
 
 New:
-- **Payment provider** for the Gulf (hosted card fields, Apple Pay, KNET for
-  Kuwait?). Needed before any paid ticket is sold.
-- **SMS provider.** SMS rows are queued and fail with "No SMS provider
-  configured" when SendGrid is the email provider.
-- **Refunds.** Cancelling a paid registration doesn't refund; the organiser is
-  told to handle it with the provider.
-- **One organisation per user** is assumed. Agencies running events for several
-  clients will need an organisation switcher.
-- **Custom domains per event** (`events.client.com`): Caddy can issue the
-  certificates; the app needs a host-to-event lookup in middleware.
-- **The marketing site's promises.** Pricing, plan limits, "single sign-on" and
-  "on-site support" on the enterprise plan are the prototype's proposal, not
-  signed off; SSO isn't built. Confirm or soften them before launch.
-- **Plan limits after the trial** (1 event and 1,000 attendees on Single event,
-  6 events on Season) are shown on the Plan tab but not enforced; decide
-  whether they should block or just prompt a conversation.
+- **Which payment provider** to sign with: Stripe and Tap both work. Tap covers
+  KNET (Kuwait), mada (Saudi) and Benefit (Bahrain); Stripe doesn't. Set the
+  real card processing rate in `CARD_PROCESSING_BPS`.
+- **SMS provider and sender ID.** Twilio and Unifonic are both built
+  (`SMS_PROVIDER`); pick one and register the sender ID per country (Saudi
+  Arabia and the UAE require it). SMS is included on Season and enterprise.
+- **The marketing site's promises.** Pricing, plan limits and "on-site
+  support" on the enterprise plan are the prototype's proposal, not signed
+  off. Confirm or soften them before launch.
+- **Plan limits.** Events are enforced (Single event: the events paid for;
+  Season: six in 12 months). The 1,000-attendee limit on Single event only
+  shows a warning, so a popular event never stops registering; decide
+  whether it should block.
 
 Still open from `docs/prototype/07-open-questions.md`: every name, figure and
 organisation in the seed is fictional; the CME activity number and KIMS
@@ -206,9 +206,11 @@ ownership; the traced wordmark.
 
 ## 7. Before going live
 
-- [ ] Real payment provider, then remove `PAYMENT_PROVIDER=mock`
+- [ ] `PAYMENT_PROVIDER=stripe` or `tap` with its secret key; for Stripe, the webhook at `/api/payments/stripe` and `STRIPE_WEBHOOK_SECRET`; `CARD_PROCESSING_BPS` at the signed rate
 - [ ] `MESSAGING_PROVIDER=sendgrid`, a verified sender domain (SPF, DKIM)
 - [ ] `SESSION_SECRET`, `APP_URL`, `DATABASE_URL` set in the host's `.env`
+- [ ] Microsoft (Entra app registration, multi-tenant, with the `xms_edov` optional claim) and Google OAuth clients for single sign-on, redirect URIs `<APP_URL>/auth/<provider>/callback`
+- [ ] `CUSTOM_DOMAIN_TARGET` (the host organisers CNAME to) and port 443 open for Caddy's on-demand certificates
 - [ ] Postgres timezone UTC; automated backups on RDS
 - [ ] Remove or replace every fictional name and figure (docs/prototype/07)
 - [ ] `PLATFORM_ADMIN_EMAILS` and `SALES_EMAIL` set; someone owns `/admin` requests

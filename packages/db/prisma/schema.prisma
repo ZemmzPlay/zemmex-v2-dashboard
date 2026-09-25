@@ -44,7 +44,32 @@ model Organisation {
   planStatus  PlanStatus     @default(TRIAL)
   activatedAt DateTime?
   createdAt   DateTime       @default(now())
+  /// Shown on tax invoices to ticket buyers.
+  legalName   String         @default("")
+  /// VAT registration number (TRN in the UAE). Empty when not registered.
+  vatNumber   String         @default("")
+  /// Where ticket money is paid out to (zemmz collects, then pays out weekly).
+  payoutAccountName String   @default("")
+  payoutBankName    String   @default("")
+  payoutIban        String   @default("")
+  payoutSwift       String   @default("")
+  /// A paid plan runs until here; renewal reminders and the grace period count from it.
+  planEndsAt  DateTime?
+  /// Single-event plan: events paid for and not yet used.
+  eventCredits Int           @default(0)
+  /// The last renewal reminder sent ("30d", "7d", "ended", "paused"), so each goes once.
+  planReminder String        @default("")
+  /// Enterprise single sign-on: people signing in with Microsoft or Google
+  /// from this email domain join automatically once the domain is verified.
+  ssoDomain           String?   @unique
+  ssoDomainToken      String    @default("")
+  ssoDomainVerifiedAt DateTime?
+  /// Password sign-in refused for people at the domain.
+  ssoRequired         Boolean   @default(false)
+  ssoDefaultRole      Role      @default(EDITOR)
   memberships Membership[]
+  payouts     Payout[]
+  purchases   PlanPurchase[]
   events      Event[]
   activity    ActivityLog[]
   invitations Invitation[]
@@ -63,6 +88,24 @@ model User {
   sessions     AuthSession[]
   resets       PasswordReset[]
   emailCodes   EmailCode[]
+  identities   UserIdentity[]
+}
+
+/// A Microsoft or Google account someone signs in with.
+model UserIdentity {
+  id        String   @id @default(cuid())
+  userId    String
+  provider  String
+  /// The provider's stable id for the account (OIDC "sub", or "oid" for Microsoft).
+  subject   String
+  email     String
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subject])
+  @@index([userId])
 }
 
 /// Someone asked to join an organisation by email. Only the token's SHA-256 is stored.
@@ -214,6 +257,16 @@ model Event {
   siteLanguage     SiteLanguage @default(EN)
   /// Gates only: guests can scan out and back in with the same e-ticket.
   allowPassOut     Boolean    @default(true)
+  /// VAT added to paid tickets, in basis points (500 = 5%). 0 for none.
+  vatBps           Int        @default(0)
+  /// The booking fee is added to what the buyer pays; otherwise it comes out of the takings.
+  feePassedOn      Boolean    @default(true)
+  /// Buyers can cancel and be refunded until this many hours before the start. Null: no self-service refunds.
+  refundHours      Int?
+  /// The event's website on the organiser's own domain, e.g. events.client.com.
+  customDomain           String?   @unique
+  customDomainToken      String    @default("")
+  customDomainVerifiedAt DateTime?
   /// Built-in website pages left out of the menu: people, programme, venue.
   navHidden        String[]   @default([])
 
@@ -287,6 +340,8 @@ model PromoCode {
 enum RegistrationStatus {
   CONFIRMED
   CANCELLED
+  /// Seat held while the buyer pays. Becomes CONFIRMED or CANCELLED.
+  PENDING
 }
 
 enum RegistrationSource {
@@ -317,6 +372,10 @@ model Registration {
   consentMarketing Boolean         @default(false)
   /// The website language they registered in; their emails use it too.
   locale        String             @default("en")
+  /// What the buyer paid for this ticket, VAT included, booking fee excluded.
+  /// This is what a refund of this ticket returns.
+  paidMinor     Int                @default(0)
+  refundedAt    DateTime?
   badgePrintedAt DateTime?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
@@ -340,6 +399,7 @@ enum OrderStatus {
   PAID
   FAILED
   REFUNDED
+  PARTIALLY_REFUNDED
 }
 
 model Order {
@@ -354,19 +414,95 @@ model Order {
   feeMinor      Int         @default(0)
   /// Whether the buyer pays the fee on top, or the organiser absorbs it.
   feePassedOn   Boolean     @default(true)
+  /// VAT on the tickets, at the event's rate when the order was placed.
+  vatMinor      Int         @default(0)
+  vatBps        Int         @default(0)
   totalMinor    Int
+  /// The provider's card processing charge (CARD_PROCESSING_BPS of the total), deducted from the payout.
+  processingMinor Int       @default(0)
+  refundedMinor Int         @default(0)
   promoCodeId   String?
   status        OrderStatus @default(PENDING)
   provider      String
+  /// The provider's payment (Stripe payment intent, Tap charge) once known.
   providerRef   String?
+  /// The provider's checkout (Stripe checkout session, Tap charge) while paying.
+  providerSession String?
+  locale        String      @default("en")
   createdAt     DateTime    @default(now())
   paidAt        DateTime?
+  refunds       Refund[]
 
   event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   promoCode     PromoCode?  @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
   registrations Registration[]
 
   @@index([eventId, status])
+  @@index([status, createdAt])
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model Refund {
+  id             String       @id @default(cuid())
+  orderId        String
+  /// The tickets this refund cancelled.
+  registrationIds String[]
+  amountMinor    Int
+  status         RefundStatus @default(PENDING)
+  providerRef    String?
+  failure        String       @default("")
+  /// "organiser" or "buyer" (self-service within the refund window).
+  requestedBy    String
+  byLabel        String       @default("")
+  createdAt      DateTime     @default(now())
+
+  order          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+/// An organisation paying zemmz for a plan by card. Bank transfers are recorded at /admin instead.
+model PlanPurchase {
+  id             String       @id @default(cuid())
+  organisationId String
+  plan           Plan
+  currency       String       @default("AED")
+  amountMinor    Int
+  vatMinor       Int          @default(0)
+  totalMinor     Int
+  status         OrderStatus  @default(PENDING)
+  provider       String
+  providerSession String?
+  providerRef    String?
+  byLabel        String       @default("")
+  createdAt      DateTime     @default(now())
+  paidAt         DateTime?
+  /// What the payment bought: the plan until this date.
+  periodEnd      DateTime?
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, createdAt])
+}
+
+/// Money zemmz has transferred to an organisation from ticket sales.
+model Payout {
+  id             String       @id @default(cuid())
+  organisationId String
+  currency       String
+  amountMinor    Int
+  reference      String       @default("")
+  byLabel        String       @default("")
+  createdAt      DateTime     @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, currency])
 }
 
 // ---------------------------------------------------------------------------
@@ -405,6 +541,9 @@ model Session {
   recordingUrl     String        @default("")
   slidesAssetId    String?       @unique
   slides           Asset?        @relation("SessionSlides", fields: [slidesAssetId], references: [id], onDelete: SetNull)
+  /// A recording uploaded as a video file, instead of (or as well as) a link.
+  recordingAssetId String?       @unique
+  recording        Asset?        @relation("SessionRecording", fields: [recordingAssetId], references: [id], onDelete: SetNull)
 
   event            Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
   gateTicketType   TicketType?   @relation(fields: [gateTicketTypeId], references: [id], onDelete: SetNull)
@@ -416,6 +555,19 @@ model Session {
 
 /// One interval in the room. Leaving and coming back creates a new row, so
 /// time in the room is the sum of intervals (for CME) and pass-outs are exact.
+/// A scan made on a device without a connection, uploaded later. The id is
+/// made on the device, so uploading the same scan twice records it once.
+model OfflineScan {
+  id         String   @id
+  sessionId  String
+  kind       String
+  title      String
+  scannedAt  DateTime
+  receivedAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
 model Attendance {
   id             String       @id @default(cuid())
   registrationId String
@@ -707,6 +859,7 @@ enum AssetKind {
   PERSON_PHOTO
   GALLERY_PHOTO
   SLIDES
+  VIDEO
 }
 
 model Asset {
@@ -727,6 +880,7 @@ model Asset {
   logoOf         Event?    @relation("EventLogo")
   photoOf        Person?   @relation("PersonPhoto")
   slidesOf       Session?  @relation("SessionSlides")
+  recordingOf    Session?  @relation("SessionRecording")
 
   @@index([eventId, kind])
 }

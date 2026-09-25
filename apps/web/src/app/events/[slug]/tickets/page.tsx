@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { prisma } from '@zemmz/db';
+import { prisma, type OrderStatus, type Prisma } from '@zemmz/db';
 import { CURRENCIES, TICKET_FEE, eventType, formatMoney, isCurrency } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { an, fmt, pct } from '@/lib/format';
@@ -8,13 +8,17 @@ import { Icon } from '@/components/icon';
 import { ActionSwitch } from '@/components/action-switch';
 import { ConfirmButton } from '@/components/confirm-button';
 import { FormDialog } from '@/components/form-dialog';
-import { createPromoCode, deleteTicketType, saveTicketType, setPromoActive, setTicketOnSale } from './actions';
+import { createPromoCode, deleteTicketType, savePaymentSettings, saveTicketType, setPromoActive, setTicketOnSale } from './actions';
+import { PaymentSettings } from './payment-settings';
+import { paymentProvider, paymentsReady, PROVIDER_LABEL, PROVIDER_METHODS } from '@/lib/payments';
+import { invoiceNumber, TAKEN, ticketTakings } from '@/lib/orders';
+import { formatShortDateTime } from '@zemmz/shared';
 
 export const metadata: Metadata = { title: 'Tickets' };
 
-export default async function TicketsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ tab?: string }> }) {
+export default async function TicketsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ tab?: string; q?: string; status?: string }> }) {
   const { slug } = await params;
-  const { tab = 'types' } = await searchParams;
+  const { tab = 'types', q = '', status = '' } = await searchParams;
   const { user, event } = await requirePermission(slug, can.seeDashboard);
   const TY = eventType(event.type);
   const edit = can.manageEvent(user.role);
@@ -24,17 +28,17 @@ export default async function TicketsPage({ params, searchParams }: { params: Pr
     prisma.ticketType.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, include: { _count: { select: { registrations: true, gates: true } } } }),
     prisma.registration.groupBy({ by: ['ticketTypeId'], where: { eventId: event.id, status: 'CONFIRMED' }, _count: true }),
     prisma.promoCode.findMany({ where: { eventId: event.id }, orderBy: { code: 'asc' } }),
-    prisma.order.aggregate({ where: { eventId: event.id, status: 'PAID' }, _sum: { subtotalMinor: true, discountMinor: true } }),
+    prisma.order.aggregate({ where: { eventId: event.id, status: { in: [...TAKEN] } }, _sum: { subtotalMinor: true, discountMinor: true, refundedMinor: true, vatMinor: true } }),
   ]);
   const sold = (id: string) => soldBy.find((s) => s.ticketTypeId === id)?._count ?? 0;
   const totalSold = soldBy.reduce((t, s) => t + s._count, 0);
   const unlimited = types.some((t) => t.capacity == null);
   const totalCap = types.reduce((t, x) => t + (x.capacity ?? 0), 0);
   const paid = types.some((t) => t.priceMinor > 0);
-  const takings = (revenue._sum.subtotalMinor ?? 0) - (revenue._sum.discountMinor ?? 0);
+  const takings = ticketTakings(revenue._sum);
   const exp = isCurrency(event.currency) ? CURRENCIES[event.currency].exponent : 2;
 
-  const tabs: [string, string][] = [['types', 'Ticket types'], ['promo', 'Promo codes'], ['pay', 'Payments']];
+  const tabs: [string, string][] = [['types', 'Ticket types'], ['promo', 'Promo codes'], ...(paid ? [['orders', 'Orders'] as [string, string]] : []), ['pay', 'Payments']];
 
   const ticketFields = (t?: (typeof types)[number]) => (
     <>
@@ -207,44 +211,105 @@ export default async function TicketsPage({ params, searchParams }: { params: Pr
         )
       )}
 
-      {tab === 'pay' && <Payments currency={event.currency} />}
+      {tab === 'orders' && <Orders slug={slug} eventId={event.id} timezone={event.timezone} q={q} status={status} />}
+      {tab === 'pay' && (
+        <Payments
+          slug={slug}
+          currency={event.currency}
+          canEdit={edit}
+          event={{ vatBps: event.vatBps, feePassedOn: event.feePassedOn, refundHours: event.refundHours }}
+          hasVatNumber={!!(await prisma.organisation.findUniqueOrThrow({ where: { id: event.organisationId }, select: { vatNumber: true } })).vatNumber}
+        />
+      )}
     </>
   );
 }
 
-function Payments({ currency }: { currency: string }) {
-  const mock = (process.env.PAYMENT_PROVIDER ?? 'mock') === 'mock';
+const STATUS_BADGE: Record<string, [string, string]> = {
+  PAID: ['Paid', 'b-ok'],
+  PENDING: ['Awaiting payment', 'b-warn'],
+  FAILED: ['Not paid', 'b-neutral'],
+  REFUNDED: ['Refunded', 'b-danger'],
+  PARTIALLY_REFUNDED: ['Part refunded', 'b-warn'],
+};
+
+async function Orders({ slug, eventId, timezone, q, status }: { slug: string; eventId: string; timezone: string; q: string; status: string }) {
+  const where: Prisma.OrderWhereInput = { eventId, provider: { not: 'free' } };
+  if (status && status in STATUS_BADGE) where.status = status as OrderStatus;
+  else where.status = { not: 'FAILED' };
+  if (q.trim()) {
+    const term = q.trim();
+    where.OR = [
+      { buyerName: { contains: term, mode: 'insensitive' } },
+      { buyerEmail: { contains: term, mode: 'insensitive' } },
+      { id: { endsWith: term.replace(/^ZL-\d{8}-/i, '').toLowerCase() } },
+      ...(/^\d+$/.test(term) ? [{ registrations: { some: { publicId: Number(term) } } }] : []),
+    ];
+  }
+  const orders = await prisma.order.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100, include: { _count: { select: { registrations: true } } } });
+  const base = `/events/${slug}/tickets`;
+  return (
+    <>
+      <form className="mb-4 flex flex-wrap gap-2" role="search">
+        <input type="hidden" name="tab" value="orders" />
+        <input name="q" defaultValue={q} className="inp max-w-[320px]" placeholder="Buyer, email, invoice or ticket ID" aria-label="Search orders" />
+        <select name="status" defaultValue={status} className="sel max-w-[200px]" aria-label="Status">
+          <option value="">All but unpaid</option>
+          {Object.entries(STATUS_BADGE).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+        <button className="btn secondary">Search</button>
+        <a className="btn ghost" href={`${base}/orders/export`}><Icon name="download" size={16} /> Export CSV</a>
+      </form>
+      {orders.length === 0 ? (
+        <div className="card p-8 text-center text-muted">{q || status ? 'No orders match.' : 'No orders yet. They appear here as soon as someone buys a ticket.'}</div>
+      ) : (
+        <div className="card overflow-x-auto">
+          <table className="tbl">
+            <thead><tr><th>Invoice</th><th>Buyer</th><th className="num">Tickets</th><th className="num">Total</th><th>Status</th><th>Placed</th></tr></thead>
+            <tbody>
+              {orders.map((o) => (
+                <tr key={o.id}>
+                  <td><Link href={`${base}/orders/${o.id}`} className="font-semibold">{invoiceNumber(o)}</Link></td>
+                  <td>{o.buyerName}<div className="muted text-[12.5px]">{o.buyerEmail}</div></td>
+                  <td className="num">{o._count.registrations}</td>
+                  <td className="num">{formatMoney(o.totalMinor, o.currency)}{o.refundedMinor > 0 && <div className="text-[12px] text-danger">−{formatMoney(o.refundedMinor, o.currency)}</div>}</td>
+                  <td><span className={`badge ${STATUS_BADGE[o.status][1]}`}>{STATUS_BADGE[o.status][0]}</span></td>
+                  <td className="muted whitespace-nowrap">{formatShortDateTime(o.createdAt, timezone)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
+function Payments({ slug, currency, canEdit, event, hasVatNumber }: { slug: string; currency: string; canEdit: boolean; event: { vatBps: number; feePassedOn: boolean; refundHours: number | null }; hasVatNumber: boolean }) {
+  const provider = paymentProvider();
+  const ready = paymentsReady();
+  const mock = provider === 'mock';
   const sched = TICKET_FEE.schedule[currency as keyof typeof TICKET_FEE.schedule];
   const exp = isCurrency(currency) ? CURRENCIES[currency].exponent : 2;
+  const feeText = `${(TICKET_FEE.rate * 100).toFixed(1)}% of the ticket price after discounts${sched ? `, plus ${formatMoney(Math.round(sched.fixed * 10 ** exp), currency)}, capped at ${formatMoney(Math.round(sched.cap * 10 ** exp), currency)} per ticket` : ''}. Free tickets cost nothing. Card processing is passed on at cost and comes out of your payout.`;
   return (
     <div className="max-w-[760px]">
       <section className="fsec">
         <h2>Card payments</h2>
-        <p className="hint">Money from ticket sales goes to your account through the payment provider.</p>
+        <p className="hint">Buyers pay on {mock ? 'a secure payment page' : `${PROVIDER_LABEL[provider]}’s secure page`}. zemmz collects the money and pays it out to your bank account every week, less card processing and, when you absorb it, the booking fee.</p>
         <div className="flex items-center gap-3.5 rounded-xl border border-line p-3.5">
-          <span className="proj-mark" style={{ background: mock ? 'var(--warn)' : 'var(--ok)' }}>Pay</span>
+          <span className="proj-mark" style={{ background: ready && !mock ? 'var(--ok)' : 'var(--warn)' }}>Pay</span>
           <div className="flex-1">
-            <b>{mock ? 'Test payments only' : 'Card payments connected'}</b>
+            <b>{!ready ? 'Card payments aren’t set up' : mock ? 'Test payments' : `${PROVIDER_LABEL[provider]} connected`}</b>
             <div className="text-[12.5px] text-muted">
-              {mock
-                ? process.env.NODE_ENV === 'production'
-                  ? 'No payment provider is set up, so paid checkouts are refused and nothing is charged.'
-                  : 'The checkout asks whether to approve or decline a test payment. No card details are collected.'
-                : `Charged in ${currency}.`}
+              {!ready ? 'Paid checkouts are refused and nothing is charged until zemmz connects a payment provider.' : mock ? 'Buyers approve or decline a test payment. No card details are collected and nothing is charged.' : `${PROVIDER_METHODS[provider]} · ${currency}`}
             </div>
           </div>
-          <span className={`badge ${mock ? 'b-warn' : 'b-ok'}`}>{mock ? 'Not connected' : 'Connected'}</span>
+          <span className={`badge ${ready && !mock ? 'b-ok' : 'b-warn'}`}>{ready && !mock ? 'Connected' : mock && ready ? 'Test mode' : 'Not connected'}</span>
         </div>
+        <p className="mb-0 mt-3 text-[13px]"><Link href="/organisation?tab=payouts">Payouts and bank details</Link></p>
       </section>
-      <section className="fsec">
-        <h2>Ticket fee</h2>
-        <p className="hint">Free tickets cost nothing. Paid tickets carry a platform fee, added to the price the buyer pays.</p>
-        <p className="m-0 text-[13.5px]">
-          {(TICKET_FEE.rate * 100).toFixed(1)}% of the ticket price after discounts
-          {sched ? <>, plus {formatMoney(Math.round(sched.fixed * 10 ** exp), currency)}, capped at {formatMoney(Math.round(sched.cap * 10 ** exp), currency)} per ticket.</> : '.'}
-        </p>
-        <p className="mb-0 mt-2 text-[12.5px] text-muted">Card processing is charged separately by the payment provider. Refunds are made with the provider; cancelling a registration here doesn’t refund it.</p>
-      </section>
+      <PaymentSettings action={savePaymentSettings.bind(null, slug)} canEdit={canEdit} vatBps={event.vatBps} feePassedOn={event.feePassedOn} refundHours={event.refundHours} hasVatNumber={hasVatNumber} feeText={feeText} />
     </div>
   );
 }
