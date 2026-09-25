@@ -34,10 +34,10 @@ export function ResultForm({ action, a, b, initial, knockout, submitLabel = 'Con
         <span className="pb-4 text-[22px] text-muted" aria-hidden>–</span>
         <div className="fld !mb-0"><label htmlFor="r-b">{b}</label><input id="r-b" name="scoreB" className="inp" type="number" min={0} max={999} required value={sb} onChange={(e) => setB(e.target.value)} /></div>
       </div>
-      <p className="mt-3 mb-0 flex items-center gap-2 text-[13px]" aria-live="polite">
+      <p className="mt-3 mb-0 text-[13px]" aria-live="polite">
         {!filled ? <span className="text-muted">Enter both scores.</span>
-          : level ? <span className="text-warn"><Icon name="alert" size={15} /> Scores are level. Enter the deciding result: matches can’t end in a draw.</span>
-          : <span className="text-ok"><Icon name="trophy" size={15} /> <b>{winner}</b> wins {Math.max(x, y)}–{Math.min(x, y)}{knockout ? ` and goes through. ${loser} is out of this bracket.` : '.'}</span>}
+          : level ? <span className="text-warn"><Icon name="alert" size={15} className="mr-1.5 inline align-[-3px]" /> Scores are level. Enter the deciding result: matches can’t end in a draw.</span>
+          : <span className="text-ok"><Icon name="trophy" size={15} className="mr-1.5 inline align-[-3px]" /> <b>{winner}</b> wins {Math.max(x, y)}–{Math.min(x, y)}{knockout ? ` and goes through. ${loser} is out of this bracket.` : '.'}</span>}
       </p>
       {note && <div className="fld mt-3 !mb-0"><label htmlFor="r-note">Note<span className="opt">optional</span></label><input id="r-note" name="note" className="inp" maxLength={200} placeholder="For example, confirmed by both captains on Discord" /></div>}
       <button className="btn primary mt-4" disabled={pending || !filled || level}><Icon name="check" size={16} /> {pending ? 'Saving…' : submitLabel}</button>

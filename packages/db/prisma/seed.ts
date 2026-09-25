@@ -18,6 +18,7 @@ import { Prisma, PrismaClient, type FieldKind, type QuestionKind } from '@prisma
 import { dayKey, formatDate, toMinor, zonedTime, type CurrencyCode } from '@zemmz/shared';
 import { hashPassword } from '../src/password';
 import { EVENTS, FEM, FIRST, LAST, pick, type Rnd, type SeedEvent } from './seed-data';
+import { seedPlay } from './seed-play';
 
 const prisma = new PrismaClient();
 const MODE = process.env.SEED_CLOCK === 'demo' ? 'demo' : 'calendar';
@@ -287,6 +288,8 @@ async function main() {
     const r = await seedEvent(e, org.id);
     console.log(`  ${r.name.padEnd(34)} /e/${r.slug.padEnd(16)} ${String(r.regs).padStart(5)} registrations  ${String(r.attendance).padStart(5)} scans  ${String(r.orders).padStart(5)} orders`);
   }
+  const play = await seedPlay(prisma, org.id, makeRnd(2026));
+  console.log(`  ${'Gulf Esports League (zemmz Play)'.padEnd(34)} /p/${play.slug.padEnd(16)} ${String(play.players).padStart(5)} players`);
   console.log(`\nSign in at /login with any of: ${users.map((u) => u[1]).join(', ')}`);
   console.log(`Password: ${password}`);
 }

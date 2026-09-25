@@ -198,7 +198,7 @@ async function Participants({ slug, t, run, manage }: { slug: string; t: Tournam
             const active = (ACTIVE_ENTRY as readonly string[]).includes(e.status);
             return (
               <tr key={e.id} className={active ? '' : 'opacity-60'}>
-                {seedable ? <td><label className="sr-only" htmlFor={`seed_${e.id}`}>Seed for {e.name}</label><input id={`seed_${e.id}`} name={`seed_${e.id}`} className="inp !h-9 !w-[64px]" type="number" min={1} defaultValue={e.seed ?? ''} disabled={!active} /></td> : t.status === 'ENDED' ? <td className="font-semibold">{e.place ? ordinal(e.place) : '—'}</td> : null}
+                {seedable ? <td><label className="sr-only" htmlFor={`seed_${e.id}`}>Seed for {e.name}</label><input id={`seed_${e.id}`} name={`seed_${e.id}`} form="seeds" className="inp !h-9 !w-[64px]" type="number" min={1} defaultValue={e.seed ?? ''} disabled={!active} /></td> : t.status === 'ENDED' ? <td className="font-semibold">{e.place ? ordinal(e.place) : '—'}</td> : null}
                 <td><b>{e.name}</b>{!team && captain && <div className="muted text-[12.5px]">{captain.firstName} {captain.lastName}{captain.verification === 'VERIFIED' ? ' · verified' : ''}</div>}{team && e.joinCode && active && t.status === 'PUBLISHED' && <div className="muted text-[12.5px]">Team code {e.joinCode}</div>}</td>
                 {team && <td className="text-[13px]">{e.members.map((m) => <span key={m.id} className="block">{m.player.gamerTag}{m.playerId === e.captainId ? <span className="muted"> (captain)</span> : ''}</span>)}<span className={e.members.length < t.teamSize ? 'text-warn text-[12px]' : 'muted text-[12px]'}>{e.members.length} of {t.teamSize}</span></td>}
                 <td className="whitespace-nowrap">{captain?.country ? `${playCountry(captain.country)?.flag ?? ''} ${playCountry(captain.country)?.name ?? captain.country}` : '—'}</td>
@@ -226,7 +226,8 @@ async function Participants({ slug, t, run, manage }: { slug: string; t: Tournam
   return (
     <>
       <div className="toolbar"><span className="grow muted text-[13px]">{seedable ? 'Seed 1 is kept apart from seed 2 until the final. Leave seeds empty to use the order people registered.' : `${entries.length} ${team ? 'teams' : 'players'}, including any who withdrew.`}</span><a href={`/play/${slug}/export/entries?t=${t.id}`} className="btn secondary sm"><Icon name="download" size={15} /> Export</a></div>
-      {seedable ? <SimpleForm action={saveSeeds.bind(null, slug, t.id)} submitLabel="Save seeds" canEdit>{table}<div className="h-4" /></SimpleForm> : table}
+      {table}
+      {seedable && <div className="mt-4"><SimpleForm id="seeds" action={saveSeeds.bind(null, slug, t.id)} submitLabel="Save seeds" canEdit>{null}</SimpleForm></div>}
     </>
   );
 }
@@ -236,6 +237,7 @@ async function Bracket({ slug, t, selected, run }: { slug: string; t: Tournament
   const label = matchLabeller(t, matches);
   const base = `/play/${slug}/tournaments/${t.slug}`;
   const pick = matches.find((m) => m.id === selected && m.status !== 'CONFIRMED' && m.status !== 'PENDING');
+  const saved = matches.find((m) => m.id === selected && m.status === 'CONFIRMED');
   const table = t.format === 'ROUND_ROBIN' || t.format === 'SWISS';
   const box = (m: (typeof matches)[number]) => {
     const has = m.status === 'CONFIRMED';
@@ -271,6 +273,11 @@ async function Bracket({ slug, t, selected, run }: { slug: string; t: Tournament
 
   return (
     <div className="flex flex-col gap-4">
+      {saved && (
+        <div className="notice ok" role="status">
+          {name(saved.winnerId)} won {name(saved.entryAId)} {saved.scoreA}–{saved.scoreB} {name(saved.entryBId)}.{t.status === 'ENDED' ? ' That was the last match, so the tournament has ended and places are set.' : ' The bracket is updated.'}
+        </div>
+      )}
       {pick && (
         <section className="card" id="result">
           <div className="card-h"><h2>Enter result: {name(pick.entryAId)} vs {name(pick.entryBId)}</h2><div className="r"><Link href={`${base}?tab=bracket`} className="btn ghost sm">Close</Link></div></div>
@@ -293,7 +300,7 @@ async function Bracket({ slug, t, selected, run }: { slug: string; t: Tournament
       {brackets.map(([b, list]) => (
         <section key={b} className="card">
           <div className="card-h"><h2>{table ? 'Matches' : b === 'W' ? (t.format === 'DOUBLE_ELIMINATION' ? 'Upper bracket' : 'Bracket') : b === 'L' ? 'Lower bracket' : 'Grand final'}</h2>{b === 'W' || table ? <span className="sub">Winners are set from confirmed results. Green rows show who went through.</span> : null}</div>
-          <div className="card-b"><div className="bracket">{list.map(([k, ms]) => <div key={k} className="bcol"><h4>{label(ms[0])}</h4>{ms.map(box)}</div>)}</div></div>
+          <div className="card-b"><div className="bracket">{list.map(([k, ms]) => <div key={k} className="bcol"><h4>{label(ms[0])}</h4><div className="bcol-m">{ms.map(box)}</div></div>)}</div></div>
         </section>
       ))}
     </div>

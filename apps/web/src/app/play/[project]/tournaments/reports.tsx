@@ -95,7 +95,7 @@ export async function ReportsPanel({ projectId, slug, tz, tournamentId, filter, 
     return (
       <figure key={r.id} className="shot">
         {img ? <a href={img} target="_blank" rel="noopener" aria-label={`Open ${tag(r.playerId)}’s screenshot full size`}><img src={img} alt={`Result screenshot uploaded by ${tag(r.playerId)}`} /></a> : <div className="shot missing">No screenshot</div>}
-        <figcaption><span><b>{tag(r.playerId)}</b> for {name(r.entryId)}<br /><span className="text-muted">Uploaded {when(r.createdAt)}</span></span><span>Reported <b>{r.scoreA}–{r.scoreB}</b></span></figcaption>
+        <figcaption><span><b>{tag(r.playerId)}</b> for {name(r.entryId)}<br /><span className="text-muted">Uploaded {when(r.createdAt)}</span></span><span className="whitespace-nowrap">Reported <b>{r.scoreA}–{r.scoreB}</b></span></figcaption>
       </figure>
     );
   };
