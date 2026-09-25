@@ -18,9 +18,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
     gated = asset.event.afterPage?.attendeesOnly ?? true;
     if (gated && !(await mayOpen(req, asset.organisationId, asset.event.id))) return new Response('Only people who attended can open this.', { status: 403 });
   }
+  const download = new URL(req.url).searchParams.has('download');
+  if (asset.kind === 'VIDEO') return video(req, asset, gated, download);
   const body = await storage().get(key);
   if (!body) return new Response('Not found', { status: 404 });
-  const download = new URL(req.url).searchParams.has('download');
   return new Response(body as unknown as BodyInit, {
     headers: {
       'Content-Type': asset.contentType,
@@ -41,4 +42,34 @@ async function mayOpen(req: Request, organisationId: string, eventId: string) {
   if (!regId) return false;
   const reg = await prisma.registration.findFirst({ where: { id: regId, eventId, status: 'CONFIRMED' }, select: { _count: { select: { attendance: true } } } });
   return !!reg && reg._count.attendance > 0;
+}
+
+/**
+ * Videos are streamed in byte ranges, so a player can start straight away and
+ * jump to any point without downloading the whole recording.
+ */
+async function video(req: Request, asset: { key: string; name: string; contentType: string }, gated: boolean, download: boolean) {
+  const size = await storage().size(asset.key);
+  if (!size) return new Response('Not found', { status: 404 });
+  const common = {
+    'Content-Type': asset.contentType,
+    'Accept-Ranges': 'bytes',
+    'Cache-Control': gated ? 'private, max-age=3600' : 'public, max-age=31536000, immutable',
+    'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename="${asset.name.replace(/"/g, '')}"`,
+    'Content-Security-Policy': "default-src 'none'; media-src 'self'; sandbox",
+  };
+  const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.get('range') ?? '');
+  if (!m) {
+    const body = await storage().range(asset.key, 0, size - 1);
+    return body ? new Response(body, { headers: { ...common, 'Content-Length': String(size) } }) : new Response('Not found', { status: 404 });
+  }
+  let start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]));
+  let end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+  if (!m[1] && !m[2]) [start, end] = [0, size - 1];
+  if (start > end || start >= size) return new Response('Range not satisfiable', { status: 416, headers: { 'Content-Range': `bytes */${size}` } });
+  // Players ask for open-ended ranges; answer in chunks so a seek is quick.
+  end = Math.min(end, start + 8 * 1024 * 1024 - 1);
+  const body = await storage().range(asset.key, start, end);
+  if (!body) return new Response('Not found', { status: 404 });
+  return new Response(body, { status: 206, headers: { ...common, 'Content-Length': String(end - start + 1), 'Content-Range': `bytes ${start}-${end}/${size}` } });
 }

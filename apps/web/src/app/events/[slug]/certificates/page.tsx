@@ -10,8 +10,9 @@ import { AfterEditor } from './after-editor';
 import { CertificateEditor, type Sample } from './certificate-editor';
 import { RulesForm } from './rules-form';
 import { RecordingField } from './recording-field';
-import { deleteAsset, saveRecording } from '../files/actions';
+import { deleteAsset, removeRecordingVideo, saveRecording } from '../files/actions';
 import { Uploader } from '@/components/uploader';
+import { VideoUploader } from '@/components/video-uploader';
 import { ConfirmButton } from '@/components/confirm-button';
 import { Icon } from '@/components/icon';
 
@@ -196,7 +197,7 @@ async function AfterPage({ slug, event, TY, issuing, canEdit }: { slug: string; 
 
 async function AfterMedia({ slug, event, TY, canEdit }: { slug: string; event: Event; TY: EventTypeDef; canEdit: boolean }) {
   const [sessions, photos] = await Promise.all([
-    TY.gates ? Promise.resolve([]) : prisma.session.findMany({ where: { eventId: event.id, kind: 'SESSION' }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }], include: { slides: true } }),
+    TY.gates ? Promise.resolve([]) : prisma.session.findMany({ where: { eventId: event.id, kind: 'SESSION' }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }], include: { slides: true, recording: true } }),
     prisma.asset.findMany({ where: { eventId: event.id, kind: 'GALLERY_PHOTO' }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] }),
   ]);
   return (
@@ -204,7 +205,7 @@ async function AfterMedia({ slug, event, TY, canEdit }: { slug: string; event: E
       {!TY.gates && (
         <section className="fsec !mb-0">
           <h2>Recordings and slides</h2>
-          <p className="hint">Paste a link to each recording on your video host, and upload the slides as a PDF (up to 25 MB). Only {TY.guests} who came can open slides when the page is for people who came.</p>
+          <p className="hint">Upload each recording (MP4, MOV or WebM, up to 4 GB) or paste a link to it on your video host, and upload the slides as a PDF (up to 25 MB). Only {TY.guests} who came can open slides when the page is for people who came.</p>
           {sessions.length ? (
             <ul className="m-0 list-none p-0">
               {sessions.map((s) => (
@@ -213,7 +214,18 @@ async function AfterMedia({ slug, event, TY, canEdit }: { slug: string; event: E
                     <b className="block text-[13.5px] font-semibold">{s.title}</b>
                     <span className="text-[12px] text-muted">{formatShortDateTime(s.startsAt, event.timezone)}</span>
                   </div>
-                  <RecordingField initial={s.recordingUrl} save={saveRecording.bind(null, slug, s.id)} label={`Recording link for ${s.title}`} disabled={!canEdit} />
+                  {s.recording ? (
+                    <div className="flex min-w-[240px] flex-1 items-start gap-2">
+                      <a className="btn ghost sm" href={`/files/${s.recording.key}`} target="_blank" rel="noopener"><Icon name="sparkle" size={15} /> {s.recording.name.length > 28 ? 'Recording' : s.recording.name} · {(s.recording.size / 1048576).toFixed(0)} MB</a>
+                      {canEdit && <VideoUploader slug={slug} sessionId={s.id} label="Replace" />}
+                      {canEdit && <ConfirmButton action={removeRecordingVideo.bind(null, slug, s.id)} label="Remove" className="btn danger-ghost sm" title="Remove this recording?" body="The video is deleted and disappears from the after-event page." confirmLabel="Remove recording" />}
+                    </div>
+                  ) : (
+                    <>
+                      <RecordingField initial={s.recordingUrl} save={saveRecording.bind(null, slug, s.id)} label={`Recording link for ${s.title}`} disabled={!canEdit} />
+                      {canEdit && <VideoUploader slug={slug} sessionId={s.id} label="Upload video" />}
+                    </>
+                  )}
                   <div className="flex items-start gap-2">
                     {s.slides && <a className="btn ghost sm" href={`/files/${s.slides.key}`} target="_blank" rel="noopener">{s.slides.name.length > 24 ? 'Slides (PDF)' : s.slides.name}</a>}
                     {canEdit && <Uploader slug={slug} kind="SLIDES" target={s.id} label={s.slides ? 'Replace' : 'Upload slides'} accept="application/pdf" />}

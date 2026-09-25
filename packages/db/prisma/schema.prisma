@@ -541,6 +541,9 @@ model Session {
   recordingUrl     String        @default("")
   slidesAssetId    String?       @unique
   slides           Asset?        @relation("SessionSlides", fields: [slidesAssetId], references: [id], onDelete: SetNull)
+  /// A recording uploaded as a video file, instead of (or as well as) a link.
+  recordingAssetId String?       @unique
+  recording        Asset?        @relation("SessionRecording", fields: [recordingAssetId], references: [id], onDelete: SetNull)
 
   event            Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
   gateTicketType   TicketType?   @relation(fields: [gateTicketTypeId], references: [id], onDelete: SetNull)
@@ -856,6 +859,7 @@ enum AssetKind {
   PERSON_PHOTO
   GALLERY_PHOTO
   SLIDES
+  VIDEO
 }
 
 model Asset {
@@ -876,6 +880,7 @@ model Asset {
   logoOf         Event?    @relation("EventLogo")
   photoOf        Person?   @relation("PersonPhoto")
   slidesOf       Session?  @relation("SessionSlides")
+  recordingOf    Session?  @relation("SessionRecording")
 
   @@index([eventId, kind])
 }

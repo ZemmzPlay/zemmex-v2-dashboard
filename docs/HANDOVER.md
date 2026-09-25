@@ -22,7 +22,7 @@ limitation.
 | **Several organisations** | One login can belong to several organisations (an agency and its clients): a switcher in the top bar, New organisation (starts on the trial), invitations to people who already have an account, and links to another organisation's event switch to it. |
 | **Single sign-on** | "Continue with Microsoft" and "Continue with Google" (OpenID Connect with PKCE, plain `fetch`) on sign-in and signup when configured; connect or disconnect them under Your account. Enterprise organisations verify their email domain with a DNS TXT record; people at the domain then join on first sign-in with a chosen role, and passwords can be turned off for them. Accounts are only matched by email when the provider vouches for it (Google's `email_verified`, Microsoft's `xms_edov`). |
 | **Custom domains** | Enterprise events can live on the organiser's own address (Settings → Web address): a CNAME plus a TXT record, checked from the app. The middleware maps the host to the event; Caddy issues certificates on demand, only for verified domains (`/api/domains/allowed`). |
-| **Files** | Logos (website header, badges, e-tickets), photos of faculty, speakers and artists, after-event photo galleries and slides. Checked by their bytes, never their name; stored on disk or S3. Attendee-only files need the claim link. Recordings are links to the organiser's video host. |
+| **Files** | Logos (website header, badges, e-tickets), photos of faculty, speakers and artists, after-event photo galleries and slides. Checked by their bytes, never their name; stored on disk or S3. Attendee-only files need the claim link. Recordings are uploaded video files (MP4, MOV, WebM, up to 4 GB, sent straight to S3 with a presigned URL or streamed to disk, checked by their bytes, played with byte-range seeking) or links to the organiser's video host. |
 | **Help centre** | In each event's dashboard: guides for before, on the day and after, in that event's words, and five on-screen tours that highlight the real controls. A public version at `/help`. |
 | **Arabic** | Each event's website can be English, Arabic, or both with a switch. All interface text, error messages, badges, certificates and emails have Arabic versions; the layout is right to left with an Arabic typeface. Organiser text appears as written. |
 | **Events** | All events, New event (type first; defaults per type), event switcher, per-event timezone and currency. Settings: name, dates, timezone (fixed once there's a schedule), currency (fixed after the first order), pass-outs for gates, archive and restore. |
@@ -44,7 +44,7 @@ limitation.
 | **Public sites** | `/e/<slug>`: four site characters (medical, conference, summit, concert) themed from the event's own colour with automatic contrast; people, programme or set times, venue, custom pages; maintenance mode. |
 | **Registration** | Free: one form built from the event's own form fields; one registration per email (a repeat resends the confirmation instead of duplicating). Paid: three steps (tickets, details, payment), promo codes, the capped ticket fee from `docs/prototype/05`, one ID and e-ticket per ticket. |
 | **After the event** | Claim needs the ID **and** the registration email. People who never checked in are refused with an explanation. Medical: KIMS evaluation, then a printable certificate with CME points from time in the room. Conference: certificate of attendance. Summit: recordings and slides page. Concert: after-show page and survey. |
-| **Worker** | Every 20 s: moves sessions between upcoming, live and ended, and delivers the email outbox (SendGrid via `fetch`, or `log` locally) with retries and backoff. |
+| **Worker** | Every 20 s: moves sessions between upcoming, live and ended; delivers the outbox (email by SendGrid or `log`, SMS by Twilio or Unifonic) with retries and backoff; releases unpaid ticket holds; sends plan renewal reminders and pauses lapsed accounts. |
 | **Deploy** | Standalone Next build, two Dockerfiles, docker-compose, Caddyfile, GitHub Actions (test → ECR → SSH deploy with migrations first), `/api/health`. |
 | **Tests** | 81 vitest tests. Integration tests run on a real Postgres and cover the race conditions that matter at a door (see section 5). |
 
@@ -55,7 +55,6 @@ them, or waits on a decision:
 
 1. **zemmz Play**: all three prototypes. It shares the website builder, theming, roles and messaging but little else (docs/prototype/08).
 5. **Bilingual organiser content.** Arabic sites translate the interface; an event's own text (name, pages, biographies) is in whichever language the organiser writes it. Separate English and Arabic versions of that text would be the next step.
-7. **Uploading video files.** Recordings are links to a video host, as the prototype's onboarding offers.
 
 From the marketing
 prototype: the client-logo row and the testimonial, which docs/prototype/07
@@ -188,8 +187,9 @@ New:
 - **Which payment provider** to sign with: Stripe and Tap both work. Tap covers
   KNET (Kuwait), mada (Saudi) and Benefit (Bahrain); Stripe doesn't. Set the
   real card processing rate in `CARD_PROCESSING_BPS`.
-- **SMS provider.** SMS rows are queued and fail with "No SMS provider
-  configured" when SendGrid is the email provider.
+- **SMS provider and sender ID.** Twilio and Unifonic are both built
+  (`SMS_PROVIDER`); pick one and register the sender ID per country (Saudi
+  Arabia and the UAE require it). SMS is included on Season and enterprise.
 - **The marketing site's promises.** Pricing, plan limits and "on-site
   support" on the enterprise plan are the prototype's proposal, not signed
   off. Confirm or soften them before launch.

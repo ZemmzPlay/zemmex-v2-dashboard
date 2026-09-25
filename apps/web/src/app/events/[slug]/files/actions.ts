@@ -30,3 +30,13 @@ export async function saveRecording(slug: string, sessionId: string, url: string
   revalidatePath(`/e/${slug}`, 'layout');
   return { ok: v ? 'Saved.' : 'Removed.' };
 }
+
+export async function removeRecordingVideo(slug: string, sessionId: string) {
+  const { user, event } = await requirePermission(slug, can.editContent);
+  const s = await prisma.session.findFirst({ where: { id: sessionId, eventId: event.id }, include: { recording: true } });
+  if (!s?.recording) return;
+  await removeAsset(s.recording);
+  await logActivity(user, event.id, `removed the uploaded recording of ${s.title}`);
+  revalidatePath(`/events/${slug}/certificates`);
+  revalidatePath(`/e/${slug}`, 'layout');
+}

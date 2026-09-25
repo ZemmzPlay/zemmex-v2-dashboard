@@ -8,6 +8,7 @@ import { AUDIENCES, audienceWhere, type Audience } from '@/lib/audiences';
 import { fmt } from '@/lib/format';
 import { sendBroadcast, saveTemplate, sendTest } from './actions';
 import { TemplateEditor } from './template-editor';
+import { smsAvailability } from '@/lib/plans';
 
 export const metadata: Metadata = { title: 'Messages' };
 
@@ -61,7 +62,8 @@ export default async function MessagesPage({ params, searchParams }: { params: P
 
 async function SendTab({ slug, eventId, accent, sample }: { slug: string; eventId: string; accent: string; sample: ReturnType<typeof mergeValuesFor> }) {
   const counts = await Promise.all((Object.keys(AUDIENCES) as Audience[]).map(async (a) => [a, await prisma.registration.count({ where: audienceWhere(eventId, a) })] as const));
-  const smsReady = (process.env.MESSAGING_PROVIDER ?? 'log') === 'log';
+  const org = await prisma.organisation.findUniqueOrThrow({ where: { id: (await prisma.event.findUniqueOrThrow({ where: { id: eventId }, select: { organisationId: true } })).organisationId }, select: { plan: true, planStatus: true } });
+  const sms = smsAvailability(org);
   return (
     <TemplateEditor
       action={sendBroadcast.bind(null, slug)}
@@ -88,7 +90,7 @@ async function SendTab({ slug, eventId, accent, sample }: { slug: string; eventI
         <legend className="mb-2 text-[13px] font-medium text-ink-2">Channel</legend>
         <div className="flex gap-4 text-[13.5px]">
           <label className="flex items-center gap-2"><input type="radio" name="channel" value="email" defaultChecked /> Email</label>
-          <label className="flex items-center gap-2"><input type="radio" name="channel" value="sms" /> SMS {!smsReady && <span className="tag">No SMS provider yet</span>}</label>
+          <label className={`flex items-center gap-2 ${sms.ok ? '' : 'opacity-60'}`}><input type="radio" name="channel" value="sms" disabled={!sms.ok} /> SMS {!sms.ok && <span className="tag">{sms.reason}</span>}</label>
         </div>
       </fieldset>
     </TemplateEditor>

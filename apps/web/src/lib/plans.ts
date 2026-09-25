@@ -38,3 +38,14 @@ export const zemmzSeller = () => ({
   vatNumber: process.env.ZEMMZ_VAT_NUMBER || '',
   address: process.env.ZEMMZ_ADDRESS || 'Dubai, United Arab Emirates',
 });
+
+/**
+ * Whether SMS can be sent: a provider on the server (SMS_PROVIDER, or the
+ * "log" outbox in development), and a plan that includes it (not Single event).
+ */
+export function smsAvailability(org: { plan: Plan; planStatus: string }): { ok: true } | { ok: false; reason: string } {
+  const provider = !!process.env.SMS_PROVIDER || (process.env.MESSAGING_PROVIDER ?? 'log') === 'log';
+  if (!provider) return { ok: false, reason: 'SMS isn’t set up on this server yet.' };
+  if (org.planStatus === 'ACTIVE' && org.plan === 'EVENT') return { ok: false, reason: 'SMS comes with the Season plan.' };
+  return { ok: true };
+}

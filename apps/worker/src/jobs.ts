@@ -76,7 +76,7 @@ export async function dispatchOutbox(provider: Provider, now = new Date()) {
     try {
       let result;
       if (m.channel === 'SMS') {
-        if (!provider.sendSms) throw new PermanentSendError(`No SMS provider configured (MESSAGING_PROVIDER=${provider.name})`);
+        if (!provider.sendSms) throw new PermanentSendError(`No SMS provider configured. Set SMS_PROVIDER to twilio or unifonic.`);
         result = await provider.sendSms({ id: m.id, to: m.toAddress, text: m.text });
       } else {
         result = await provider.sendEmail({ id: m.id, to: m.toAddress, toName: m.toName, subject: m.subject, html: m.html, text: m.text });

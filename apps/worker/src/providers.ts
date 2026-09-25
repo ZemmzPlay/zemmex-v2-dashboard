@@ -1,7 +1,10 @@
 /**
- * Message delivery. SendGrid is called with plain fetch against its v3 API —
- * no SDK dependency. "log" keeps messages in the database only; they are
- * readable at /outbox in the web app during development.
+ * Message delivery, all with plain fetch and no SDKs.
+ *   Email: SendGrid's v3 API (MESSAGING_PROVIDER=sendgrid), or "log", which
+ *          keeps messages in the database for /outbox during development.
+ *   SMS:   SMS_PROVIDER=twilio or unifonic (Unifonic covers Saudi sender-ID
+ *          registration and Gulf routes). Unset: SMS rows fail with a clear
+ *          reason when email is real, and are logged when email is "log".
  */
 
 export interface OutgoingEmail {
@@ -64,19 +67,79 @@ export function sendgridProvider(apiKey: string, from: { email: string; name: st
       }
       throw new Error(`SendGrid ${res.status}: ${body.slice(0, 300)}`);
     },
-    // No SMS provider is in the stack yet; SMS rows fail with a clear reason.
   };
+}
+
+type SmsSender = NonNullable<Provider['sendSms']>;
+
+/** Errors a retry won't fix: bad number, unverified sender, auth. 429 and 5xx are retried. */
+function smsFailure(service: string, status: number, body: string): Error {
+  const msg = `${service} ${status}: ${body.slice(0, 300)}`;
+  return status >= 400 && status < 500 && status !== 429 ? new PermanentSendError(msg) : new Error(msg);
+}
+
+export function twilioSms(accountSid: string, authToken: string, from: string): SmsSender {
+  return async (msg) => {
+    const body = new URLSearchParams({ To: msg.to, Body: msg.text });
+    // A Messaging Service SID (MG…) picks the sender per country; otherwise a number or alphanumeric sender ID.
+    body.set(from.startsWith('MG') ? 'MessagingServiceSid' : 'From', from);
+    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+      method: 'POST',
+      headers: { Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+      signal: AbortSignal.timeout(15_000),
+    });
+    const text = await res.text();
+    if (res.status === 201 || res.status === 200) return { providerMessageId: (JSON.parse(text) as { sid?: string }).sid ?? null };
+    throw smsFailure('Twilio', res.status, text);
+  };
+}
+
+export function unifonicSms(appSid: string, senderId: string): SmsSender {
+  return async (msg) => {
+    const res = await fetch('https://el.cloud.unifonic.com/rest/SMS/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ AppSid: appSid, SenderID: senderId, Recipient: msg.to.replace(/\D/g, ''), Body: msg.text, responseType: 'JSON' }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    const text = await res.text();
+    let json: { success?: boolean | string; message?: string; errorCode?: string; data?: { MessageID?: string | number } } = {};
+    try {
+      json = JSON.parse(text);
+    } catch {
+      /* not JSON: treated below */
+    }
+    if (res.ok && (json.success === true || json.success === 'true')) return { providerMessageId: json.data?.MessageID != null ? String(json.data.MessageID) : null };
+    throw smsFailure('Unifonic', res.ok ? 400 : res.status, json.message ?? text);
+  };
+}
+
+export function smsFromEnv(env = process.env): SmsSender | undefined {
+  const kind = env.SMS_PROVIDER ?? '';
+  if (!kind) return undefined;
+  if (kind === 'twilio') {
+    if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.SMS_FROM) throw new Error('SMS_PROVIDER=twilio needs TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and SMS_FROM');
+    return twilioSms(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN, env.SMS_FROM);
+  }
+  if (kind === 'unifonic') {
+    if (!env.UNIFONIC_APP_SID || !env.SMS_FROM) throw new Error('SMS_PROVIDER=unifonic needs UNIFONIC_APP_SID and SMS_FROM (the registered sender ID)');
+    return unifonicSms(env.UNIFONIC_APP_SID, env.SMS_FROM);
+  }
+  throw new Error(`Unknown SMS_PROVIDER "${kind}". Use "twilio" or "unifonic".`);
 }
 
 export function providerFromEnv(env = process.env): Provider {
   const kind = env.MESSAGING_PROVIDER ?? 'log';
+  const sms = smsFromEnv(env);
   if (kind === 'sendgrid') {
     if (!env.SENDGRID_API_KEY) throw new Error('MESSAGING_PROVIDER=sendgrid but SENDGRID_API_KEY is empty');
-    return sendgridProvider(env.SENDGRID_API_KEY, {
+    const email = sendgridProvider(env.SENDGRID_API_KEY, {
       email: env.MAIL_FROM_ADDRESS ?? 'no-reply@zemmz.com',
       name: env.MAIL_FROM_NAME ?? 'zemmz Live',
     });
+    return { name: sms ? `sendgrid+${env.SMS_PROVIDER}` : 'sendgrid', sendEmail: email.sendEmail, ...(sms ? { sendSms: sms } : {}) };
   }
   if (kind !== 'log') throw new Error(`Unknown MESSAGING_PROVIDER "${kind}". Use "log" or "sendgrid".`);
-  return logProvider;
+  return sms ? { ...logProvider, name: `log+${env.SMS_PROVIDER}`, sendSms: sms } : logProvider;
 }

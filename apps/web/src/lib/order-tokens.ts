@@ -23,3 +23,22 @@ export function verify(kind: string, token: string): string | null {
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b) ? id : null;
 }
+
+/** A small signed object in a URL-safe string, for upload tickets. Not encrypted: don't put secrets in it. */
+export function sealData(kind: string, data: object) {
+  const body = Buffer.from(JSON.stringify(data)).toString('base64url');
+  return `${body}.${createHmac('sha256', key()).update(`${kind}:${body}`).digest('base64url')}`;
+}
+
+export function unsealData<T>(kind: string, token: string): T | null {
+  const [body, sig] = token.split('.');
+  if (!body || !sig) return null;
+  const expected = Buffer.from(createHmac('sha256', key()).update(`${kind}:${body}`).digest('base64url'));
+  const got = Buffer.from(sig);
+  if (got.length !== expected.length || !timingSafeEqual(got, expected)) return null;
+  try {
+    return JSON.parse(Buffer.from(body, 'base64url').toString()) as T;
+  } catch {
+    return null;
+  }
+}
