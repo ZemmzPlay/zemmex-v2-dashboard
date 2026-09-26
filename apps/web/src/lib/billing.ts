@@ -36,7 +36,7 @@ export async function markPurchasePaid(purchaseId: string, ref: string) {
       const end = new Date(from);
       end.setUTCMonth(end.getUTCMonth() + p.months);
       await tx.planPurchase.update({ where: { id: p.id }, data: { status: 'PAID', paidAt: now, providerRef: ref, periodEnd: end } });
-      await tx.organisation.update({ where: { id: org.id }, data: { playPlan: p.plan, playPlanEndsAt: end } });
+      await tx.organisation.update({ where: { id: org.id }, data: { playPlan: p.plan, playPlanEndsAt: end, playReminder: '' } });
       await tx.activityLog.create({ data: { organisationId: org.id, actorLabel: p.byLabel || 'zemmz', action: `paid ${formatMoney(p.totalMinor, p.currency)} for zemmz Play ${planDef(p.plan).name}, until ${formatDate(end, 'Asia/Dubai')}` } });
       return true;
     }

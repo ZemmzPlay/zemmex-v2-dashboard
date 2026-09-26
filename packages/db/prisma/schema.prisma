@@ -82,6 +82,8 @@ model Organisation {
   playPlanEndsAt DateTime?
   /// Play starts with 14 days of Season, from the first project.
   playTrialEndsAt DateTime?
+  /// The last zemmz Play reminder sent for the current end date ("", "7d", "ended"), so each goes once.
+  playReminder    String    @default("")
   events      Event[]
   activity    ActivityLog[]
   invitations Invitation[]

@@ -65,8 +65,8 @@ export default async function PlayPlan({ searchParams }: { searchParams: Promise
                       <BuyButton action={buyPlayPlan} plan={p.key} months={12} label={`Pay ${formatMoney(year.totalMinor, year.currency)} for a year`} primary />
                       <BuyButton action={buyPlayPlan} plan={p.key} months={1} label={`Pay ${formatMoney(month.totalMinor, month.currency)} for a month`} />
                     </div>
-                  ) : <p className="m-0 mt-2 text-[12.5px] text-muted">Card payments aren’t set up on this server. <Link href="/contact?topic=play">Ask us for an invoice</Link>.</p>
-                ) : !month ? <Link href="/contact?topic=play-publisher" className="btn secondary mt-2">Talk to us</Link> : null}
+                  ) : <p className="m-0 mt-2 text-[12.5px] text-muted">Card payments aren’t set up on this server. <Link href="/contact?about=play">Ask us for an invoice</Link>.</p>
+                ) : !month ? <Link href="/contact?about=play" className="btn secondary mt-2">Talk to us</Link> : null}
               </div>
             </section>
           );

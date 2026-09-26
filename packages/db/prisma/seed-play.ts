@@ -71,7 +71,7 @@ export async function seedPlay(prisma: PrismaClient, orgId: string, rnd: Rnd) {
 
   // Players
   const used = new Set<string>();
-  const players = [];
+  const players: Awaited<ReturnType<typeof prisma.playPlayer.create>>[] = [];
   for (let i = 0; i < 90; i++) {
     const first = pick(rnd, FIRST), last = pick(rnd, LAST);
     let tag = `${pick(rnd, TAG_A)}${pick(rnd, TAG_B)}`;
@@ -109,7 +109,7 @@ export async function seedPlay(prisma: PrismaClient, orgId: string, rnd: Rnd) {
       currency: 'AED', currentRound: 2, startedAt: at(-2, 19), ar: { name: 'بطولة فالورانت المفتوحة' },
     },
   });
-  const valEntries = [];
+  const valEntries: { id: string; captainId: string }[] = [];
   for (let t = 0; t < 8; t++) {
     const members = pool.slice(t * 5, t * 5 + 5);
     valEntries.push(await prisma.entry.create({ data: { tournamentId: val.id, name: TEAMS[t], captainId: members[0].id, joinCode: `V${t}${members[0].id.slice(-5).toUpperCase()}`, seed: t < 2 ? t + 1 : null, status: 'REGISTERED', members: { create: members.map((m) => ({ playerId: m.id })) } } }));
@@ -159,7 +159,7 @@ export async function seedPlay(prisma: PrismaClient, orgId: string, rnd: Rnd) {
       prizes: [{ place: 1, amountMinor: 300_000, label: '' }, { place: 2, amountMinor: 100_000, label: '' }], currency: 'AED', currentRound: 5, startedAt: at(-21, 19), endedAt: at(-20, 23),
     },
   });
-  const tekEntries = [];
+  const tekEntries: { id: string }[] = [];
   for (const p of pool.slice(53, 59)) tekEntries.push(await prisma.entry.create({ data: { tournamentId: tek.id, name: p.gamerTag, captainId: p.id, status: 'REGISTERED', members: { create: { playerId: p.id } } } }));
   const tekList = planRoundRobin(tekEntries.map((e) => e.id));
   for (const m of tekList) if (m.status === 'READY') recordResult(tekList, m.id, ...(rnd() < 0.5 ? [2, rnd() < 0.5 ? 0 : 1] : [rnd() < 0.5 ? 0 : 1, 2]) as [number, number]);

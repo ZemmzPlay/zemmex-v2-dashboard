@@ -19,7 +19,7 @@ export interface SignupState {
 /** Keeps the plan picked on the pricing section through the first steps. */
 const withPlan = (fd: FormData) => {
   const p = String(fd.get('plan') ?? '').toLowerCase();
-  return ['event', 'season', 'enterprise'].includes(p) ? `/signup?plan=${p}` : '/signup';
+  return ['event', 'season', 'enterprise', 'play'].includes(p) ? `/signup?plan=${p}` : '/signup';
 };
 
 const ip = async () => (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
@@ -77,7 +77,7 @@ const orgSchema = z.object({
   org: z.string().trim().min(2, 'Enter your organisation’s name.').max(120),
   kind: z.string().trim().min(1, 'Choose one.').max(60),
   country: z.string().trim().max(60).default(''),
-  plan: z.enum(['EVENT', 'SEASON', 'ENTERPRISE']).default('EVENT'),
+  plan: z.enum(['EVENT', 'SEASON', 'ENTERPRISE', 'PLAY']).default('EVENT'),
 });
 
 /** Step 3: the organisation, with the new account as its owner, on the free trial. */
@@ -85,7 +85,7 @@ export async function createOrganisation(_p: SignupState, fd: FormData): Promise
   const user = await getSessionAccount();
   if (!user) redirect('/signup');
   if (!user.emailVerifiedAt) redirect('/signup');
-  if (user.memberships.length) redirect('/signup/event');
+  if (user.memberships.length) redirect(fd.get('plan') === 'PLAY' ? '/play?new=1' : '/signup/event');
   const values = Object.fromEntries([...fd.entries()].map(([k, v]) => [k, String(v)]));
   const parsed = orgSchema.safeParse(values);
   if (!parsed.success) {
@@ -99,10 +99,11 @@ export async function createOrganisation(_p: SignupState, fd: FormData): Promise
   for (let n = 2; await prisma.organisation.findUnique({ where: { slug } }); n++) slug = `${stem}-${n}`;
   await prisma.organisation.create({
     data: {
-      name: d.org, slug, kind: d.kind, country: d.country, plan: d.plan, planStatus: 'TRIAL',
+      // zemmz Play sign-ups get Live's trial too; Play's own trial starts with their first website.
+      name: d.org, slug, kind: d.kind, country: d.country, plan: d.plan === 'PLAY' ? 'EVENT' : d.plan, planStatus: 'TRIAL',
       memberships: { create: { userId: user.id, role: 'OWNER' } },
       activity: { create: { actorId: user.id, actorLabel: user.name, action: `created the organisation ${d.org}` } },
     },
   });
-  redirect('/signup/event');
+  redirect(d.plan === 'PLAY' ? '/play?new=1' : '/signup/event');
 }

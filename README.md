@@ -1,7 +1,8 @@
 # zemmz platform
 
 zemmz Live: registration, ticketing, check-in and certificates for conferences,
-medical congresses, summits and concerts. This repository is the production
+medical congresses, summits and concerts. zemmz Play: tournament websites,
+brackets and score reports for esports organisers. This repository is the production
 codebase built from the clickable prototypes in `docs/prototype/`.
 
 **Read `docs/HANDOVER.md` first.** It lists what is built, what is not, the
@@ -19,10 +20,10 @@ decisions behind the code and the open questions.
 | Deploy | Docker (node:22-alpine, standalone Next), Caddy 2, GitHub Actions, ECR |
 
 ```
-apps/web          Next.js: organiser dashboard (/events), public event sites (/e/<slug>)
+apps/web          Next.js: dashboards (/events, /play), event sites (/e/<slug>), tournament sites (/p/<slug>)
 apps/worker       session status transitions, outbox delivery
-packages/shared   event-type model, attendance and CME rules, fees, contrast, schemas
-packages/db       Prisma schema, migrations, seed (the four sample events)
+packages/shared   event-type model, attendance and CME rules, fees, contrast, schemas, bracket engine
+packages/db       Prisma schema, migrations, seed (four sample events and a sample league)
 infra/            Dockerfiles, Caddyfile
 tests/            vitest global setup and factories
 docs/             HANDOVER.md, and the prototype specs and HTML under prototype/

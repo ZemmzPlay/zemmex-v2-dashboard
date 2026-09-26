@@ -141,6 +141,42 @@ export async function releaseHeldOrders(now = new Date()) {
 export const PLAN_GRACE_DAYS = 14;
 const DAY = 86_400_000;
 
+/**
+ * zemmz Play: owners hear a week before the trial or plan ends, and when it
+ * has, because the websites then go offline (nothing is deleted for 60 days).
+ */
+export async function playRenewals(now = new Date()) {
+  const soon = new Date(now.getTime() + 7 * DAY);
+  const orgs = await prisma.organisation.findMany({
+    where: { playProjects: { some: { archivedAt: null } }, OR: [{ playPlan: { not: null }, playPlanEndsAt: { lt: soon } }, { playPlan: null, playTrialEndsAt: { lt: soon } }] },
+    include: { memberships: { where: { role: 'OWNER' }, include: { user: true } } },
+  });
+  const app = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+  const date = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Dubai' });
+  let sent = 0;
+  for (const org of orgs) {
+    const ends = (org.playPlan ? org.playPlanEndsAt : org.playTrialEndsAt)!;
+    const what = org.playPlan ? 'zemmz Play plan' : 'zemmz Play trial';
+    const left = Math.ceil((ends.getTime() - now.getTime()) / DAY);
+    const step = left <= 0 ? 'ended' : '7d';
+    const order = ['', '7d', 'ended'];
+    if (order.indexOf(org.playReminder) >= order.indexOf(step)) continue;
+    const heading = step === 'ended' ? `Your ${what} has ended` : `Your ${what} ends in ${left} ${left === 1 ? 'day' : 'days'}`;
+    const body = step === 'ended'
+      ? `It ended on ${date(ends)}, so your tournament websites are offline and players can’t sign in. Nothing is deleted for 60 days: choose a plan and they come back straight away.`
+      : `It ends on ${date(ends)}. Choose a plan before then to keep your tournament websites online without a break.`;
+    await prisma.$transaction(async (tx) => {
+      await tx.organisation.update({ where: { id: org.id }, data: { playReminder: step } });
+      const mail = platformEmail({ heading, paragraphs: [body], button: { label: 'Choose a plan', url: `${app}/play/plan` } });
+      for (const m of org.memberships) {
+        await tx.outboundMessage.create({ data: { channel: 'EMAIL', toAddress: m.user.email, toName: m.user.name, subject: `${heading}: ${org.name}`, html: mail.html, text: mail.text } });
+        sent++;
+      }
+    });
+  }
+  return sent;
+}
+
 export async function planRenewals(now = new Date()) {
   const orgs = await prisma.organisation.findMany({
     where: { planStatus: 'ACTIVE', planEndsAt: { not: null, lt: new Date(now.getTime() + 30 * DAY) } },

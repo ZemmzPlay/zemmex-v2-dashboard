@@ -7,7 +7,7 @@ export function MarketingFooter() {
     <footer className="zft">
       <div className="w">
         <div className="cols">
-          <div><h4>Product</h4><Link href="/#how">How it works</Link><Link href="/#pricing">Pricing</Link><Link href="/help">Help centre</Link><Link href="/signup">Start free trial</Link></div>
+          <div><h4>Product</h4><Link href="/#how">How it works</Link><Link href="/#pricing">Pricing</Link><Link href="/zemmz-play">zemmz Play for esports</Link><Link href="/help">Help centre</Link><Link href="/signup">Start free trial</Link></div>
           <div><h4>Company</h4><Link href="/contact">Contact us</Link><a href="mailto:hello@zemmz.com">hello@zemmz.com</a></div>
           <div><h4>Legal</h4><Link href="/terms">Terms and conditions</Link><Link href="/privacy">Privacy policy</Link></div>
         </div>
