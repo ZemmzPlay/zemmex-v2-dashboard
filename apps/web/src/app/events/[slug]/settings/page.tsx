@@ -5,6 +5,7 @@ import { eventType, formatShortDateTime } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { archiveEvent, removeCustomDomain, saveDetails, saveWhen, setCustomDomain, verifyCustomDomain } from './actions';
 import { domainTarget } from '@/lib/domains';
+import { arText, isBilingual } from '@/components/arabic-input';
 import { appUrl } from '@/lib/email';
 import { SimpleForm } from '@/components/simple-form';
 import { ConfirmButton } from '@/components/confirm-button';
@@ -33,6 +34,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
           action={saveDetails.bind(null, slug)}
           canEdit={can.manageEvent(user.role)}
           initial={{ name: event.name, shortName: event.shortName, organiserName: event.organiserName }}
+          arabic={isBilingual(event) ? { name: arText(event, 'name'), organiserName: arText(event, 'organiserName') } : undefined}
           links={{ website: `/events/${slug}/website`, ...(eventType(event.type).credits ? { certificates: `/events/${slug}/certificates`, certNav: eventType(event.type).certNav } : {}) }}
         />
         <When slug={slug} event={event} canEdit={can.manageEvent(user.role)} />

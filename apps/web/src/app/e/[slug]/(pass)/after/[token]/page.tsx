@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@zemmz/db';
-import { creditsEarned, eventType, formatDateRange, formatTime, shortTitle, siteText, type Locale } from '@zemmz/shared';
+import { creditsEarned, eventType, formatDateRange, formatTime, shortTitle, siteText, type Locale, localiseAll, localise } from '@zemmz/shared';
 import { siteTextFor } from '@/lib/site-locale';
 import { getPublicEvent, homeState } from '@/lib/public-event';
 import { verify } from '@/lib/order-tokens';
@@ -24,12 +24,13 @@ export default async function AfterPage({ params }: { params: Promise<{ slug: st
   if (!reg) notFound();
   if (homeState(event) !== 'after') redirect(`/e/${slug}`);
 
-  const sessions = await prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }], include: { slides: { select: { key: true } }, recording: { select: { key: true } } } });
+  const sessions = localiseAll(await prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }], include: { slides: { select: { key: true } }, recording: { select: { key: true } } } }), locale);
   const attended = sessions.filter((s) => reg.attendance.some((a) => a.sessionId === s.id));
 
   /* ---------- after-event page (summit, concert, gala) ---------- */
   if (TY.cert === 'none') {
-    const page = await prisma.afterEventPage.findUnique({ where: { eventId: event.id } });
+    const pageRow = await prisma.afterEventPage.findUnique({ where: { eventId: event.id } });
+    const page = pageRow && localise(pageRow, locale);
     if (page?.attendeesOnly && !attended.length) redirect(`/e/${slug}`);
     await prisma.afterEventPage.update({ where: { eventId: event.id }, data: { views: { increment: 1 } } }).catch(() => undefined);
     const photos = page?.showPhotos ? await prisma.asset.findMany({ where: { eventId: event.id, kind: 'GALLERY_PHOTO' }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], select: { id: true, key: true } }) : [];

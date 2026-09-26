@@ -23,6 +23,12 @@ enum Plan {
   EVENT
   SEASON
   ENTERPRISE
+  /// zemmz Play: 1 website, up to 2,000 players (AED 199 a month).
+  PLAY_CLUB
+  /// zemmz Play: 3 websites, 100,000 players, custom domain (AED 799 a month).
+  PLAY_SEASON
+  /// zemmz Play: publishers and federations, quoted.
+  PLAY_PUBLISHER
 }
 
 enum PlanStatus {
@@ -70,6 +76,14 @@ model Organisation {
   memberships Membership[]
   payouts     Payout[]
   purchases   PlanPurchase[]
+  playProjects PlayProject[]
+  /// zemmz Play plan, separate from Live's: null while on the Play trial.
+  playPlan     Plan?
+  playPlanEndsAt DateTime?
+  /// Play starts with 14 days of Season, from the first project.
+  playTrialEndsAt DateTime?
+  /// The last zemmz Play reminder sent for the current end date ("", "7d", "ended"), so each goes once.
+  playReminder    String    @default("")
   events      Event[]
   activity    ActivityLog[]
   invitations Invitation[]
@@ -233,6 +247,8 @@ enum CreditRule {
 
 model Event {
   id             String       @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   organisationId String
   type           EventType
   name           String
@@ -309,6 +325,8 @@ model Event {
 
 model TicketType {
   id          String   @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId     String
   name        String
   description String   @default("")
@@ -484,6 +502,8 @@ model PlanPurchase {
   paidAt         DateTime?
   /// What the payment bought: the plan until this date.
   periodEnd      DateTime?
+  /// How long it buys: 12 for a year; Play also sells single months.
+  months         Int          @default(12)
 
   organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
@@ -522,6 +542,8 @@ enum SessionStatus {
 
 model Session {
   id               String        @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId          String
   kind             SessionKind   @default(SESSION)
   title            String
@@ -590,6 +612,8 @@ model Attendance {
 
 model Person {
   id        String  @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId   String
   name      String
   category  String
@@ -621,6 +645,8 @@ enum FieldKind {
 
 model FormField {
   id        String    @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId   String
   /// title, first, last, email, mob, spec (field1), hosp (field2), or a custom key.
   key       String
@@ -639,6 +665,8 @@ model FormField {
 
 model SitePage {
   id        String  @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId   String
   key       String
   title     String
@@ -660,6 +688,8 @@ enum TemplateKind {
 
 model MessageTemplate {
   id       String       @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId  String
   kind     TemplateKind
   subject  String
@@ -761,6 +791,8 @@ model CertificateIssue {
 
 model AfterEventPage {
   id            String  @id @default(cuid())
+  /// Arabic versions of this row's text, by field name, for Arabic websites and emails. Empty fields fall back to the English.
+  ar        Json      @default("{}")
   eventId       String  @unique
   showRecordings Boolean @default(false)
   showSlides    Boolean @default(false)
@@ -860,12 +892,19 @@ enum AssetKind {
   GALLERY_PHOTO
   SLIDES
   VIDEO
+  /// zemmz Play
+  PLAY_LOGO
+  TOURNAMENT_BANNER
+  /// A player's result screenshot: only organisers and that match's players can open it.
+  SCREENSHOT
 }
 
 model Asset {
   id             String    @id @default(cuid())
   organisationId String
   eventId        String?
+  /// zemmz Play files belong to a project instead of an event.
+  playProjectId  String?
   kind           AssetKind
   /// Storage key, also the path under /files/.
   key            String    @unique
@@ -883,4 +922,336 @@ model Asset {
   recordingOf    Session?  @relation("SessionRecording")
 
   @@index([eventId, kind])
+}
+
+// ---------------------------------------------------------------------------
+// zemmz Play: tournament websites
+// ---------------------------------------------------------------------------
+
+/// One tournament website (the prototype's "project"), with its own players.
+model PlayProject {
+  id             String       @id @default(cuid())
+  organisationId String
+  slug           String       @unique
+  name           String
+  description    String       @default("")
+  /// Brand colour; button text and link colours are derived with a contrast check.
+  colour         String       @default("#3B25E5")
+  timezone       String       @default("Asia/Dubai")
+  siteLanguage   SiteLanguage @default(BOTH)
+  heroTitle      String       @default("")
+  heroText       String       @default("")
+  /// Countdown on the website, e.g. to the season finals. Hidden when null.
+  countdownLabel String       @default("")
+  countdownAt    DateTime?
+  rulesHtml      String       @default("")
+  faqHtml        String       @default("")
+  /// Social profiles by network: instagram, x, tiktok, youtube, twitch, discord…
+  socials        Json         @default("{}")
+  sponsors       String[]     @default([])
+  logoAssetId    String?
+  /// Arabic versions of the text above (see packages/shared/src/bilingual.ts).
+  ar             Json         @default("{}")
+  archivedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  tournaments    Tournament[]
+  players        PlayPlayer[]
+  activity       PlayActivity[]
+
+  @@index([organisationId])
+}
+
+enum TournamentFormat {
+  SINGLE_ELIMINATION
+  DOUBLE_ELIMINATION
+  ROUND_ROBIN
+  SWISS
+}
+
+enum TournamentStatus {
+  /// Being set up; not on the website.
+  DRAFT
+  /// On the website. Registration follows its dates.
+  PUBLISHED
+  /// The bracket exists and matches are being played.
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+model Tournament {
+  id              String           @id @default(cuid())
+  projectId       String
+  slug            String
+  name            String
+  /// A key from PLAY_GAMES in @zemmz/shared.
+  game            String
+  platform        String           @default("")
+  format          TournamentFormat @default(SINGLE_ELIMINATION)
+  /// 1 for solo; more for teams, which a captain forms and teammates join.
+  teamSize        Int              @default(1)
+  capacity        Int              @default(64)
+  status          TournamentStatus @default(DRAFT)
+  timezone        String           @default("Asia/Dubai")
+  regOpensAt      DateTime
+  regClosesAt     DateTime
+  startsAt        DateTime
+  endsAt          DateTime
+  /// Best of 1, 3 or 5 (finals are always best of 5 in the prototype's copy).
+  bestOf          Int              @default(3)
+  /// Players upload their own results; otherwise only admins enter them.
+  playersReport   Boolean          @default(true)
+  /// Only players an admin has verified can register.
+  verifiedOnly    Boolean          @default(false)
+  /// Entrants must check in before the start; the bracket uses those who did.
+  checkIn         Boolean          @default(false)
+  /// ISO country codes that can take part; empty for anywhere.
+  countries       String[]         @default([])
+  description     String           @default("")
+  rulesHtml       String           @default("")
+  currency        String           @default("AED")
+  /// Prizes by place: [{ place: 1, amountMinor: 500000, label: "" }, …].
+  prizes          Json             @default("[]")
+  /// Swiss rounds to play (0: worked out from the number of entrants).
+  swissRounds     Int              @default(0)
+  /// Entry fee per entrant (per team for teams); 0 for free. Paid through the same checkout as tickets.
+  entryFeeMinor   Int              @default(0)
+  currentRound    Int              @default(0)
+  bannerAssetId   String?
+  ar              Json             @default("{}")
+  createdAt       DateTime         @default(now())
+  startedAt       DateTime?
+  endedAt         DateTime?
+
+  project         PlayProject      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  entries         Entry[]
+  matches         Match[]
+  prizeAwards     PrizeAward[]
+  entryOrders     EntryOrder[]
+
+  @@unique([projectId, slug])
+  @@index([projectId, status])
+}
+
+enum Verification {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+/// Someone with an account on a tournament website. Separate from organiser logins.
+model PlayPlayer {
+  id           String       @id @default(cuid())
+  projectId    String
+  firstName    String
+  lastName     String
+  /// The name shown in brackets.
+  gamerTag     String
+  email        String
+  phone        String       @default("")
+  country      String       @default("")
+  locale       String       @default("en")
+  verification Verification @default(PENDING)
+  blacklisted  Boolean      @default(false)
+  note         String       @default("")
+  createdAt    DateTime     @default(now())
+  lastSeenAt   DateTime?
+
+  project      PlayProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sessions     PlayerSession[]
+  memberships  EntryMember[]
+  reports      ScoreReport[]
+
+  @@unique([projectId, email])
+  @@unique([projectId, gamerTag])
+  @@index([projectId, verification])
+}
+
+model PlayerSession {
+  id        String     @id @default(cuid())
+  playerId  String
+  tokenHash String     @unique
+  expiresAt DateTime
+  createdAt DateTime   @default(now())
+  player    PlayPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+
+/// A one-time code sent by email or SMS to sign in or sign up. Only the hash is kept.
+model PlayerCode {
+  id        String   @id @default(cuid())
+  projectId String
+  /// The email address or phone number it was sent to.
+  target    String
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([projectId, target])
+}
+
+enum EntryStatus {
+  /// Waiting for the entry fee.
+  PENDING_PAYMENT
+  REGISTERED
+  CHECKED_IN
+  WITHDRAWN
+  DISQUALIFIED
+}
+
+/// A player or a team in one tournament.
+model Entry {
+  id           String      @id @default(cuid())
+  tournamentId String
+  /// The gamer tag for solo tournaments, the team name for teams.
+  name         String
+  captainId    String
+  /// Teammates join with this code.
+  joinCode     String      @default("")
+  seed         Int?
+  status       EntryStatus @default(REGISTERED)
+  /// Final place once the tournament ends (ties share a place).
+  place        Int?
+  createdAt    DateTime    @default(now())
+
+  tournament   Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  members      EntryMember[]
+
+  @@unique([tournamentId, name])
+  @@index([tournamentId, status])
+}
+
+model EntryMember {
+  id       String     @id @default(cuid())
+  entryId  String
+  playerId String
+  joinedAt DateTime   @default(now())
+  entry    Entry      @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  player   PlayPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, playerId])
+  @@index([playerId])
+}
+
+enum MatchStatus {
+  /// Waiting for one or both entrants.
+  PENDING
+  /// Both entrants known; can be played and reported.
+  READY
+  /// At least one result uploaded, waiting for an admin.
+  REVIEW
+  /// Two results that disagree.
+  CONFLICT
+  /// An admin asked for a clearer screenshot.
+  PROOF
+  CONFIRMED
+}
+
+model Match {
+  id           String      @id @default(cuid())
+  tournamentId String
+  /// "W" winners/main bracket, "L" losers bracket, "F" grand final, "RR" round robin, "S" Swiss.
+  bracket      String      @default("W")
+  round        Int
+  position     Int
+  /// Round-robin group, when there are groups.
+  groupName    String      @default("")
+  entryAId     String?
+  entryBId     String?
+  /// Set when a slot will never be filled (a bye), so the other entrant goes through.
+  aBye         Boolean     @default(false)
+  bBye         Boolean     @default(false)
+  scoreA       Int?
+  scoreB       Int?
+  winnerId     String?
+  status       MatchStatus @default(PENDING)
+  /// Where the winner and the loser go next (elimination brackets).
+  nextMatchId  String?
+  nextSlot     String?
+  loserMatchId String?
+  loserSlot    String?
+  scheduledAt  DateTime?
+  confirmedBy  String      @default("")
+  confirmedAt  DateTime?
+  note         String      @default("")
+
+  tournament   Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  reports      ScoreReport[]
+
+  @@index([tournamentId, bracket, round])
+  @@index([tournamentId, status])
+}
+
+/// A result uploaded by a player, with the screenshot.
+model ScoreReport {
+  id           String     @id @default(cuid())
+  matchId      String
+  entryId      String
+  playerId     String
+  scoreA       Int
+  scoreB       Int
+  screenshotAssetId String?
+  /// Superseded when an admin asks for a new screenshot or the player sends another.
+  replaced     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  match        Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player       PlayPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+}
+
+/// Paying a tournament's entry fee. The entry is held until it's paid.
+model EntryOrder {
+  id              String      @id @default(cuid())
+  tournamentId    String
+  entryId         String      @unique
+  playerId        String
+  currency        String
+  amountMinor     Int
+  /// The platform fee (docs/prototype/05), always paid by the player on top.
+  feeMinor        Int
+  totalMinor      Int
+  processingMinor Int         @default(0)
+  refundedMinor   Int         @default(0)
+  status          OrderStatus @default(PENDING)
+  provider        String
+  providerSession String?
+  providerRef     String?
+  createdAt       DateTime    @default(now())
+  paidAt          DateTime?
+
+  tournament      Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId, status])
+}
+
+/// A prize for a place, once the tournament ends, and whether it's been paid.
+model PrizeAward {
+  id           String     @id @default(cuid())
+  tournamentId String
+  place        Int
+  entryId      String
+  amountMinor  Int
+  label        String     @default("")
+  paidAt       DateTime?
+  reference    String     @default("")
+
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, place, entryId])
+}
+
+model PlayActivity {
+  id         String      @id @default(cuid())
+  projectId  String
+  actorLabel String
+  action     String
+  createdAt  DateTime    @default(now())
+  project    PlayProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
 }

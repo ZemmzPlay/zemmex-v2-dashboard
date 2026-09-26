@@ -3,7 +3,7 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { prisma, type Prisma } from '@zemmz/db';
-import { emailSchema, eventType, formatMoney, isCurrency, mobileSchema, ticketFee, type CurrencyCode, type SiteText } from '@zemmz/shared';
+import { emailSchema, eventType, formatMoney, isCurrency, mobileSchema, ticketFee, type CurrencyCode, type SiteText, localiseAll, localise } from '@zemmz/shared';
 import { siteTextFor } from '@/lib/site-locale';
 import { createRegistrations, RegistrationError, resendConfirmation, validateAgainstForm, type PersonInput } from '@/lib/registrations';
 import { getPublicEvent, homeState } from '@/lib/public-event';
@@ -105,7 +105,7 @@ type QuoteEvent = { id: string; currency: string; vatBps: number; feePassedOn: b
 
 async function quote(event: QuoteEvent, wanted: Record<string, number>, promoCode: string, t: SiteText): Promise<CheckoutQuote> {
   const cur: CurrencyCode = isCurrency(event.currency) ? event.currency : 'AED';
-  const types = await prisma.ticketType.findMany({ where: { eventId: event.id, onSale: true, id: { in: Object.keys(wanted) } }, orderBy: { sortOrder: 'asc' } });
+  const types = localiseAll(await prisma.ticketType.findMany({ where: { eventId: event.id, onSale: true, id: { in: Object.keys(wanted) } }, orderBy: { sortOrder: 'asc' } }), t.locale);
   let promo: CheckoutQuote['promo'] = null;
   let error: string | undefined;
   if (promoCode) {

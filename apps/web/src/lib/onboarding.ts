@@ -66,7 +66,7 @@ export const ACCREDITORS: [string, string][] = [
 export const CURRENCY_FOR_COUNTRY: Record<string, string> = { Kuwait: 'KWD', 'Saudi Arabia': 'SAR', Qatar: 'QAR', Bahrain: 'BHD', Oman: 'OMR' };
 export const TZ_FOR_COUNTRY: Record<string, string> = { Kuwait: 'Asia/Kuwait', 'Saudi Arabia': 'Asia/Riyadh', Qatar: 'Asia/Qatar', Bahrain: 'Asia/Bahrain', Oman: 'Asia/Muscat', Egypt: 'Africa/Cairo', Jordan: 'Asia/Amman' };
 
-export const ORG_KINDS = ['Event company or agency', 'Promoter', 'Company', 'Association or society', 'University', 'Hospital or medical body', 'Venue', 'Government'];
+export const ORG_KINDS = ['Event company or agency', 'Promoter', 'Esports league or club', 'Game publisher', 'Company', 'Association or society', 'University', 'Hospital or medical body', 'Venue', 'Government'];
 export const ORG_COUNTRIES = ['United Arab Emirates', 'Saudi Arabia', 'Kuwait', 'Qatar', 'Bahrain', 'Oman', 'Egypt', 'Jordan', 'Other'];
 
 /** A unique organisation slug from its name. */

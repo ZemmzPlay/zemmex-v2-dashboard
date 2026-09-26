@@ -1,10 +1,10 @@
-# Handover: zemmz Live platform
+# Handover: zemmz Live and zemmz Play
 
 Prepared 24 September 2026. The starting point was the six prototypes and nine
 documents in `docs/prototype/` (from the `zemmz-handoff` package) plus the
 change log `zemmz-changes.txt`. This codebase implements **zemmz Live** in
-your developers' stack. **zemmz Play is not started.** It follows once Live is
-agreed (docs/prototype/08, "Suggested order", step 6).
+your developers' stack, and **zemmz Play** (tournament websites) alongside it:
+see section 1b.
 
 ## 1. What works today
 
@@ -24,7 +24,7 @@ limitation.
 | **Custom domains** | Enterprise events can live on the organiser's own address (Settings → Web address): a CNAME plus a TXT record, checked from the app. The middleware maps the host to the event; Caddy issues certificates on demand, only for verified domains (`/api/domains/allowed`). |
 | **Files** | Logos (website header, badges, e-tickets), photos of faculty, speakers and artists, after-event photo galleries and slides. Checked by their bytes, never their name; stored on disk or S3. Attendee-only files need the claim link. Recordings are uploaded video files (MP4, MOV, WebM, up to 4 GB, sent straight to S3 with a presigned URL or streamed to disk, checked by their bytes, played with byte-range seeking) or links to the organiser's video host. |
 | **Help centre** | In each event's dashboard: guides for before, on the day and after, in that event's words, and five on-screen tours that highlight the real controls. A public version at `/help`. |
-| **Arabic** | Each event's website can be English, Arabic, or both with a switch. All interface text, error messages, badges, certificates and emails have Arabic versions; the layout is right to left with an Arabic typeface. Organiser text appears as written. |
+| **Arabic** | Each event's website can be English, Arabic, or both with a switch. All interface text, error messages, badges, certificates and emails have Arabic versions; the layout is right to left with an Arabic typeface. When the site is in Arabic or both, every place organisers write text (event name, organiser, introduction, venue, tickets, sessions, speakers' names and biographies, custom form fields and dropdowns, pages, the confirmation email, one-off messages, the after-event message) gets an optional Arabic version; Arabic pages and emails use it and fall back to the English where it's empty. |
 | **Events** | All events, New event (type first; defaults per type), event switcher, per-event timezone and currency. Settings: name, dates, timezone (fixed once there's a schedule), currency (fixed after the first order), pass-outs for gates, archive and restore. |
 | **Event type model** | `packages/shared/src/event-types.ts`, ported from the prototype's `TYPES`. Every view takes its nouns from it (Delegates, Attendees, Ticket holders; Faculty, Speakers, Line-up; Sessions, Entrances). All seven types exist; the last three borrow the closest configuration, as the spec says. |
 | **Dashboard** | KPIs by type with a comparison period, quick settings (the client's three switches) with a live homepage preview, today's sessions, 14-day chart, breakdown by the type's first profile field, recent activity. |
@@ -44,17 +44,44 @@ limitation.
 | **Public sites** | `/e/<slug>`: four site characters (medical, conference, summit, concert) themed from the event's own colour with automatic contrast; people, programme or set times, venue, custom pages; maintenance mode. |
 | **Registration** | Free: one form built from the event's own form fields; one registration per email (a repeat resends the confirmation instead of duplicating). Paid: three steps (tickets, details, payment), promo codes, the capped ticket fee from `docs/prototype/05`, one ID and e-ticket per ticket. |
 | **After the event** | Claim needs the ID **and** the registration email. People who never checked in are refused with an explanation. Medical: KIMS evaluation, then a printable certificate with CME points from time in the room. Conference: certificate of attendance. Summit: recordings and slides page. Concert: after-show page and survey. |
-| **Worker** | Every 20 s: moves sessions between upcoming, live and ended; delivers the outbox (email by SendGrid or `log`, SMS by Twilio or Unifonic) with retries and backoff; releases unpaid ticket holds; sends plan renewal reminders and pauses lapsed accounts. |
+| **Worker** | Every 20 s: moves sessions between upcoming, live and ended; delivers the outbox (email by SendGrid or `log`, SMS by Twilio or Unifonic) with retries and backoff; releases unpaid ticket holds and Play entry fees; sends Live and Play plan reminders and pauses lapsed Live accounts. |
 | **Deploy** | Standalone Next build, two Dockerfiles, docker-compose, Caddyfile, GitHub Actions (test → ECR → SSH deploy with migrations first), `/api/health`. |
-| **Tests** | 81 vitest tests. Integration tests run on a real Postgres and cover the race conditions that matter at a door (see section 5). |
+| **Tests** | 137 vitest tests. Integration tests run on a real Postgres and cover the race conditions that matter at a door (see section 5). |
+
+## 1b. zemmz Play
+
+Built from `play-dashboard.html`, `play-event-site.html` and `play-marketing.html`,
+sharing Live's accounts, organisations, roles, outbox, storage, payments and
+plan billing. The bracket engine is pure (`packages/shared/src/play.ts`) and
+tested on its own; the database layer is `apps/web/src/lib/play`.
+
+| Area | Built |
+|---|---|
+| **Marketing and signup** | `/zemmz-play`: hero, how it works, Club / Season / Publisher pricing, questions. `/signup?plan=play` runs account, email code and organisation, then lands on `/play`. Contact enquiries with `?about=play`. |
+| **Websites (projects)** | `/play`: one website per league or cup, each with its own players, at `/p/<slug>` (shown as `<slug>.zemmz.gg`). Create, archive, restore; plan limits on the number of websites. |
+| **Dashboard** | Per website: new players, players awaiting review, live tournaments, score reports to confirm, needs-your-attention, players by game and by country. |
+| **Tournaments** | Four-step form (game, schedule, rules, prizes) with Arabic name and description; formats single and double elimination, round robin and Swiss; solo or teams (captain + team code); capacity, best of, check-in 60 minutes before, verified players only, eligible countries, entry fee, prizes by place, banner upload. Publish, unpublish, start (seeded bracket; check-in and incomplete teams handled), end, cancel (refunds paid entry fees). After the start only words, prizes and the end date can change. CSV of tournaments and entries. |
+| **Participants** | Seeds before the start, check in by hand, disqualify and reinstate, refund an entry fee. |
+| **Bracket and standings** | Columns by round with confirmed winners; enter a result by hand; reopen a result while nothing later depends on it; round robin and Swiss tables. Swiss pairs the next round when a round is complete; any format ends itself when the last match is confirmed, sets places and creates prize awards. |
+| **Score reports** | The client's flow: players upload a screenshot (checked by its bytes, stored privately, visible only to organisers and the uploader); both sides side by side, disagreeing scores flagged as a conflict; the admin types the real score (a line says who goes through), confirms, or asks both sides for a clearer screenshot. Queue per website and per tournament. |
+| **Prizes** | Winners with contact details; record each bank transfer's reference. |
+| **Players** | Search by tag, name, email or phone; filters by verification, country, tournament; verify, reject, blacklist (signs out, withdraws from tournaments not yet started), correct details, add a player, CSV. |
+| **Website editor** | Logo, brand colour (button text and link colours contrast-checked for the light page and the dark header), homepage headline and text, countdown, rules and FAQ in the rich-text editor with Arabic versions, 12 social networks, sponsors. |
+| **Settings** | Name (and Arabic), languages, timezone, archive, activity log. |
+| **Plan** | `/play/plan`: 14 days of Season from the first website; Club or Season by card for a month or a year (same checkout and tax invoices as Live); Publisher by enquiry. A lapsed plan takes the websites offline; nothing is deleted for 60 days. The worker emails owners a week before and on the day. |
+| **Tournament website** | `/p/<slug>`: home (real figures only: players, tournaments, prize money), tournaments with game and status filters, tournament pages (overview, bracket or matches, participants, rules), standings, rules, FAQ, English and Arabic with right-to-left layout, the organiser's colour. Players sign in with a 6-digit code by email, or by SMS when a provider is set; new players give their name, gamer tag and country. Register, create or join a team, pay an entry fee (held for an hour), check in, withdraw (refunds the entry fee, not the booking fee), and report results with a screenshot from **My matches**. |
+| **Demo data** | `npm run db:seed` adds the Gulf Esports League at `/p/gel`: a live Valorant bracket with one agreed and one conflicting report, an EA FC cup open for paid registration, a finished Tekken round robin with prizes, and a draft. |
 
 ## 2. Not built yet
 
-Everything designed in the Live prototypes is built. What's left is outside
-them, or waits on a decision:
+Everything designed in the Live prototypes is built. From the Play prototypes,
+these are left, mostly because they need a decision first:
 
-1. **zemmz Play**: all three prototypes. It shares the website builder, theming, roles and messaging but little else (docs/prototype/08).
-5. **Bilingual organiser content.** Arabic sites translate the interface; an event's own text (name, pages, biographies) is in whichever language the organiser writes it. Separate English and Arabic versions of that text would be the next step.
+1. **Play theme depth**: the prototype's typeface picker (18 English, 11 Arabic) and the advanced colour options for each website section. Websites use one brand colour, contrast-checked.
+2. **Player sign-in with Discord or Google** (shown in the prototype). Codes by email or SMS work today; OAuth would reuse `lib/sso.ts`.
+3. **Custom domains for Play websites** (`<slug>.zemmz.gg` itself needs a wildcard DNS record and a Caddy rule to map subdomains to `/p/<slug>`; today the website lives at `/p/<slug>`). Live's custom-domain code is the model.
+4. **Match scheduling** (a time per match) and **manual standings tables** (the prototype's "Add standings"): standings are computed from results.
+5. **Play analytics page and guided tours**, and per-project admin roles: Play uses the organisation's roles.
 
 From the marketing
 prototype: the client-logo row and the testimonial, which docs/prototype/07

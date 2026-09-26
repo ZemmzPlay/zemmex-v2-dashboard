@@ -21,16 +21,21 @@ export const PAYOUT_DELAY_DAYS = 7;
  */
 export async function balances(organisationId: string, now = new Date()): Promise<Balance[]> {
   const cutoff = new Date(now.getTime() - PAYOUT_DELAY_DAYS * 86_400_000);
+  // Ticket orders (Live) and entry fees (Play), each as what the organiser is owed.
   const rows = await prisma.$queryRaw<{ currency: string; earned: bigint; matured: bigint }[]>`
-    SELECT o.currency,
-      SUM(o."subtotalMinor" - o."discountMinor" + o."vatMinor" - CASE WHEN o."feePassedOn" THEN 0 ELSE o."feeMinor" END - o."processingMinor" - o."refundedMinor") AS earned,
-      SUM(CASE WHEN o."paidAt" < (${cutoff}::timestamptz AT TIME ZONE 'UTC')
-        THEN o."subtotalMinor" - o."discountMinor" + o."vatMinor" - CASE WHEN o."feePassedOn" THEN 0 ELSE o."feeMinor" END - o."processingMinor" - o."refundedMinor" ELSE 0 END) AS matured
-    FROM "Order" o JOIN "Event" e ON e.id = o."eventId"
-    WHERE e."organisationId" = ${organisationId}
-      AND o.status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED')
-      AND o.provider <> 'free'
-    GROUP BY o.currency`;
+    WITH owed AS (
+      SELECT o.currency, o."paidAt",
+        o."subtotalMinor" - o."discountMinor" + o."vatMinor" - CASE WHEN o."feePassedOn" THEN 0 ELSE o."feeMinor" END - o."processingMinor" - o."refundedMinor" AS share
+      FROM "Order" o JOIN "Event" e ON e.id = o."eventId"
+      WHERE e."organisationId" = ${organisationId} AND o.status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED') AND o.provider <> 'free'
+      UNION ALL
+      SELECT x.currency, x."paidAt", x."amountMinor" - x."processingMinor" - x."refundedMinor" AS share
+      FROM "EntryOrder" x JOIN "Tournament" t ON t.id = x."tournamentId" JOIN "PlayProject" p ON p.id = t."projectId"
+      WHERE p."organisationId" = ${organisationId} AND x.status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED')
+    )
+    SELECT currency, SUM(share) AS earned,
+      SUM(CASE WHEN "paidAt" < (${cutoff}::timestamptz AT TIME ZONE 'UTC') THEN share ELSE 0 END) AS matured
+    FROM owed GROUP BY currency`;
   const paid = await prisma.payout.groupBy({ by: ['currency'], where: { organisationId }, _sum: { amountMinor: true } });
   const currencies = new Set([...rows.map((r) => r.currency), ...paid.map((p) => p.currency)]);
   return [...currencies].sort().map((currency) => {

@@ -12,12 +12,12 @@ export const metadata: Metadata = { title: 'Start your free trial' };
 /** Steps 1–3 happen on the server, in order: account, email code, organisation. */
 export default async function SignupPage({ searchParams }: { searchParams: Promise<{ plan?: string }> }) {
   const { plan } = await searchParams;
-  const planKey = ['event', 'season', 'enterprise'].includes(plan ?? '') ? plan!.toUpperCase() : 'EVENT';
+  const planKey = ['event', 'season', 'enterprise', 'play'].includes(plan ?? '') ? plan!.toUpperCase() : 'EVENT';
   const user = await getSessionAccount();
-  if (user?.emailVerifiedAt && user.memberships.length) redirect('/signup/event');
+  if (user?.emailVerifiedAt && user.memberships.length) redirect(planKey === 'PLAY' ? '/play?new=1' : '/signup/event');
   const step = !user ? 0 : !user.emailVerifiedAt ? 1 : 2;
   return (
-    <OnboardingShell steps={onboardingSteps()} current={step} signIn={!user}>
+    <OnboardingShell steps={planKey === 'PLAY' ? ['Your account', 'Verify email', 'Organisation', 'Your first website'] : onboardingSteps()} current={step} signIn={!user}>
       {step === 0 && <AccountStep plan={planKey} sso={<SsoButtons providers={ssoProviders()} verb="Sign up" position="before" next="/signup" />} />}
       {step === 1 && <VerifyStep email={user!.email} plan={planKey} />}
       {step === 2 && <OrganisationStep plan={planKey} />}

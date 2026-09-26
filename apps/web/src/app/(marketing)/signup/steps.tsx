@@ -26,7 +26,7 @@ export function AccountStep({ plan, sso }: { plan: string; sso?: React.ReactNode
     <form action={action} onSubmit={keepValues(action)} noValidate>
       <input type="hidden" name="plan" value={plan} />
       <h1>Create your account</h1>
-      <p className="lead">Start free. Your first 50 attendees cost nothing.</p>
+      <p className="lead">{plan === 'PLAY' ? 'Start free. Your first tournament website comes with 14 days of the Season plan.' : 'Start free. Your first 50 attendees cost nothing.'}</p>
       {sso}
       {state.error && <div className="notice err" role="alert">{state.error} {state.error.includes('Sign in') && <Link href="/login" className="linkbtn">Sign in</Link>}</div>}
       <div className={`fld ${f.name ? 'bad' : ''}`}>
@@ -125,7 +125,7 @@ export function OrganisationStep({ plan }: { plan: string }) {
   return (
     <form action={action} onSubmit={keepValues(action)} noValidate>
       <h1>Your organisation</h1>
-      <p className="lead">Who runs your events?</p>
+      <p className="lead">{plan === 'PLAY' ? 'Who runs your tournaments?' : 'Who runs your events?'}</p>
       <input type="hidden" name="plan" value={plan} />
       <input type="hidden" name="kind" value={kind} />
       <div className={`fld ${f.org ? 'bad' : ''}`}>

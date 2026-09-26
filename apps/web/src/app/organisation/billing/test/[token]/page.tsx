@@ -18,17 +18,18 @@ export default async function TestPlanPayment({ params }: { params: Promise<{ to
   const id = verify('plan', token);
   const p = id ? await prisma.planPurchase.findFirst({ where: { id, organisationId: user.organisationId, provider: 'mock' } }) : null;
   if (!p) notFound();
-  if (p.status !== 'PENDING') redirect('/organisation?tab=plan');
+  const back = planDef(p.plan).product === 'play' ? '/play/plan?x=1' : '/organisation?tab=plan';
+  if (p.status !== 'PENDING') redirect(back);
 
   async function approve() {
     'use server';
     await markPurchasePaid(p!.id, `test_${p!.id.slice(-8)}`);
-    redirect('/organisation?tab=plan&payment=paid');
+    redirect(`${back}&payment=paid`);
   }
   async function decline() {
     'use server';
     await markPurchaseFailed(p!.id);
-    redirect('/organisation?tab=plan&payment=failed');
+    redirect(`${back}&payment=failed`);
   }
   const money = formatMoney(p.totalMinor, p.currency);
   return (
@@ -36,7 +37,7 @@ export default async function TestPlanPayment({ params }: { params: Promise<{ to
       <div className="card w-full max-w-[420px] p-6">
         <p className="m-0 text-[12px] font-bold tracking-[.08em] text-muted">TEST PAYMENT</p>
         <h1 className="mb-1 mt-2 text-[26px] font-bold">{money}</h1>
-        <p className="mt-0 text-[14px] text-ink-2">zemmz Live · {planDef(p.plan).name} plan</p>
+        <p className="mt-0 text-[14px] text-ink-2">zemmz {planDef(p.plan).product === 'play' ? 'Play' : 'Live'} · {planDef(p.plan).name} plan{p.months > 1 ? `, ${p.months} months` : ''}</p>
         <div className="notice warn mb-4">This page stands in for the payment provider in test mode. Nothing is charged.</div>
         <form className="grid gap-2.5">
           <button formAction={approve} className="btn primary">Approve {money}</button>

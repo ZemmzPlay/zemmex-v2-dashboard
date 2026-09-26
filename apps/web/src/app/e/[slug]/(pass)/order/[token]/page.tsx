@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@zemmz/db';
-import { eventType, formatDateRange, formatMoney } from '@zemmz/shared';
+import { eventType, formatDateRange, formatMoney, localise } from '@zemmz/shared';
 import { siteTextFor } from '@/lib/site-locale';
 import { getPublicEvent } from '@/lib/public-event';
 import { verify } from '@/lib/order-tokens';
@@ -25,9 +25,10 @@ export default async function OrderPage({ params }: { params: Promise<{ slug: st
   const { t, locale } = await siteTextFor(event);
   const id = verify('order', token);
   const order = id
-    ? await prisma.order.findFirst({ where: { id, eventId: event.id }, include: { registrations: { orderBy: { publicId: 'asc' }, include: { _count: { select: { attendance: true } }, ticketType: { include: { gates: { select: { title: true } } } } } } } })
+    ? await prisma.order.findFirst({ where: { id, eventId: event.id }, include: { registrations: { orderBy: { publicId: 'asc' }, include: { _count: { select: { attendance: true } }, ticketType: { include: { gates: { select: { title: true, ar: true } } } } } } } })
     : null;
   if (!order) notFound();
+  for (const r of order.registrations) if (r.ticketType) Object.assign(r.ticketType, localise(r.ticketType, locale), { gates: r.ticketType.gates.map((g) => localise(g, locale)) });
   if (order.status === 'PENDING') redirect(`/e/${slug}/pay/wait/${token}`);
   if (order.status === 'FAILED') redirect(`/e/${slug}/checkout?payment=failed&retry=${token}`);
   const money = (n: number) => formatMoney(n, order.currency);

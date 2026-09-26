@@ -10,7 +10,7 @@ const Svg = ({ d }: { d: string }) => (
 /** The marketing header (live-marketing.html, nav()). */
 export function MarketingNav({ signedIn }: { signedIn: boolean }) {
   const [open, setOpen] = useState(false);
-  const links: [string, string][] = [['/#how', 'How it works'], ['/#who', 'Who it’s for'], ['/#pricing', 'Pricing'], ['/help', 'Help']];
+  const links: [string, string][] = [['/#how', 'How it works'], ['/#who', 'Who it’s for'], ['/#pricing', 'Pricing'], ['/zemmz-play', 'Tournaments'], ['/help', 'Help']];
   return (
     <header className="znav">
       <div className="w">

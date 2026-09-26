@@ -2,6 +2,7 @@ import { prisma } from '@zemmz/db';
 import { getCurrentUser } from '@/lib/auth';
 import { verify } from '@/lib/order-tokens';
 import { storage } from '@/lib/storage';
+import { currentPlayer } from '@/lib/play/players';
 
 /**
  * Serves uploaded files. Logos and people's photos are public. After-event
@@ -14,6 +15,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
   if (!asset) return new Response('Not found', { status: 404 });
 
   let gated = false;
+  // Score report screenshots: the organisers and the player who sent it.
+  if (asset.kind === 'SCREENSHOT') {
+    gated = true;
+    if (!(await mayOpenScreenshot(asset))) return new Response('Only the organisers can open this.', { status: 403 });
+  }
   if (asset.attendeesOnly && asset.event) {
     gated = asset.event.afterPage?.attendeesOnly ?? true;
     if (gated && !(await mayOpen(req, asset.organisationId, asset.event.id))) return new Response('Only people who attended can open this.', { status: 403 });
@@ -32,6 +38,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
       'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox",
     },
   });
+}
+
+async function mayOpenScreenshot(asset: { id: string; organisationId: string; playProjectId: string | null }) {
+  const user = await getCurrentUser();
+  if (user?.organisationId === asset.organisationId) return true;
+  if (!asset.playProjectId) return false;
+  const player = await currentPlayer(asset.playProjectId);
+  return !!player && !!(await prisma.scoreReport.findFirst({ where: { screenshotAssetId: asset.id, playerId: player.id } }));
 }
 
 async function mayOpen(req: Request, organisationId: string, eventId: string) {

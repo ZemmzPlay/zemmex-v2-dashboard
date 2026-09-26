@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { prisma } from '@zemmz/db';
-import { eventType, formatDateRange } from '@zemmz/shared';
+import { eventType, formatDateRange, localise } from '@zemmz/shared';
 import { siteTextFor } from '@/lib/site-locale';
 import { getPublicEvent } from '@/lib/public-event';
 import { readTicketToken } from '@/lib/tokens';
@@ -20,7 +20,8 @@ export default async function TicketPage({ params, searchParams }: { params: Pro
   const TY = eventType(event.type);
   const { t, locale } = await siteTextFor(event);
   const id = readTicketToken(token);
-  const reg = id ? await prisma.registration.findFirst({ where: { id, eventId: event.id }, include: { ticketType: { include: { gates: { select: { title: true } } } } } }) : null;
+  const reg = id ? await prisma.registration.findFirst({ where: { id, eventId: event.id }, include: { ticketType: { include: { gates: { select: { title: true, ar: true } } } } } }) : null;
+  if (reg?.ticketType) Object.assign(reg.ticketType, localise(reg.ticketType, locale), { gates: reg.ticketType.gates.map((g) => localise(g, locale)) });
   if (!reg) notFound();
 
   return (

@@ -9,7 +9,7 @@
  *   npm run once -w @zemmz/worker       a single tick, then exit
  */
 import { prisma } from '@zemmz/db';
-import { dispatchOutbox, planRenewals, releaseHeldOrders, transitionSessions } from './jobs';
+import { dispatchOutbox, planRenewals, playRenewals, releaseHeldOrders, transitionSessions } from './jobs';
 import { providerFromEnv } from './providers';
 
 const TICK_MS = Number(process.env.WORKER_TICK_MS ?? 20_000);
@@ -26,7 +26,7 @@ async function tick() {
     const o = await dispatchOutbox(provider);
     const released = await releaseHeldOrders();
     if (released) console.log(`[tick] released ${released} unpaid ${released === 1 ? 'order' : 'orders'}`);
-    const reminded = await planRenewals();
+    const reminded = (await planRenewals()) + (await playRenewals());
     if (reminded) console.log(`[tick] queued ${reminded} plan ${reminded === 1 ? 'reminder' : 'reminders'}`);
     const changed = s.live + s.ended + s.upcoming;
     if (changed || o.claimed) {

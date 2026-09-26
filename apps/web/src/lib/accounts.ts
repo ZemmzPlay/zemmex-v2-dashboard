@@ -80,9 +80,9 @@ export function sixDigits() {
 export async function sendEmailCode(user: { id: string; email: string; name: string }) {
   const code = sixDigits();
   await prisma.emailCode.create({ data: { userId: user.id, codeHash: sha256(`${user.id}:${code}`), expiresAt: new Date(Date.now() + CODE_MINUTES * 60_000) } });
-  await queuePlatformEmail(user, `${code} is your zemmz Live code`, platformEmail({
+  await queuePlatformEmail(user, `${code} is your zemmz code`, platformEmail({
     heading: 'Confirm your email',
-    paragraphs: [`Hi ${user.name.split(' ')[0]},`, `Enter this code to finish creating your zemmz Live account. It works for ${CODE_MINUTES} minutes.`],
+    paragraphs: [`Hi ${user.name.split(' ')[0]},`, `Enter this code to finish creating your zemmz account. It works for ${CODE_MINUTES} minutes.`],
     code,
     footer: 'If you didn’t try to create an account, ignore this email.',
   }));

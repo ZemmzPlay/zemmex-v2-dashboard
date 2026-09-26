@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { prisma } from '@zemmz/db';
-import { dayKey, eventType, formatDay, formatTime } from '@zemmz/shared';
+import { dayKey, eventType, formatDay, formatTime, localise, localiseAll } from '@zemmz/shared';
 import { getPublicEvent } from '@/lib/public-event';
 import { siteTextFor } from '@/lib/site-locale';
 
@@ -16,8 +16,9 @@ export default async function ProgrammePage({ params }: { params: Promise<{ slug
 
   if (TY.gates) {
     const [acts, gates] = await Promise.all([
-      prisma.person.findMany({ where: { eventId: event.id }, orderBy: { setTime: 'asc' } }),
-      prisma.session.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, include: { gateTicketType: true } }),
+      prisma.person.findMany({ where: { eventId: event.id }, orderBy: { setTime: 'asc' } }).then((r) => localiseAll(r, locale)),
+      prisma.session.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, include: { gateTicketType: true } })
+        .then((r) => r.map((g) => ({ ...localise(g, locale), gateTicketType: g.gateTicketType && localise(g.gateTicketType, locale) }))),
     ]);
     return (
       <div className="wrap pb-20">
@@ -38,7 +39,7 @@ export default async function ProgrammePage({ params }: { params: Promise<{ slug
     );
   }
 
-  const sessions = await prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }] });
+  const sessions = localiseAll(await prisma.session.findMany({ where: { eventId: event.id }, orderBy: [{ startsAt: 'asc' }, { sortOrder: 'asc' }] }), locale);
   const days = new Map<string, typeof sessions>();
   for (const s of sessions) days.set(dayKey(s.startsAt, tz), [...(days.get(dayKey(s.startsAt, tz)) ?? []), s]);
 

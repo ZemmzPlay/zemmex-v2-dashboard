@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { prisma } from '@zemmz/db';
-import { contrastRatio, eventType, hexColourSchema, sanitizeRichText, textOn } from '@zemmz/shared';
+import { contrastRatio, eventType, hexColourSchema, sanitizeRichText, textOn, mergeArabic, stripHtml } from '@zemmz/shared';
 import { can, requirePermission } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { done, failed, type ActionState } from '@/lib/action-state';
@@ -21,7 +21,7 @@ export async function saveGeneral(slug: string, _p: ActionState, fd: FormData): 
   const { user, event } = await requirePermission(slug, can.editContent);
   const parsed = z.object({ heroText: z.string().trim().max(240, 'Keep the introduction under 240 characters'), siteLanguage: z.enum(['EN', 'AR', 'BOTH']) }).safeParse({ heroText: fd.get('heroText') ?? '', siteLanguage: fd.get('siteLanguage') ?? event.siteLanguage });
   if (!parsed.success) return failed(parsed.error.issues[0].message);
-  await prisma.event.update({ where: { id: event.id }, data: parsed.data });
+  await prisma.event.update({ where: { id: event.id }, data: { ...parsed.data, ar: mergeArabic(event.ar, fd, ['heroText'], 240) } });
   await logActivity(user, event.id, parsed.data.siteLanguage !== event.siteLanguage ? `set the website language to ${{ EN: 'English', AR: 'Arabic', BOTH: 'English and Arabic' }[parsed.data.siteLanguage]}` : 'edited the homepage introduction');
   refresh(slug);
   return done('Saved. The homepage shows it now.');
@@ -37,7 +37,7 @@ export async function saveVenue(slug: string, _p: ActionState, fd: FormData): Pr
   const { user, event } = await requirePermission(slug, can.editContent);
   const parsed = venueSchema.safeParse(Object.fromEntries(fd.entries()));
   if (!parsed.success) return failed(parsed.error.issues[0].message);
-  await prisma.event.update({ where: { id: event.id }, data: parsed.data });
+  await prisma.event.update({ where: { id: event.id }, data: { ...parsed.data, ar: mergeArabic(event.ar, fd, ['venueName', 'venueAddress'], 240) } });
   await logActivity(user, event.id, 'edited the venue');
   refresh(slug);
   return done('Venue saved.');
@@ -136,7 +136,13 @@ export async function editField(slug: string, id: string, _p: ActionState, fd: F
   const options = optionsFrom(fd.get('options'));
   const bad = checkOptions(f.kind, options);
   if (bad) return failed(bad);
-  await prisma.formField.update({ where: { id }, data: { label: parsed.data.label, ...(f.kind === 'DROPDOWN' ? { options } : {}) } });
+  const ar = mergeArabic(f.ar, fd, ['label'], 60);
+  if (fd.get('ar_options') !== null) {
+    const arOptions = optionsFrom(fd.get('ar_options'));
+    if (arOptions.length) ar.options = arOptions;
+    else delete ar.options;
+  }
+  await prisma.formField.update({ where: { id }, data: { label: parsed.data.label, ar, ...(f.kind === 'DROPDOWN' ? { options } : {}) } });
   await logActivity(user, event.id, `edited the ${parsed.data.label} field`);
   refresh(slug);
   return done('Field saved.');
@@ -164,7 +170,14 @@ export async function savePage(slug: string, id: string, _p: ActionState, fd: Fo
   if (!parsed.success) return failed(parsed.error.issues[0].message);
   const page = await prisma.sitePage.findFirst({ where: { id, eventId: event.id } });
   if (!page) return failed('That page no longer exists. Reload the page.');
-  await prisma.sitePage.update({ where: { id }, data: { title: parsed.data.title, bodyHtml: sanitizeRichText(parsed.data.bodyHtml) } });
+  const ar = mergeArabic(page.ar, fd, ['title'], 60);
+  const arBody = fd.get('ar_bodyHtml');
+  if (arBody !== null) {
+    const clean = sanitizeRichText(String(arBody).slice(0, 100_000));
+    if (stripHtml(clean).trim()) ar.bodyHtml = clean;
+    else delete ar.bodyHtml;
+  }
+  await prisma.sitePage.update({ where: { id }, data: { title: parsed.data.title, bodyHtml: sanitizeRichText(parsed.data.bodyHtml), ar } });
   await logActivity(user, event.id, `published the ${parsed.data.title} page`);
   refresh(slug);
   return done(`${parsed.data.title} published.`);

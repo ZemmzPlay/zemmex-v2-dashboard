@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 // Cheap first gate: private areas need a session cookie. The real check
 // (valid, unexpired, right organisation) happens on the server in lib/auth.
-const PRIVATE = ['/events', '/outbox', '/organisation', '/account', '/admin', '/welcome', '/switch'];
+const PRIVATE = ['/events', '/play', '/outbox', '/organisation', '/account', '/admin', '/welcome', '/switch'];
 
 /** Hosts that are zemmz itself: APP_URL's, plus APP_HOSTS (comma-separated) and local development. */
 function isAppHost(host: string) {

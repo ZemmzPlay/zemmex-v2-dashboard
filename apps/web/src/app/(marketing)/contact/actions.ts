@@ -40,7 +40,7 @@ const contactSchema = z.object({
   email: emailSchema,
   organisation: z.string().trim().max(160).default(''),
   message: z.string().trim().max(3000, 'Keep the message under 3,000 characters.').default(''),
-  about: z.enum(['demo', 'contact', 'enterprise']).default('contact'),
+  about: z.enum(['demo', 'contact', 'enterprise', 'play']).default('contact'),
 });
 
 export async function sendContact(_p: ContactState, fd: FormData): Promise<ContactState> {
@@ -52,6 +52,6 @@ export async function sendContact(_p: ContactState, fd: FormData): Promise<Conta
   const d = parsed.data;
   const kind = d.about === 'demo' ? 'DEMO' : d.about === 'enterprise' ? 'UPGRADE' : 'CONTACT';
   await prisma.contactRequest.create({ data: { kind, name: d.name, email: d.email, organisation: d.organisation, message: d.message, plan: d.about === 'enterprise' ? 'ENTERPRISE' : null } });
-  await notifySales(d.about === 'enterprise' ? 'enterprise plan' : d.about, [['Name', d.name], ['Email', d.email], ['Organisation', d.organisation], ['Message', d.message]]);
+  await notifySales(d.about === 'enterprise' ? 'enterprise plan' : d.about === 'play' ? 'zemmz Play' : d.about, [['Name', d.name], ['Email', d.email], ['Organisation', d.organisation], ['Message', d.message]]);
   return { ok: `Thanks, ${d.name.split(' ')[0]}. We’ll reply to ${d.email} within one working day.` };
 }

@@ -13,6 +13,7 @@ import { RecordingField } from './recording-field';
 import { deleteAsset, removeRecordingVideo, saveRecording } from '../files/actions';
 import { Uploader } from '@/components/uploader';
 import { VideoUploader } from '@/components/video-uploader';
+import { arText, isBilingual } from '@/components/arabic-input';
 import { ConfirmButton } from '@/components/confirm-button';
 import { Icon } from '@/components/icon';
 
@@ -182,6 +183,7 @@ async function AfterPage({ slug, event, TY, issuing, canEdit }: { slug: string; 
           attendeesOnly: page?.attendeesOnly ?? true,
           message: page?.message ?? '',
         }}
+        arabicMessage={isBilingual(event) ? arText(page, 'message') : undefined}
         gates={TY.gates}
         unit={TY.unit.toLowerCase()}
         idName={TY.idName}

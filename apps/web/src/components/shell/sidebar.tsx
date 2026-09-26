@@ -16,6 +16,8 @@ export interface NavItem {
 }
 
 export interface SwitcherEvent {
+  /** Where the switcher item goes; events by default. */
+  href?: string;
   slug: string;
   name: string;
   short: string;
@@ -23,7 +25,8 @@ export interface SwitcherEvent {
   sub: string;
 }
 
-export function Sidebar({ groups, current, events }: { groups: [string, NavItem[]][]; current: SwitcherEvent | null; events: SwitcherEvent[] }) {
+export function Sidebar({ groups, current, events, product = 'live' }: { groups: [string, NavItem[]][]; current: SwitcherEvent | null; events: SwitcherEvent[]; product?: 'live' | 'play' }) {
+  const play = product === 'play';
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -46,14 +49,14 @@ export function Sidebar({ groups, current, events }: { groups: [string, NavItem[
   return (
     <aside className="sb" id="sidebar" aria-label="Main">
       <div className="flex items-center justify-between px-2">
-        <Link href="/events" className="logo">
-          zemmz<small>LIVE</small>
+        <Link href={play ? '/play' : '/events'} className="logo">
+          zemmz<small>{play ? 'PLAY' : 'LIVE'}</small>
         </Link>
       </div>
 
       {current && (
         <div className="relative" ref={menuRef}>
-          <button type="button" className="switcher" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} title="Switch event">
+          <button type="button" className="switcher" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} title={play ? 'Switch website' : 'Switch event'}>
             <span className="proj-mark" style={{ background: current.colour }}>{current.short}</span>
             <span className="meta">
               <b>{current.name}</b>
@@ -64,7 +67,7 @@ export function Sidebar({ groups, current, events }: { groups: [string, NavItem[
           {open && (
             <div role="menu" className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 rounded-xl border border-line bg-surface p-1.5 text-ink shadow-[var(--shadow)]">
               {events.map((e) => (
-                <Link key={e.slug} role="menuitem" href={`/events/${e.slug}`} className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-ink no-underline hover:bg-surface-2" aria-current={e.slug === current.slug ? 'true' : undefined}>
+                <Link key={e.slug} role="menuitem" href={e.href ?? `/events/${e.slug}`} className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-ink no-underline hover:bg-surface-2" aria-current={e.slug === current.slug ? 'true' : undefined}>
                   <span className="proj-mark !h-7 !w-7 !text-[11px]" style={{ background: e.colour }}>{e.short}</span>
                   <span className="min-w-0 flex-1">
                     <b className="block truncate text-[13px] font-semibold">{e.name}</b>
@@ -74,18 +77,18 @@ export function Sidebar({ groups, current, events }: { groups: [string, NavItem[
                 </Link>
               ))}
               <div className="my-1 border-t border-line" />
-              <Link role="menuitem" href="/events" className="flex items-center gap-2 rounded-lg px-2 py-2 text-[13px] font-medium text-ink no-underline hover:bg-surface-2">
-                <Icon name="folder" size={16} /> All events
+              <Link role="menuitem" href={play ? '/play' : '/events'} className="flex items-center gap-2 rounded-lg px-2 py-2 text-[13px] font-medium text-ink no-underline hover:bg-surface-2">
+                <Icon name="folder" size={16} /> {play ? 'All websites' : 'All events'}
               </Link>
-              <Link role="menuitem" href="/events/new" className="flex items-center gap-2 rounded-lg px-2 py-2 text-[13px] font-medium text-brand no-underline hover:bg-surface-2">
-                <Icon name="plus" size={16} /> New event
+              <Link role="menuitem" href={play ? '/play?new=1' : '/events/new'} className="flex items-center gap-2 rounded-lg px-2 py-2 text-[13px] font-medium text-brand no-underline hover:bg-surface-2">
+                <Icon name="plus" size={16} /> {play ? 'New website' : 'New event'}
               </Link>
             </div>
           )}
         </div>
       )}
 
-      <nav className="nav" aria-label={current ? 'Event' : 'Main'}>
+      <nav className="nav" aria-label={current ? (play ? 'Website' : 'Event') : 'Main'}>
         {groups.map(([label, items]) => (
           <div key={label}>
             <div className="nav-label">{label}</div>
@@ -99,7 +102,7 @@ export function Sidebar({ groups, current, events }: { groups: [string, NavItem[
           </div>
         ))}
       </nav>
-      <div className="sb-foot">zemmz Live</div>
+      <div className="sb-foot">{play ? 'zemmz Play' : 'zemmz Live'}</div>
     </aside>
   );
 }

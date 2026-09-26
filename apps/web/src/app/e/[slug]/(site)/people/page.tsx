@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { prisma } from '@zemmz/db';
-import { eventType } from '@zemmz/shared';
+import { eventType, localiseAll } from '@zemmz/shared';
 import { getPublicEvent } from '@/lib/public-event';
 import { siteTextFor } from '@/lib/site-locale';
 import { initials } from '@/lib/format';
@@ -12,8 +12,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function PeoplePage({ params }: { params: Promise<{ slug: string }> }) {
   const event = await getPublicEvent((await params).slug);
   const TY = eventType(event.type);
-  const { t } = await siteTextFor(event);
-  const people = await prisma.person.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, include: { photo: { select: { key: true } } } });
+  const { t, locale } = await siteTextFor(event);
+  const people = localiseAll(await prisma.person.findMany({ where: { eventId: event.id }, orderBy: { sortOrder: 'asc' }, include: { photo: { select: { key: true } } } }), locale);
   const highlight = new Map(TY.highlights);
   const groups: [string, typeof people][] = TY.cats.map((c): [string, typeof people] => [c, people.filter((p) => p.category === c)]).filter(([, l]) => l.length > 0);
   const other = people.filter((p) => !TY.cats.includes(p.category));

@@ -10,3 +10,5 @@ export * from './schemas';
 export * from './evaluation-templates';
 export * from './site-text';
 export * from './platform-email';
+export * from './bilingual';
+export * from './play';

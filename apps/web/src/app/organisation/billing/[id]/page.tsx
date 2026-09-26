@@ -44,7 +44,7 @@ export default async function PlanInvoice({ params }: { params: Promise<{ id: st
         <table className="tbl mt-6">
           <thead><tr><th>Item</th><th className="num">Amount</th></tr></thead>
           <tbody>
-            <tr><td>{planDef(p.plan).name} plan{p.plan === 'EVENT' ? ', one event' : ''}{p.periodEnd ? `, until ${formatDate(p.periodEnd, tz)}` : ''}</td><td className="num">{money(p.amountMinor)}</td></tr>
+            <tr><td>{planDef(p.plan).product === 'play' ? 'zemmz Play ' : ''}{planDef(p.plan).name} plan{planDef(p.plan).product === 'play' ? `, ${p.months === 12 ? '12 months' : `${p.months} month${p.months === 1 ? '' : 's'}`}` : ''}{p.plan === 'EVENT' ? ', one event' : ''}{p.periodEnd ? `, until ${formatDate(p.periodEnd, tz)}` : ''}</td><td className="num">{money(p.amountMinor)}</td></tr>
             <tr><td>{p.vatMinor ? 'VAT (5%)' : 'VAT (0%, outside the UAE)'}</td><td className="num">{money(p.vatMinor)}</td></tr>
             <tr><td><b>Total paid</b></td><td className="num"><b>{money(p.totalMinor)}</b></td></tr>
           </tbody>

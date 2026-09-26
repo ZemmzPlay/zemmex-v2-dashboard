@@ -1,3 +1,4 @@
+import { ArabicInput, arText, isBilingual } from '@/components/arabic-input';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma, type Event, type FormField } from '@zemmz/db';
@@ -56,6 +57,12 @@ export default async function WebsitePage({ params, searchParams }: { params: Pr
               <div className="fld"><label htmlFor="v-phone">Phone for enquiries<span className="opt">optional</span></label><input id="v-phone" name="venuePhone" className="inp" defaultValue={event.venuePhone} maxLength={40} inputMode="tel" /></div>
             </div>
             <div className="fld"><label htmlFor="v-addr">Address</label><input id="v-addr" name="venueAddress" className="inp" defaultValue={event.venueAddress} maxLength={240} /><span className="help">Used for the map and the Get directions button.</span></div>
+            {isBilingual(event) && (
+              <div className="grid gap-x-4 sm:grid-cols-2">
+                <ArabicInput name="venueName" label="Venue name" defaultValue={arText(event, 'venueName')} maxLength={160} />
+                <ArabicInput name="venueAddress" label="Address" defaultValue={arText(event, 'venueAddress')} maxLength={240} />
+              </div>
+            )}
             {(event.venueName || event.venueAddress) && (
               <a className="btn secondary sm" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.venueName} ${event.venueAddress}`)}`} target="_blank" rel="noopener"><Icon name="pin" size={15} /> Check on Google Maps</a>
             )}
@@ -92,6 +99,7 @@ function General({ slug, event, TY, edit }: { slug: string; event: Event; TY: Ev
             <textarea id="g-hero" name="heroText" className="inp" defaultValue={event.heroText} maxLength={240} />
             <span className="help">One or two sentences under the event name. Up to 240 characters.</span>
           </div>
+          {isBilingual(event) && <ArabicInput name="heroText" label="Homepage introduction" defaultValue={arText(event, 'heroText')} maxLength={240} textarea rows={2} className="!mb-0 mt-3.5" />}
         </section>
         <section className="fsec">
           <h2>Website language</h2>
@@ -150,6 +158,13 @@ async function FormBuilder({ slug, event, TY, edit, paid }: { slug: string; even
                           <FormDialog action={editField.bind(null, slug, f.id)} label="Edit" className="btn ghost sm" title={`Edit ${f.label}`} submitLabel="Save field">
                             <div className="fld"><label htmlFor={`fl-${f.id}`}>Label</label><input id={`fl-${f.id}`} name="label" className="inp" defaultValue={f.label} maxLength={60} required autoFocus /></div>
                             {f.kind === 'DROPDOWN' && <OptionsField id={f.id} value={f.options} />}
+                            {isBilingual(event) && <ArabicInput name="label" label="Label" defaultValue={arText(f, 'label')} maxLength={60} idSuffix={f.id} />}
+                            {isBilingual(event) && f.kind === 'DROPDOWN' && (
+                              <div className="fld">
+                                <label htmlFor={`fao-${f.id}`}>Dropdown options in Arabic<span className="opt">one per line, same order</span></label>
+                                <textarea id={`fao-${f.id}`} name="ar_options" dir="rtl" lang="ar" className="inp" defaultValue={Array.isArray((f.ar as { options?: string[] } | null)?.options) ? (f.ar as { options: string[] }).options.join('\n') : ''} />
+                              </div>
+                            )}
                           </FormDialog>
                         )}
                         {custom(f) && (
@@ -251,6 +266,7 @@ async function Pages({ slug, event, TY, edit, current }: { slug: string; event: 
           deleteAction={deletePage.bind(null, slug)}
           pageId={page.id}
           initial={{ title: page.title, bodyHtml: page.bodyHtml }}
+          arabic={isBilingual(event) ? { title: arText(page, 'title'), bodyHtml: arText(page, 'bodyHtml') } : undefined}
           canEdit={edit}
         />
       ) : (

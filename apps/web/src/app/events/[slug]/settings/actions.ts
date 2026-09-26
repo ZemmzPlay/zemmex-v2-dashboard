@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { prisma } from '@zemmz/db';
-import { eventType } from '@zemmz/shared';
+import { eventType, mergeArabic } from '@zemmz/shared';
 import { can, requirePermission, requireUser } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { done, failed, type ActionState } from '@/lib/action-state';
@@ -28,7 +28,7 @@ export async function saveDetails(slug: string, _p: SettingsState, fd: FormData)
   const d = parsed.data;
   await prisma.event.update({
     where: { id: event.id },
-    data: { name: d.name, shortName: d.shortName.toUpperCase(), organiserName: d.organiserName },
+    data: { name: d.name, shortName: d.shortName.toUpperCase(), organiserName: d.organiserName, ar: mergeArabic(event.ar, fd, ['name', 'organiserName'], 120) },
   });
   await logActivity(user, event.id, 'edited the event details');
   revalidatePath(`/events/${slug}`, 'layout');

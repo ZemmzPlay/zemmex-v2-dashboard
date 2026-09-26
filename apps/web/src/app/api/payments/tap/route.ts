@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@zemmz/db';
 import { syncOrder } from '@/lib/orders';
 import { syncPurchase } from '@/lib/billing';
+import { syncEntryOrder } from '@/lib/play/entry-payments';
 
 /**
  * Tap webhook (the charge's post.url). The body is only used to find the
@@ -23,7 +24,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
   const plan = await prisma.planPurchase.findFirst({ where: { OR: [{ providerSession: body.id }, { id: orderId }], provider: 'tap' } });
-  if (!plan) return NextResponse.json({ ok: true, note: 'unknown order' });
+  if (!plan) {
+    const entry = await prisma.entryOrder.findFirst({ where: { OR: [{ providerSession: body.id }, { id: orderId }], provider: 'tap' } });
+    if (!entry) return NextResponse.json({ ok: true, note: 'unknown order' });
+    await syncEntryOrder({ ...entry, providerSession: entry.providerSession ?? body.id });
+    return NextResponse.json({ ok: true });
+  }
   await syncPurchase({ ...plan, providerSession: plan.providerSession ?? body.id });
   return NextResponse.json({ ok: true });
 }

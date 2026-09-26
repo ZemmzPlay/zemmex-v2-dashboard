@@ -9,6 +9,7 @@ import { fmt } from '@/lib/format';
 import { sendBroadcast, saveTemplate, sendTest } from './actions';
 import { TemplateEditor } from './template-editor';
 import { smsAvailability } from '@/lib/plans';
+import { arText, isBilingual } from '@/components/arabic-input';
 
 export const metadata: Metadata = { title: 'Messages' };
 
@@ -48,19 +49,20 @@ export default async function MessagesPage({ params, searchParams }: { params: P
             sample={sampleValues}
             accent={event.accentColour}
             withKicker
+            arabic={isBilingual(event) ? { subject: arText(template, 'subject'), bodyHtml: arText(template, 'bodyHtml'), kicker: arText(template, 'kicker') } : undefined}
             testAction={sendTest.bind(null, slug, 'confirmation')}
             submitLabel="Save confirmation email"
           />
         </>
       )}
 
-      {tab === 'send' && <SendTab slug={slug} eventId={event.id} accent={event.accentColour} sample={sampleValues} />}
+      {tab === 'send' && <SendTab slug={slug} eventId={event.id} accent={event.accentColour} sample={sampleValues} bilingual={isBilingual(event)} />}
       {tab === 'sent' && <SentTab eventId={event.id} tz={event.timezone} />}
     </>
   );
 }
 
-async function SendTab({ slug, eventId, accent, sample }: { slug: string; eventId: string; accent: string; sample: ReturnType<typeof mergeValuesFor> }) {
+async function SendTab({ slug, eventId, accent, sample, bilingual }: { slug: string; eventId: string; accent: string; sample: ReturnType<typeof mergeValuesFor>; bilingual: boolean }) {
   const counts = await Promise.all((Object.keys(AUDIENCES) as Audience[]).map(async (a) => [a, await prisma.registration.count({ where: audienceWhere(eventId, a) })] as const));
   const org = await prisma.organisation.findUniqueOrThrow({ where: { id: (await prisma.event.findUniqueOrThrow({ where: { id: eventId }, select: { organisationId: true } })).organisationId }, select: { plan: true, planStatus: true } });
   const sms = smsAvailability(org);
@@ -71,6 +73,7 @@ async function SendTab({ slug, eventId, accent, sample }: { slug: string; eventI
       sample={sample}
       accent={accent}
       submitLabel="Send message"
+      arabic={bilingual ? { subject: '', bodyHtml: '' } : undefined}
       testAction={sendTest.bind(null, slug, 'broadcast')}
       confirmText="Send this message now? It can’t be recalled once it’s sent."
     >
