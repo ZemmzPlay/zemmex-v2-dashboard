@@ -3,7 +3,7 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { prisma, type PlayProject, type Tournament } from '@zemmz/db';
-import { contrastRatio, fixContrast, localise, textOn } from '@zemmz/shared';
+import { contrastRatio, fixContrast, googleFontsUrl, localise, playFont, textOn, themeVars } from '@zemmz/shared';
 import { playAccess } from './billing';
 import { playText } from './site-text';
 import { fileUrl } from '@/lib/storage';
@@ -36,14 +36,26 @@ export const tName = (t: Tournament, locale: 'en' | 'ar') => localise(t, locale)
 
 const NAV_BG = '#07052E', LIGHT_BG = '#F4F5FA', DARK_BG = '#0B0A1F';
 
-/** Organiser colour as CSS variables, contrast-checked against where each is used. */
-export function siteTheme(colour: string): React.CSSProperties {
+/** Organiser colours and typefaces as CSS variables, contrast-checked against where each is used. */
+export function siteTheme(p: Pick<PlayProject, 'colour' | 'theme' | 'fontEn' | 'fontAr'>): React.CSSProperties {
+  const colour = p.colour;
   const ink = textOn(colour);
+  const en = playFont(p.fontEn), ar = playFont(p.fontAr, true);
   return {
+    ...themeVars(colour, p.theme),
+    // The defaults (Sora, IBM Plex Sans Arabic) come from next/font; others from Google Fonts (siteFontsUrl).
+    ...(en.key !== 'sora' ? { ['--pf-en' as string]: `'${en.name}'` } : {}),
+    ...(ar.key !== 'plex' ? { ['--pf-ar' as string]: `'${ar.name}'` } : {}),
     ['--brand' as string]: colour,
     ['--brand-ink' as string]: ink,
     ['--link-l' as string]: fixContrast(colour, LIGHT_BG),
     ['--link-d' as string]: fixContrast(colour, DARK_BG),
     ['--nav-hi' as string]: contrastRatio(colour, NAV_BG) >= 4.5 ? colour : fixContrast(colour, NAV_BG),
   };
+}
+
+/** The stylesheet for typefaces other than the defaults, or null. */
+export function siteFontsUrl(p: Pick<PlayProject, 'fontEn' | 'fontAr'>, locale: 'en' | 'ar') {
+  const fonts = [playFont(p.fontEn), ...(locale === 'ar' ? [playFont(p.fontAr, true)] : [])].filter((f) => f.key !== 'sora' && f.key !== 'plex');
+  return fonts.length ? googleFontsUrl(fonts) : null;
 }

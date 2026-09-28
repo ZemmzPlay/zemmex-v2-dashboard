@@ -80,7 +80,7 @@ export default async function Players({ params, searchParams }: { params: Promis
                     {!p.blacklisted && p.verification !== 'VERIFIED' && <form action={setVerification.bind(null, slug, p.id, 'VERIFIED')} className="inline"><SubmitButton className="btn ghost sm" pendingLabel="…"><Icon name="check" size={14} /> Verify</SubmitButton></form>}
                     {!p.blacklisted && p.verification === 'PENDING' && <form action={setVerification.bind(null, slug, p.id, 'REJECTED')} className="inline"><SubmitButton className="btn ghost sm" pendingLabel="…">Reject</SubmitButton></form>}
                     <FormDialog action={savePlayer.bind(null, slug, p.id)} className="btn ghost sm" label="Details" title={p.gamerTag} submitLabel="Save changes">
-                      <p className="m-0 mb-4 text-[13px] text-muted">Joined {formatDate(p.createdAt, project.timezone)}{p.lastSeenAt ? `, last signed in ${formatDate(p.lastSeenAt, project.timezone)}` : ''}. {plural(p.memberships.length, 'recent tournament')}.</p>
+                      <p className="m-0 mb-4 text-[13px] text-muted">Joined {formatDate(p.createdAt, project.timezone)}{p.lastSeenAt ? `, last signed in ${formatDate(p.lastSeenAt, project.timezone)}` : ''}. {plural(p.memberships.length, 'recent tournament')}.{p.googleId ? ' Signs in with Google.' : ''}{p.discordId ? ` Discord: ${p.discordName || 'linked'}.` : ''}</p>
                       <PlayerFields p={p} id={p.id} />
                     </FormDialog>
                     {p.blacklisted

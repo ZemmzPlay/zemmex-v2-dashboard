@@ -91,7 +91,7 @@ export default async function MyMatches({ params, searchParams }: { params: Prom
                 return (
                   <div key={m.id} className="match-card" style={{ marginTop: 10, flexWrap: 'wrap' }}>
                     <div className="teams">
-                      <div style={{ fontSize: 13, color: 'var(--muted)' }}>{label(m)} · {t.bestOf(x.bestOf)}</div>
+                      <div style={{ fontSize: 13, color: 'var(--muted)' }}>{label(m)} · {t.bestOf(x.bestOf)}{m.scheduledAt ? ` · ${formatDate(m.scheduledAt, x.timezone, locale)}, ${formatTime(m.scheduledAt, x.timezone, locale)}` : ''}</div>
                       <b>{nm(m.entryAId)}{mineA ? ` (${t.you})` : ''}</b> <span style={{ color: 'var(--muted)' }}>{t.vs}</span> <b>{nm(m.entryBId)}{!mineA ? ` (${t.you})` : ''}</b>
                       {rep && m.status !== 'PROOF' && <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>{t.reportedYou(rep.scoreA, rep.scoreB)}</div>}
                     </div>

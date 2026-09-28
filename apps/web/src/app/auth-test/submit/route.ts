@@ -12,7 +12,9 @@ export async function POST(req: Request) {
     iss: 'zemmz-test', aud: 'test', exp: Math.floor(Date.now() / 1000) + 300, nonce: g('nonce'), sub: `test-${email}`,
     email, name: g('name') || email.split('@')[0], email_verified: fd.get('verified') === 'on',
   });
-  const back = new URL(`${appUrl()}/auth/test/callback`);
+  // Organiser sign-in, or a tournament website's player sign-in.
+  const player = `${appUrl()}/play-auth/test/callback`;
+  const back = new URL(g('redirect_uri') === player ? player : `${appUrl()}/auth/test/callback`);
   back.searchParams.set('code', code);
   back.searchParams.set('state', g('state'));
   return NextResponse.redirect(back, 303);

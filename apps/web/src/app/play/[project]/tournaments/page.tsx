@@ -8,6 +8,7 @@ import { Icon } from '@/components/icon';
 import { SearchBox } from '@/components/search-box';
 import { UrlSelect } from '@/components/url-select';
 import { ReportsPanel, type ReportFilter } from './reports';
+import { StandingTables } from './standings';
 
 export const metadata: Metadata = { title: 'Tournaments' };
 
@@ -18,11 +19,12 @@ export default async function Tournaments({ params, searchParams }: { params: Pr
   const sp = await searchParams;
   const { user, project } = await requireProject(slug);
   const moderatorOnly = !playCan.runTournaments(user.role);
-  const tab = moderatorOnly || sp.tab === 'reports' ? 'reports' : 'all';
+  const tab = moderatorOnly || sp.tab === 'reports' ? 'reports' : sp.tab === 'standings' ? 'standings' : 'all';
   const base = `/play/${slug}/tournaments`;
-  const [total, open] = await Promise.all([
+  const [total, open, tables] = await Promise.all([
     prisma.tournament.count({ where: { projectId: project.id } }),
     prisma.match.count({ where: { tournament: { projectId: project.id, status: 'LIVE' }, status: { in: ['REVIEW', 'CONFLICT', 'PROOF'] } } }),
+    prisma.standingTable.count({ where: { projectId: project.id } }),
   ]);
 
   return (
@@ -40,9 +42,12 @@ export default async function Tournaments({ params, searchParams }: { params: Pr
         <nav className="tabs" aria-label="Tournaments">
           <Link href={base} aria-current={tab === 'all' ? 'page' : undefined}>All tournaments <span className="n">{total}</span></Link>
           <Link href={`${base}?tab=reports`} aria-current={tab === 'reports' ? 'page' : undefined}>Score reports <span className="n">{open}</span></Link>
+          <Link href={`${base}?tab=standings`} aria-current={tab === 'standings' ? 'page' : undefined}>Standings <span className="n">{tables}</span></Link>
         </nav>
       )}
-      {tab === 'reports' ? (
+      {tab === 'standings' ? (
+        <StandingTables projectId={project.id} slug={slug} tz={project.timezone} bilingual={project.siteLanguage !== 'EN'} canEdit={!moderatorOnly} />
+      ) : tab === 'reports' ? (
         <ReportsPanel
           projectId={project.id} slug={slug} tz={project.timezone} filter={(['open', 'conflict', 'done'].includes(sp.f ?? '') ? sp.f : 'open') as ReportFilter} selected={sp.m}
           href={(q) => `${base}?${new URLSearchParams({ tab: 'reports', ...q })}`} canReopen={!moderatorOnly}

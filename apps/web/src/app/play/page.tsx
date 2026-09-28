@@ -8,6 +8,9 @@ import { FormDialog } from '@/components/form-dialog';
 import { ConfirmButton } from '@/components/confirm-button';
 import { Icon } from '@/components/icon';
 import { playAccess } from '@/lib/play/billing';
+import { hiddenProjectIds } from '@/lib/play/core';
+import { playAddress, playDomain } from '@/lib/play/hosts';
+import { appUrl } from '@/lib/email';
 import { createProject, setProjectArchived } from './actions';
 
 export const metadata: Metadata = { title: 'zemmz Play' };
@@ -19,7 +22,7 @@ export default async function PlayHome({ searchParams }: { searchParams: Promise
   const user = await requireUser();
   const { tab = 'active', new: openNew } = await searchParams;
   const [projects, org] = await Promise.all([
-    prisma.playProject.findMany({ where: { organisationId: user.organisationId }, orderBy: { createdAt: 'asc' }, include: { _count: { select: { players: true, tournaments: true } } } }),
+    prisma.playProject.findMany({ where: { organisationId: user.organisationId, id: { notIn: await hiddenProjectIds(user.id, user.role) } }, orderBy: { createdAt: 'asc' }, include: { _count: { select: { players: true, tournaments: true } } } }),
     prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId } }),
   ]);
   const access = await playAccess(org);
@@ -30,7 +33,7 @@ export default async function PlayHome({ searchParams }: { searchParams: Promise
       <div className="fld"><label htmlFor="np-n">Name<span className="req">*</span></label><input id="np-n" name="name" className="inp" placeholder="For example, Qatar Winter Cup" required maxLength={80} autoFocus /></div>
       <div className="fld">
         <label htmlFor="np-s">Web address</label>
-        <div className="flex items-stretch overflow-hidden rounded-[10px] border border-line"><input id="np-s" name="slug" className="inp !rounded-none !border-0" placeholder="winter-cup" maxLength={50} /><span className="grid place-items-center bg-surface-2 px-3 text-[13px] text-muted">.zemmz.gg</span></div>
+        <div className="flex items-stretch overflow-hidden rounded-[10px] border border-line"><input id="np-s" name="slug" className="inp !rounded-none !border-0" placeholder="winter-cup" maxLength={50} /><span className="grid place-items-center bg-surface-2 px-3 text-[13px] text-muted">{playDomain() ? `.${playDomain()}` : 'in the address'}</span></div>
         <span className="help">Left empty, it’s made from the name. On Season you can connect your own domain.</span>
       </div>
       <div className="fld"><label htmlFor="np-d">Description<span className="opt">optional</span></label><textarea id="np-d" name="description" className="inp" maxLength={300} placeholder="What is this website for?" /></div>
@@ -69,7 +72,7 @@ export default async function PlayHome({ searchParams }: { searchParams: Promise
                   <span className="proj-mark !h-[42px] !w-[42px]" style={{ background: p.colour }}>{p.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 3).toUpperCase()}</span>
                   <div className="min-w-0 flex-1">
                     <Link href={`/play/${p.slug}`} className="block truncate text-[15px] font-semibold">{p.name}</Link>
-                    <div className="muted text-[12.5px]">{p.slug}.zemmz.gg</div>
+                    <div className="muted text-[12.5px]">{playAddress(p, appUrl())}</div>
                   </div>
                 </div>
                 <p className="m-0 flex-1 text-[13.5px] text-muted">{p.description || 'Tournament website.'}</p>

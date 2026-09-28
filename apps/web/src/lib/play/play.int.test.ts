@@ -201,3 +201,46 @@ describe('plans', () => {
     expect(await playRenewals(new Date(Date.now() + 4 * DAY))).toBe(1);
   });
 });
+
+describe('websites on their own addresses', () => {
+  it('reads <slug>.PLAY_DOMAIN and nothing else', async () => {
+    const { playSubdomain } = await import('./hosts');
+    const before = process.env.PLAY_DOMAIN;
+    process.env.PLAY_DOMAIN = 'zemmz.gg';
+    expect(playSubdomain('gel.zemmz.gg')).toBe('gel');
+    expect(playSubdomain('GEL.zemmz.gg:443')).toBe('gel');
+    expect(playSubdomain('zemmz.gg')).toBeNull();
+    expect(playSubdomain('a.b.zemmz.gg')).toBeNull();
+    expect(playSubdomain('gel.zemmz.gg.evil.com')).toBeNull();
+    process.env.PLAY_DOMAIN = before;
+  });
+});
+
+describe('Google and Discord sign-in', () => {
+  it('hands a session to the website once, and only for its own website', async () => {
+    const { handoffToken, redeemHandoff } = await import('./oauth');
+    const { p } = await project();
+    const other = (await project()).p;
+    const pl = await player(p.id);
+    const token = await handoffToken(p.id, pl.id, 'discord');
+    expect(await redeemHandoff(other.id, token)).toBeNull();
+    expect(await redeemHandoff(p.id, token)).toEqual({ playerId: pl.id, method: 'discord' });
+    expect(await redeemHandoff(p.id, token)).toBeNull();
+  });
+});
+
+describe('roles on one website', () => {
+  it('overrides the organisation role, hides the website with No access, and never limits owners', async () => {
+    const { projectRole, hiddenProjectIds } = await import('./core');
+    const { org, p } = await project();
+    const editor = await prisma.user.create({ data: { name: 'Ed', email: `ed-${Math.random().toString(36).slice(2, 7)}@test`, passwordHash: 'x', memberships: { create: { organisationId: org.id, role: 'EDITOR' } } } });
+    expect(await projectRole(editor.id, 'EDITOR', p.id)).toBe('EDITOR');
+    await prisma.playProjectMember.create({ data: { projectId: p.id, userId: editor.id, role: 'ADMIN' } });
+    expect(await projectRole(editor.id, 'EDITOR', p.id)).toBe('ADMIN');
+    await prisma.playProjectMember.update({ where: { projectId_userId: { projectId: p.id, userId: editor.id } }, data: { role: 'NONE' } });
+    expect(await projectRole(editor.id, 'EDITOR', p.id)).toBeNull();
+    expect(await hiddenProjectIds(editor.id, 'EDITOR')).toEqual([p.id]);
+    expect(await projectRole(editor.id, 'OWNER', p.id)).toBe('OWNER');
+    expect(await hiddenProjectIds(editor.id, 'OWNER')).toEqual([]);
+  });
+});

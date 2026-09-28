@@ -9,13 +9,19 @@ import { SimpleForm } from '@/components/simple-form';
 import { Uploader } from '@/components/uploader';
 import { ArabicInput } from '@/components/arabic-input';
 import { PageEditor } from '@/app/events/[slug]/website/page-editor';
-import { saveColour, saveHome, savePage, saveSocials } from './actions';
+import { saveColour, saveHome, savePage, saveSignIn, saveSocials, saveTheme } from './actions';
+import { ThemeForm } from './theme-form';
+import { googleFontsUrl, PLAY_FONTS_AR, PLAY_FONTS_EN } from '@zemmz/shared';
 import { ColourForm } from './colour-form';
 import { SOCIALS } from './socials';
+import { playProviderReady } from '@/lib/play/oauth';
+import { smsReady } from '@/lib/play/players';
+import { playAddress } from '@/lib/play/hosts';
+import { appUrl } from '@/lib/email';
 
 export const metadata: Metadata = { title: 'Website' };
 
-const TABS: [string, string][] = [['look', 'Logo and colour'], ['home', 'Homepage'], ['rules', 'Rules'], ['faq', 'FAQ'], ['social', 'Socials and sponsors']];
+const TABS: [string, string][] = [['look', 'Logo and colour'], ['theme', 'Theme'], ['home', 'Homepage'], ['rules', 'Rules'], ['faq', 'FAQ'], ['social', 'Socials and sponsors'], ['signin', 'Sign-in']];
 
 function dateParts(d: Date | null, tz: string) {
   if (!d) return { date: '', time: '' };
@@ -41,7 +47,7 @@ export default async function Website({ params, searchParams }: { params: Promis
   return (
     <>
       <div className="ph">
-        <div><h1>Website</h1><p>What players see at {slug}.zemmz.gg{bilingual ? ', in English and Arabic' : ''}. Changes are live as soon as you save.</p></div>
+        <div><h1>Website</h1><p>What players see at {playAddress(project, appUrl())}{bilingual ? ', in English and Arabic' : ''}. Changes are live as soon as you save.</p></div>
         <div className="actions"><a href={`/p/${slug}`} target="_blank" rel="noopener" className="btn secondary"><Icon name="ext" size={16} /> View website</a></div>
       </div>
       <nav className="tabs" aria-label="Website">{TABS.map(([k, l]) => <Link key={k} href={`${base}?tab=${k}`} aria-current={tab === k ? 'page' : undefined}>{l}</Link>)}</nav>
@@ -62,6 +68,35 @@ export default async function Website({ params, searchParams }: { params: Promis
             <ColourForm action={saveColour.bind(null, slug)} initial={project.colour} canEdit={edit} />
           </section>
         </div>
+      )}
+
+      {tab === 'signin' && (
+        <SimpleForm action={saveSignIn.bind(null, slug)} submitLabel="Save" canEdit={edit}>
+          <section className="fsec">
+            <h2>How players sign in</h2>
+            <p className="hint">There are no player passwords. Keep at least one way on.</p>
+            {([
+              ['email', 'Email, with a 6-digit code', true, 'Always available.'],
+              ['phone', 'Mobile number, with a 6-digit code by text message', smsReady(), 'Needs an SMS provider (SMS_PROVIDER) on the server.'],
+              ['google', 'Google', playProviderReady('google'), 'Needs GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, with <APP_URL>/play-auth/google/callback as a redirect URI.'],
+              ['discord', 'Discord', playProviderReady('discord'), 'Needs DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET, with <APP_URL>/play-auth/discord/callback as a redirect URI.'],
+            ] as [string, string, boolean, string][]).map(([k, l, ready, note]) => (
+              <div key={k} className="border-t border-line py-3 first:border-0">
+                <label className="switch"><input type="checkbox" name={k} defaultChecked={project.signInMethods.includes(k)} /> <span>{l}</span></label>
+                <p className={`m-0 ml-[52px] mt-1 text-[12.5px] ${ready ? 'text-muted' : 'text-warn'}`}>{ready ? (k === 'email' ? note : 'Set up on this server.') : `Not set up yet: players won’t see it until it is. ${note}`}</p>
+              </div>
+            ))}
+            <p className="mb-0 mt-2 text-[12.5px] text-muted">Players who sign in with Google or Discord are matched to their account by the email address the provider confirms; new players add their gamer tag and country.</p>
+          </section>
+        </SimpleForm>
+      )}
+
+      {tab === 'theme' && (
+        <>
+          {/* Every typeface, so each option in the lists shows in its own style. */}
+          <link rel="stylesheet" href={googleFontsUrl([...PLAY_FONTS_EN, ...PLAY_FONTS_AR])} precedence="default" />
+          <ThemeForm action={saveTheme.bind(null, slug)} brand={project.colour} initial={{ fontEn: project.fontEn, fontAr: project.fontAr, theme: project.theme }} canEdit={edit} />
+        </>
       )}
 
       {tab === 'home' && (

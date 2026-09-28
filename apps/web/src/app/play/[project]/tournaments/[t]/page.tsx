@@ -14,7 +14,14 @@ import { ConfirmAction } from '@/components/confirm-action';
 import { FormDialog } from '@/components/form-dialog';
 import { SimpleForm } from '@/components/simple-form';
 import { Uploader } from '@/components/uploader';
-import { endAction, markPrizePaid, refundEntryAction, reopenMatch, saveSeeds, setEntryStatus, setPublished, startAction, confirmMatch } from '../actions';
+import { endAction, markPrizePaid, refundEntryAction, reopenMatch, saveSeeds, scheduleMatch, setEntryStatus, setPublished, startAction, confirmMatch } from '../actions';
+
+/** A date and a time in a timezone, for the time inputs. */
+function localParts(d: Date, tz: string) {
+  const f = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(d);
+  const v = (x: string) => f.find((p) => p.type === x)?.value ?? '';
+  return { date: `${v('year')}-${v('month')}-${v('day')}`, time: `${v('hour') === '24' ? '00' : v('hour')}:${v('minute')}` };
+}
 import { ReportsPanel, type ReportFilter } from '../reports';
 import { ResultForm } from '../result-form';
 
@@ -253,6 +260,19 @@ async function Bracket({ slug, t, selected, run }: { slug: string; t: Tournament
         {playable && !m.reports.length && run && <Link className="act" href={`${base}?tab=bracket&m=${m.id}#result`}>Enter result</Link>}
         {has && run && t.status === 'LIVE' && reopenable.has(m.id) && !m.aBye && !m.bBye && (
           <ConfirmButton action={reopenMatch.bind(null, slug, m.id)} className="act !text-muted" label="Reopen" title="Reopen this result?" confirmLabel="Reopen result" body={<p className="m-0">The score of {name(m.entryAId)} vs {name(m.entryBId)} is cleared and the match waits for a result again.</p>} />
+        )}
+        {!has && !m.aBye && !m.bBye && t.status === 'LIVE' && (
+          run ? (
+            <FormDialog action={scheduleMatch.bind(null, slug, m.id)} className="act !font-normal !text-muted" label={<><Icon name="clock" size={12} /> {m.scheduledAt ? `${formatDate(m.scheduledAt, t.timezone)}, ${formatTime(m.scheduledAt, t.timezone)}` : 'Set a time'}</>} title={`${label(m)}: ${name(m.entryAId) ?? 'To be decided'} vs ${name(m.entryBId) ?? 'To be decided'}`} submitLabel="Save time">
+              <p className="m-0 mb-3 text-[13px] text-muted">In {t.timezone.replace('_', ' ')}. Players in the match are emailed the time; they also see it in My matches.</p>
+              <div className="grid gap-x-4 sm:grid-cols-2">
+                <div className="fld"><label htmlFor={`sd-${m.id}`}>Date</label><input id={`sd-${m.id}`} name="date" type="date" className="inp" defaultValue={m.scheduledAt ? localParts(m.scheduledAt, t.timezone).date : ''} /></div>
+                <div className="fld"><label htmlFor={`st-${m.id}`}>Time</label><input id={`st-${m.id}`} name="time" type="time" className="inp" defaultValue={m.scheduledAt ? localParts(m.scheduledAt, t.timezone).time : ''} /></div>
+              </div>
+              <label className="switch mb-2"><input type="checkbox" name="round" /> <span>Every unplayed match in {label(m).toLowerCase()} at this time</span></label>
+              {m.scheduledAt && <label className="switch"><input type="checkbox" name="clear" /> <span>Clear the time instead</span></label>}
+            </FormDialog>
+          ) : m.scheduledAt ? <span className="act !font-normal !text-muted">{formatDate(m.scheduledAt, t.timezone)}, {formatTime(m.scheduledAt, t.timezone)}</span> : null
         )}
       </div>
     );

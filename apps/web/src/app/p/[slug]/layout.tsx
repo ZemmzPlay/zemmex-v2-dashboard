@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { IBM_Plex_Sans_Arabic, Sora } from 'next/font/google';
 import { currentPlayer } from '@/lib/play/players';
-import { siteFor, siteTheme } from '@/lib/play/site';
+import { siteFontsUrl, siteFor, siteTheme } from '@/lib/play/site';
 import { SOCIALS } from '@/app/play/[project]/website/socials';
 import { SiteNav } from './site-nav';
 import { Countdown } from './countdown';
@@ -20,8 +20,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function PlaySiteLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { project, open, logoUrl, locale, t, base } = await siteFor(slug);
+  const fonts = siteFontsUrl(project, locale);
   const shell = (body: React.ReactNode) => (
-    <div className={`pl ${sora.variable} ${locale === 'ar' ? plexArabic.variable : ''}`} lang={locale === 'ar' ? 'ar' : 'en-GB'} dir={t.dir} style={siteTheme(project.colour)}>{body}</div>
+    <div className={`pl ${sora.variable} ${locale === 'ar' ? plexArabic.variable : ''}`} lang={locale === 'ar' ? 'ar' : 'en-GB'} dir={t.dir} style={siteTheme(project)}>
+      {/* React hoists stylesheet links into the head. */}
+      {fonts && <link rel="stylesheet" href={fonts} precedence="default" />}
+      {body}
+    </div>
   );
   const mark = logoUrl ? <img src={logoUrl} alt="" /> : <span className="mk">{project.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 3).toUpperCase()}</span>;
   if (!open) {

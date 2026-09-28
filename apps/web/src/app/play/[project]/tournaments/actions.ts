@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma, type TournamentFormat } from '@zemmz/db';
-import { CURRENCIES, isCurrency, mergeArabic, PLAY_GAMES, zonedTime } from '@zemmz/shared';
+import { CURRENCIES, formatDate, formatTime, isCurrency, mergeArabic, PLAY_GAMES, platformEmail, zonedTime } from '@zemmz/shared';
+import { playSiteOrigin } from '@/lib/play/core';
 import { done, failed, type ActionState } from '@/lib/action-state';
 import { logPlay, playCan, requireProjectPermission, slugify } from '@/lib/play/core';
 import { BracketError, confirmResult, endTournament, prizeList, reopenResult, startTournament } from '@/lib/play/bracket';
@@ -231,4 +232,106 @@ export async function markPrizePaid(slug: string, awardId: string, _p: ActionSta
   await logPlay(project.id, user.name, `marked the place ${a.place} prize in ${a.tournament.name} as paid (${reference})`);
   refresh(slug);
   return done('Marked as paid.');
+}
+
+/* ------------------------------------------------------------------ */
+/* Match times                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Sets when a match is played, or every unplayed match in its round, in the
+ * tournament's timezone. Both sides' players are emailed the time.
+ */
+export async function scheduleMatch(slug: string, matchId: string, _p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user, project } = await ctx(slug);
+  const match = await prisma.match.findFirst({ where: { id: matchId, tournament: { projectId: project.id } }, include: { tournament: true } });
+  if (!match) return failed('That match no longer exists.');
+  const t = match.tournament;
+  if (t.status === 'ENDED' || t.status === 'CANCELLED') return failed('This tournament has ended.');
+  const clear = fd.get('clear') === 'on';
+  const d = g(fd, 'date'), tm = g(fd, 'time');
+  let at: Date | null = null;
+  if (!clear) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !/^\d{2}:\d{2}$/.test(tm)) return failed('Enter the date and time.');
+    at = zonedTime(d, tm, t.timezone);
+    if (at < new Date(Date.now() - 60 * 60_000)) return failed('That time has passed. Choose a time from now on.');
+  }
+  const whole = fd.get('round') === 'on';
+  const targets = whole
+    ? await prisma.match.findMany({ where: { tournamentId: t.id, bracket: match.bracket, round: match.round, status: { not: 'CONFIRMED' }, aBye: false, bBye: false } })
+    : [match];
+  await prisma.match.updateMany({ where: { id: { in: targets.map((m) => m.id) } }, data: { scheduledAt: at } });
+
+  // Tell the players whose match now has a time.
+  if (at) {
+    const entryIds = targets.flatMap((m) => [m.entryAId, m.entryBId]).filter(Boolean) as string[];
+    const [members, entries] = await Promise.all([
+      prisma.entryMember.findMany({ where: { entryId: { in: entryIds } }, include: { player: true } }),
+      prisma.entry.findMany({ where: { id: { in: entryIds } }, select: { id: true, name: true } }),
+    ]);
+    const name = (id: string | null) => entries.find((e) => e.id === id)?.name ?? 'your opponent';
+    const when = `${formatDate(at, t.timezone)}, ${formatTime(at, t.timezone)} (${t.timezone.replace('_', ' ')})`;
+    for (const m of targets) {
+      for (const mem of members.filter((x) => x.entryId === m.entryAId || x.entryId === m.entryBId)) {
+        const opp = mem.entryId === m.entryAId ? name(m.entryBId) : name(m.entryAId);
+        const body = platformEmail({
+          heading: `Your match in ${t.name}`,
+          paragraphs: [`Hi ${mem.player.firstName},`, `You play ${opp} on ${when}. Be ready a few minutes before, and report the result from My matches when you finish.`],
+          button: { label: 'My matches', url: `${playSiteOrigin(project)}/p/${project.slug}/me` },
+        });
+        await prisma.outboundMessage.create({ data: { channel: 'EMAIL', toAddress: mem.player.email, toName: mem.player.gamerTag, subject: `${t.name}: you play ${opp} on ${formatDate(at, t.timezone)}`, html: body.html, text: body.text } });
+      }
+    }
+  }
+  await logPlay(project.id, user.name, `${at ? 'scheduled' : 'cleared the time of'} ${targets.length} ${targets.length === 1 ? 'match' : 'matches'} in ${t.name}`);
+  refresh(slug);
+  return done(at ? `${targets.length === 1 ? 'Match' : `${targets.length} matches`} set for ${formatDate(at, t.timezone)}, ${formatTime(at, t.timezone)}. Players were emailed.` : 'Time cleared.');
+}
+
+/* ------------------------------------------------------------------ */
+/* Standings written by hand                                            */
+/* ------------------------------------------------------------------ */
+
+/** Rows as "Name, played, won, lost, points", one per line. */
+function parseRows(text: string) {
+  const rows: { name: string; played: number; won: number; lost: number; points: number }[] = [];
+  for (const [i, line] of text.split('\n').map((l) => l.trim()).filter(Boolean).entries()) {
+    const parts = line.split(/\s*[,\t]\s*/);
+    const [name, ...nums] = parts;
+    const n = nums.map(Number);
+    if (!name || name.length > 60) return { error: `Line ${i + 1} needs a name of up to 60 characters.` };
+    if (nums.length !== 4 || n.some((x) => !Number.isInteger(x) || x < 0 || x > 9999)) return { error: `Line ${i + 1}: after the name, give played, won, lost and points as whole numbers, like “Falcons, 3, 2, 1, 6”.` };
+    rows.push({ name, played: n[0], won: n[1], lost: n[2], points: n[3] });
+  }
+  if (!rows.length) return { error: 'Add at least one row.' };
+  if (rows.length > 64) return { error: 'A table can have up to 64 rows.' };
+  return { rows };
+}
+
+export async function saveStandingTable(slug: string, id: string | null, _p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user, project } = await ctx(slug);
+  const existing = id ? await prisma.standingTable.findFirst({ where: { id, projectId: project.id } }) : null;
+  if (id && !existing) return failed('That table no longer exists.');
+  const title = g(fd, 'title').slice(0, 80);
+  if (!title) return failed('Give the table a title, like Group A.');
+  const parsed = parseRows(g(fd, 'rows'));
+  if (!parsed.rows) return failed(parsed.error!);
+  const tId = g(fd, 'tournamentId');
+  const tournament = tId ? await prisma.tournament.findFirst({ where: { id: tId, projectId: project.id } }) : null;
+  const qualify = Math.min(Math.max(0, Number(g(fd, 'qualify')) || 0), parsed.rows.length);
+  const data = { title, rows: parsed.rows as unknown as object, tournamentId: tournament?.id ?? null, qualify, published: fd.get('published') === 'on', ar: mergeArabic(existing?.ar, fd, ['title'], 80) };
+  if (existing) await prisma.standingTable.update({ where: { id: existing.id }, data });
+  else await prisma.standingTable.create({ data: { ...data, projectId: project.id } });
+  await logPlay(project.id, user.name, `${existing ? 'edited' : 'added'} the standings ${title}${data.published ? '' : ' (draft)'}`);
+  refresh(slug);
+  return done(data.published ? 'Saved and shown on the website.' : 'Saved as a draft.');
+}
+
+export async function deleteStandingTable(slug: string, id: string) {
+  const { user, project } = await ctx(slug);
+  const t = await prisma.standingTable.findFirst({ where: { id, projectId: project.id } });
+  if (!t) return;
+  await prisma.standingTable.delete({ where: { id: t.id } });
+  await logPlay(project.id, user.name, `deleted the standings ${t.title}`);
+  refresh(slug);
 }

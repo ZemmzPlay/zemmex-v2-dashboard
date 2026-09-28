@@ -18,7 +18,11 @@ const g = (fd: FormData, k: string) => String(fd.get(k) ?? '').trim();
 const PENDING = 'zplay_pending';
 const NEW = 'zplay_new';
 const TEN_MIN = 10 * 60_000;
-type Pending = { p: string; target: string; kind: 'email' | 'phone'; next: string; at: number };
+type Pending = {
+  p: string; target: string; kind: 'email' | 'phone'; next: string; at: number;
+  /** Signing up with Google or Discord: the account to link, and the name they gave it. */
+  link?: { provider: 'google' | 'discord'; id: string; handle: string }; first?: string; last?: string;
+};
 
 /** Only paths on this website. */
 const safeNext = (base: string, next: string) => (next.startsWith(`${base}/`) || next === base ? next : `${base}/me`);
@@ -36,6 +40,8 @@ export async function startSignIn(slug: string, _p: ActionState, fd: FormData): 
   const { project, t, locale, base } = await siteFor(slug);
   const target = normaliseTarget(g(fd, 'target'));
   if (!target) return failed(t.badTarget);
+  // The organiser chooses which ways to sign in are offered (Website → Sign-in).
+  if (!project.signInMethods.includes(target.kind)) return failed(target.kind === 'phone' ? t.useEmail : t.usePhone);
   if (!rateLimit(`play-code:${project.id}:${target.value}`, 5, 15 * 60_000)) return failed(locale === 'ar' ? 'أرسلنا عدة رموز. انتظر بضع دقائق.' : 'We’ve sent several codes. Wait a few minutes and try again.');
   try {
     await sendPlayerCode(project, target, locale);
@@ -70,7 +76,7 @@ export async function verifySignIn(slug: string, _p: ActionState, fd: FormData):
   const player = await prisma.playPlayer.findFirst({ where: { projectId: project.id, ...(p.kind === 'email' ? { email: p.target } : { phone: p.target }) } });
   if (player) {
     if (player.blacklisted) return failed(locale === 'ar' ? 'لا يمكن لهذا الحساب تسجيل الدخول. تواصل مع المنظمين.' : 'This account can’t sign in. Contact the organisers.');
-    await startPlayerSession(project, player.id);
+    await startPlayerSession(project, player.id, p.kind);
     redirect(p.next);
   }
   await setPending(NEW, base, { ...p, at: Date.now() });
@@ -100,9 +106,10 @@ export async function createAccount(slug: string, _p: ActionState, fd: FormData)
   if (fd.get('terms') !== 'on') return failed(t.mustAgree);
   const clash = await prisma.playPlayer.findFirst({ where: { projectId: project.id, OR: [{ email }, { gamerTag: { equals: gamerTag, mode: 'insensitive' } }, ...(phone ? [{ phone }] : [])] } });
   if (clash) return failed(clash.email === email ? t.emailTaken : clash.phone && clash.phone === phone ? t.phoneTaken : t.tagTaken);
-  const player = await prisma.playPlayer.create({ data: { projectId: project.id, firstName, lastName, gamerTag, email, phone, country, locale } });
+  const link = p.link ? { [p.link.provider === 'google' ? 'googleId' : 'discordId']: p.link.id, ...(p.link.provider === 'discord' ? { discordName: p.link.handle } : {}) } : {};
+  const player = await prisma.playPlayer.create({ data: { projectId: project.id, firstName, lastName, gamerTag, email, phone, country, locale, ...link } });
   (await cookies()).delete({ name: NEW, path: base });
-  await startPlayerSession(project, player.id);
+  await startPlayerSession(project, player.id, p.link?.provider ?? p.kind);
   redirect(p.next);
 }
 

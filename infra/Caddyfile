@@ -2,8 +2,10 @@
 # (e.g. live.zemmz.com), Caddy obtains and renews TLS certificates itself.
 #
 # Event websites on an organiser's own domain (events.client.com, set up in
-# the event's Settings → Web address) get certificates on demand: Caddy asks
-# the app whether the domain is a verified event domain before issuing one.
+# the event's Settings → Web address), tournament websites on theirs, and
+# tournament websites at <slug>.PLAY_DOMAIN (with a wildcard DNS record
+# *.zemmz.gg → this server) get certificates on demand: Caddy asks the app
+# whether the host is one of those before issuing one.
 {
 	on_demand_tls {
 		ask http://web:3000/api/domains/allowed
@@ -33,7 +35,7 @@
 	import common
 }
 
-# Any other host: organisers' custom event domains.
+# Any other host: organisers' own domains and <slug>.PLAY_DOMAIN.
 https:// {
 	tls {
 		on_demand

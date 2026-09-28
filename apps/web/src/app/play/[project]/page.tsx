@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@zemmz/db';
 import { playCountry, playGame } from '@zemmz/shared';
-import { requireProject, tournamentPhase, PHASE_LABEL, ACTIVE_ENTRY } from '@/lib/play/core';
+import { requireProject, tournamentPhase, PHASE_LABEL, ACTIVE_ENTRY, playSiteOrigin } from '@/lib/play/core';
+import { playAddress } from '@/lib/play/hosts';
+import { appUrl } from '@/lib/email';
 import { fmt, pct } from '@/lib/format';
 import { Icon } from '@/components/icon';
 
@@ -46,7 +48,7 @@ export default async function PlayDashboard({ params, searchParams }: { params: 
   return (
     <>
       <div className="ph">
-        <div><h1>{welcome ? `Welcome, ${first}` : project.name}</h1><p>Times are in {project.timezone.replace('_', ' ')}. Players sign up at <a href={`/p/${slug}`} target="_blank" rel="noopener">{slug}.zemmz.gg</a>.</p></div>
+        <div><h1>{welcome ? `Welcome, ${first}` : project.name}</h1><p>Times are in {project.timezone.replace('_', ' ')}. Players sign up at <a href={`${playSiteOrigin(project)}/p/${slug}`} target="_blank" rel="noopener">{playAddress(project, appUrl())}</a>.</p></div>
         <div className="actions"><Link href={`${base}/tournaments/new`} className="btn primary"><Icon name="plus" size={16} /> New tournament</Link></div>
       </div>
       {tournaments.length === 0 && (
@@ -60,14 +62,14 @@ export default async function PlayDashboard({ params, searchParams }: { params: 
           </ol>
         </section>
       )}
-      <div className="mb-4 grid gap-4 md:grid-cols-4">
+      <div className="mb-4 grid gap-4 md:grid-cols-4" data-tour="kpis">
         <div className="card kpi"><div className="l">New players</div><div className="v">{fmt(newNow)}</div><div className="d">Last 30 days{delta != null && <> · <span className={delta >= 0 ? 'text-ok' : 'text-danger'}>{delta >= 0 ? '▲' : '▼'} {Math.abs(delta)}%</span> vs the 30 before</>}</div></div>
         <div className="card kpi"><div className="l">Registered players</div><div className="v">{fmt(players)}</div><div className="d">{fmt(pending)} awaiting review</div></div>
         <div className="card kpi"><div className="l">Live tournaments</div><div className="v">{live.length}</div><div className="d">{open.length} open for registration</div></div>
         <div className="card kpi"><div className="l">Score reports</div><div className="v">{reports}</div><div className="d">{conflicts ? `${conflicts} with scores that don’t match` : 'To confirm'}</div></div>
       </div>
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        <section className="card">
+        <section className="card" data-tour="live">
           <div className="card-h"><h2>Live tournaments</h2><div className="r"><Link href={`${base}/tournaments`} className="btn ghost sm">View all</Link></div></div>
           <div className="card-b !pt-1">
             {live.length === 0 ? <p className="m-0 text-muted">Nothing running now. Start a tournament from its page when registration closes.</p> : (
@@ -83,7 +85,7 @@ export default async function PlayDashboard({ params, searchParams }: { params: 
             )}
           </div>
         </section>
-        <section className="card">
+        <section className="card" data-tour="attention">
           <div className="card-h"><h2>Needs your attention</h2></div>
           <div className="card-b !pt-1 flex flex-col gap-2 text-[13.5px]">
             {reports > 0 && <Link href={`${base}/tournaments?tab=reports`} className="attn"><Icon name="image" size={17} /> <span><b>{reports} score {reports === 1 ? 'report' : 'reports'} to confirm</b><small className="block text-muted">{conflicts ? `${conflicts} with scores that don’t match` : 'Players are waiting to advance'}</small></span></Link>}
