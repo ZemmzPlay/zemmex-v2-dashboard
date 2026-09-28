@@ -4,6 +4,7 @@ import { unsealData } from '@/lib/order-tokens';
 import { redeemHandoff } from '@/lib/play/oauth';
 import { startPlayerSession } from '@/lib/play/players';
 import { getSiteProject } from '@/lib/play/site';
+import { visitorOrigin } from '@/lib/play/hosts';
 
 /** The website's half of Google or Discord sign-in: sets its own session cookie, or starts account creation. */
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -12,7 +13,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   const url = new URL(req.url);
   const base = `/p/${slug}`;
   const next = url.searchParams.get('next') ?? '';
-  const to = (path: string) => NextResponse.redirect(new URL(path, req.url), 303);
+  const to = (path: string) => NextResponse.redirect(`${visitorOrigin(req)}${path}`, 303);
 
   const t = url.searchParams.get('t');
   if (t) {

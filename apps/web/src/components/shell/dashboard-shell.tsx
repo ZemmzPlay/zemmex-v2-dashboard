@@ -56,6 +56,7 @@ function playNav(p: PlayProject, role: Role, counts: { reports: number; pending:
     return [['Moderation', [
       { href: `${base}/tournaments?tab=reports`, icon: 'image', label: 'Score reports', count: counts.reports ? String(counts.reports) : undefined },
       { href: `${base}/players`, icon: 'users', label: 'Players', count: counts.pending ? String(counts.pending) : undefined },
+      { href: `${base}/help`, icon: 'help', label: 'Help' },
     ]]];
   }
   return [
@@ -63,11 +64,13 @@ function playNav(p: PlayProject, role: Role, counts: { reports: number; pending:
       { href: base, icon: 'dash', label: 'Dashboard', exact: true },
       { href: `${base}/tournaments`, icon: 'trophy', label: 'Tournaments', count: counts.reports ? String(counts.reports) : undefined },
       { href: `${base}/players`, icon: 'users', label: 'Players', count: counts.pending ? String(counts.pending) : undefined },
+      { href: `${base}/analytics`, icon: 'chart', label: 'Analytics' },
     ]],
     ['Content', [
       { href: `${base}/website`, icon: 'globe', label: 'Website' },
       { href: `${base}/settings`, icon: 'settings', label: 'Settings' },
       ...(can.manageEvent(role) ? [{ href: '/play/plan', icon: 'star' as const, label: 'Plan' }] : []),
+      { href: `${base}/help`, icon: 'help', label: 'Help' },
     ]],
   ];
 }

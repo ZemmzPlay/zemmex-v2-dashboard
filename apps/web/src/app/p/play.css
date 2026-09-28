@@ -35,18 +35,20 @@
 .pl .links a:hover{color:var(--nav-ink)}
 .pl .links a[aria-current="page"]{color:var(--nav-hi)}
 .pl .nav-r{margin-inline-start:auto;display:flex;align-items:center;gap:10px}
-.pl .lang{border:1px solid rgba(255,255,255,.2);background:transparent;color:var(--nav-ink);height:36px;padding:0 12px;border-radius:9px;font-weight:600;font-size:13px}
+.pl .lang{border:1px solid color-mix(in srgb,var(--nav-ink) 25%,transparent);background:transparent;color:var(--nav-ink);height:36px;padding:0 12px;border-radius:9px;font-weight:600;font-size:13px}
 .pl .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:11px;border:1px solid transparent;font-weight:600;font-size:14.5px;white-space:nowrap;text-decoration:none}
 .pl .btn.primary{background:var(--brand);color:var(--brand-ink)}
 .pl .btn.primary:hover{filter:brightness(1.08)}
 .pl .btn.ghost{background:transparent;border-color:var(--line);color:var(--ink)}
 .pl .btn.ghost:hover{border-color:var(--link);color:var(--link)}
 .pl .btn.light{background:#fff;color:#0D0B2E}
-.pl .btn.onnav{background:transparent;border-color:rgba(255,255,255,.22);color:var(--nav-ink)}
+.pl .btn.onnav{background:transparent;border-color:color-mix(in srgb,var(--nav-ink) 28%,transparent);color:var(--nav-ink)}
+/* The homepage hero stays dark whatever the navigation bar's colour, so its white text always reads. */
+.pl .hero .btn.onnav{border-color:rgba(255,255,255,.22);color:#fff}
 .pl .btn.sm{height:36px;padding:0 14px;font-size:13.5px}
 .pl .btn[disabled]{opacity:.5;pointer-events:none}
 .pl .burger{display:none;border:0;background:none;color:var(--nav-ink);width:40px;height:40px;border-radius:9px}
-.pl .hero{background:var(--nav-bg);color:#fff;position:relative;overflow:hidden}
+.pl .hero{background:#07052E;color:#fff;position:relative;overflow:hidden}
 .pl .hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding-top:56px;padding-bottom:72px;position:relative;z-index:1}
 .pl .hero h1{font-size:clamp(38px,5.6vw,68px);line-height:1.02;letter-spacing:-.035em;margin:0 0 18px;font-weight:800}
 .pl [dir="rtl"] .hero h1{letter-spacing:0;line-height:1.2}

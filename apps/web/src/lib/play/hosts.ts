@@ -6,6 +6,17 @@
  */
 export const playDomain = () => (process.env.PLAY_DOMAIN ?? '').trim().toLowerCase().replace(/^\.|\.$/g, '');
 
+/**
+ * The origin the visitor used, from the proxy's forwarded headers. Behind a
+ * rewrite `req.url` holds the server's own address, so a redirect built from it
+ * would leave an organiser's domain (and the cookies set on it).
+ */
+export function visitorOrigin(req: Request) {
+  const host = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? new URL(req.url).host).split(',')[0].trim();
+  const proto = (req.headers.get('x-forwarded-proto') ?? new URL(req.url).protocol.replace(':', '')).split(',')[0].trim();
+  return `${proto}://${host}`;
+}
+
 /** The website slug a host names, if it's a subdomain of PLAY_DOMAIN. */
 export function playSubdomain(host: string): string | null {
   const d = playDomain();
