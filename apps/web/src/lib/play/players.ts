@@ -1,7 +1,8 @@
 import 'server-only';
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { cache } from 'react';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { deviceOf } from './oauth';
 import { prisma, type PlayPlayer, type PlayProject } from '@zemmz/db';
 import { platformEmail } from '@zemmz/shared';
 
@@ -62,10 +63,11 @@ export async function checkPlayerCode(projectId: string, target: string, code: s
   return true;
 }
 
-export async function startPlayerSession(project: PlayProject, playerId: string) {
+export async function startPlayerSession(project: PlayProject, playerId: string, method = '') {
   const token = randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
-  await prisma.playerSession.create({ data: { playerId, tokenHash: sha256(token), expiresAt } });
+  const device = deviceOf((await headers()).get('user-agent'));
+  await prisma.playerSession.create({ data: { playerId, tokenHash: sha256(token), expiresAt, method, device } });
   await prisma.playPlayer.update({ where: { id: playerId }, data: { lastSeenAt: new Date() } });
   (await cookies()).set(cookieName(project.id), token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', expires: expiresAt });
 }

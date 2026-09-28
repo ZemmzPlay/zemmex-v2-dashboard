@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@zemmz/db';
 import { playCountry, playGame } from '@zemmz/shared';
-import { requireProject, tournamentPhase, PHASE_LABEL, ACTIVE_ENTRY } from '@/lib/play/core';
+import { requireProject, tournamentPhase, PHASE_LABEL, ACTIVE_ENTRY, playSiteOrigin } from '@/lib/play/core';
+import { playAddress } from '@/lib/play/hosts';
+import { appUrl } from '@/lib/email';
 import { fmt, pct } from '@/lib/format';
 import { Icon } from '@/components/icon';
 
@@ -46,7 +48,7 @@ export default async function PlayDashboard({ params, searchParams }: { params: 
   return (
     <>
       <div className="ph">
-        <div><h1>{welcome ? `Welcome, ${first}` : project.name}</h1><p>Times are in {project.timezone.replace('_', ' ')}. Players sign up at <a href={`/p/${slug}`} target="_blank" rel="noopener">{slug}.zemmz.gg</a>.</p></div>
+        <div><h1>{welcome ? `Welcome, ${first}` : project.name}</h1><p>Times are in {project.timezone.replace('_', ' ')}. Players sign up at <a href={`${playSiteOrigin(project)}/p/${slug}`} target="_blank" rel="noopener">{playAddress(project, appUrl())}</a>.</p></div>
         <div className="actions"><Link href={`${base}/tournaments/new`} className="btn primary"><Icon name="plus" size={16} /> New tournament</Link></div>
       </div>
       {tournaments.length === 0 && (

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@zemmz/db';
-import { playCountry, standings, type BMatch } from '@zemmz/shared';
+import { localiseAll, playCountry, standings, type BMatch } from '@zemmz/shared';
 import { siteFor, tName } from '@/lib/play/site';
 import { ACTIVE_ENTRY } from '@/lib/play/core';
 
@@ -27,12 +27,21 @@ export default async function Standings({ params }: { params: Promise<{ slug: st
     return { x, places: placed.map((e) => ({ place: e.place!, name: e.name, country: country(e.id) })) };
   }));
   const team = (teamSize: number) => (teamSize > 1 ? t.team : t.player);
+  // Tables the organisers wrote by hand, newest first.
+  const manual = localiseAll(await prisma.standingTable.findMany({ where: { projectId: project.id, published: true }, orderBy: { updatedAt: 'desc' } }), locale);
   return (
     <section>
       <div className="wrap">
         <div className="sec-h"><div><h2>{t.standT}</h2><p>{t.standP}</p></div></div>
-        {blocks.length === 0 ? <div className="panel" style={{ textAlign: 'center', padding: 48 }}>{t.noStandings}</div> : (
+        {blocks.length === 0 && manual.length === 0 ? <div className="panel" style={{ textAlign: 'center', padding: 48 }}>{t.noStandings}</div> : (
           <div className="tgrid">
+            {manual.map((s) => (
+              <div key={s.id} className="panel">
+                <h3>{s.title}</h3>
+                <div className="tw"><table className="st"><thead><tr><th>#</th><th>{t.team}</th><th className="num">{t.p}</th><th className="num">{t.w}</th><th className="num">{t.l}</th><th className="num">{t.pts}</th></tr></thead>
+                  <tbody>{(Array.isArray(s.rows) ? (s.rows as { name: string; played: number; won: number; lost: number; points: number }[]) : []).map((r, i) => <tr key={i} className={i < s.qualify ? 'q' : ''}><td>{i + 1}</td><td><b>{r.name}</b></td><td className="num">{r.played}</td><td className="num">{r.won}</td><td className="num">{r.lost}</td><td className="num"><b>{r.points}</b></td></tr>)}</tbody></table></div>
+              </div>
+            ))}
             {blocks.map((b) => (
               <div key={b.x.id} className="panel">
                 <h3><Link href={`${base}/t/${b.x.slug}`} style={{ color: 'inherit' }}>{tName(b.x, locale)}</Link></h3>

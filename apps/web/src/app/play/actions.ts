@@ -22,7 +22,7 @@ export async function createProject(_p: ActionState, fd: FormData): Promise<Acti
   if (name.length < 2 || name.length > 80) return failed('Give the website a name, for example Qatar Winter Cup.');
   const slug = slugify(String(fd.get('slug') ?? '') || name, 'league');
   if (slug.length < 3 || RESERVED.has(slug)) return failed('Choose a web address of at least 3 letters, for example winter-cup.');
-  if (await prisma.playProject.findUnique({ where: { slug } })) return failed(`${slug}.zemmz.gg is taken. Try adding the year or your city.`);
+  if (await prisma.playProject.findUnique({ where: { slug } })) return failed(`The address ${slug} is taken. Try adding the year or your city.`);
   const org = await prisma.organisation.findUniqueOrThrow({ where: { id: user.organisationId } });
   const block = await websiteAllowance(org);
   if (block) return failed(block);

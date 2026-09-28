@@ -4,7 +4,7 @@
  --bg:#F4F5FA;--surface:#FFFFFF;--surface-2:#EEEFF7;--line:#E2E2EE;--ink:#0D0B2E;--ink-2:#45445F;--muted:#737290;
  --tsec-bg:#F4F5FA;--card-bg:#FFFFFF;--sp-bg:#FFFFFF;--foot-bg:#07052E;--foot-ink:#B7B6D6;
  --ok:#0F7A52;--ok-soft:#DDF4EA;--warn:#9A5B00;--warn-soft:#FFF1D6;--info:#2549C9;--info-soft:#E6ECFF;--neutral-soft:#EBEBF3;--neutral:#55546E;
- --font:var(--font-sora),'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;--font-ar:var(--font-plex-ar),'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
+ --font:var(--pf-en,var(--font-sora)),'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;--font-ar:var(--pf-ar,var(--font-plex-ar)),'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pl{--bg:#0B0A1F;--surface:#15142F;--surface-2:#1C1B3C;--line:#2A2950;--ink:#F1F0FA;--ink-2:#C9C8E0;--muted:#9291B0;--tsec-bg:#0B0A1F;--card-bg:#15142F;--sp-bg:#100F28;--brand:#7C6DFF;--brand-ink:#0B0A1F;--ok:#46D39C;--ok-soft:#0F3528;--warn:#F2B650;--warn-soft:#3A2A0C;--info:#8CA6FF;--info-soft:#1B2552;--neutral-soft:#25244A;--neutral:#B3B2CC}
@@ -235,6 +235,7 @@
 .pl .offline{display:grid;place-items:center;min-height:100dvh;text-align:center;padding:24px}
 .pl .chip{text-decoration:none}
 .pl .m .tbd{color:var(--muted);font-style:italic}
+.pl .m .when{justify-content:center;font-size:12px;color:var(--muted);background:var(--surface-2);padding:5px 12px}
 .pl .inline-form{display:inline}
 .pl .me-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .pl .code-inp{letter-spacing:.3em;font-size:22px;text-align:center;direction:ltr}
@@ -244,3 +245,12 @@
 .pl .tc .art .banner-img{z-index:0}
 .pl .tc .art .pill{z-index:1}
 .pl .tc .art .g{position:relative;z-index:1}
+
+/* Section colours the organiser chose (Website → Theme); unset variables keep the defaults above. */
+.pl .tsec .sec-h h2{color:var(--tsec-title,inherit)}
+.pl .tsec .sec-h .linkbtn,.pl .tsec .sec-h a{color:var(--tsec-hi,var(--link))}
+.pl .tc .body{color:var(--card-text,inherit)}
+.pl .tc .body .meta{color:var(--card-text,var(--muted));opacity:var(--card-meta-o,1)}
+.pl .sponsors .sec-h h2{color:var(--sp-title,inherit)}
+.pl footer h4{color:var(--foot-hi,#fff)}
+.pl footer a.fl:hover{color:var(--foot-hi,#fff)}

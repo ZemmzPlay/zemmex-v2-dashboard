@@ -14,7 +14,7 @@ export default async function Join({ params }: { params: Promise<{ slug: string 
   const { slug } = await params;
   const { project, t, locale, base } = await siteFor(slug);
   const raw = (await cookies()).get('zplay_new')?.value;
-  const p = raw ? unsealData<{ p: string; target: string; kind: 'email' | 'phone' }>('zplay_new', raw) : null;
+  const p = raw ? unsealData<{ p: string; target: string; kind: 'email' | 'phone'; first?: string; last?: string; link?: { handle: string } }>('zplay_new', raw) : null;
   if (!p || p.p !== project.id) redirect(`${base}/signin?new=1`);
   const opt = <span style={{ color: 'var(--muted)', fontWeight: 400 }}> ({t.optional})</span>;
   return (
@@ -23,10 +23,10 @@ export default async function Join({ params }: { params: Promise<{ slug: string 
         <h1>{t.joinT}</h1>
         <p className="sub">{t.joinSub}</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div className="fld"><label htmlFor="fn">{t.firstName}</label><input id="fn" name="firstName" className="inp" autoComplete="given-name" required maxLength={60} /></div>
-          <div className="fld"><label htmlFor="ln">{t.lastName}</label><input id="ln" name="lastName" className="inp" autoComplete="family-name" required maxLength={60} /></div>
+          <div className="fld"><label htmlFor="fn">{t.firstName}</label><input id="fn" name="firstName" className="inp" autoComplete="given-name" required maxLength={60} defaultValue={p.first} /></div>
+          <div className="fld"><label htmlFor="ln">{t.lastName}</label><input id="ln" name="lastName" className="inp" autoComplete="family-name" required maxLength={60} defaultValue={p.last} /></div>
         </div>
-        <div className="fld"><label htmlFor="tag">{t.gamerTag}</label><input id="tag" name="gamerTag" className="inp" dir="auto" required maxLength={24} autoComplete="nickname" /></div>
+        <div className="fld"><label htmlFor="tag">{t.gamerTag}</label><input id="tag" name="gamerTag" className="inp" dir="auto" required maxLength={24} autoComplete="nickname" defaultValue={p.link?.handle?.slice(0, 24)} /></div>
         {p.kind === 'phone'
           ? <div className="fld"><label htmlFor="em">{t.email}</label><input id="em" name="email" type="email" className="inp" dir="ltr" required autoComplete="email" /></div>
           : <div className="fld"><label htmlFor="ph">{t.phone}{opt}</label><input id="ph" name="phone" className="inp" dir="ltr" inputMode="tel" autoComplete="tel" placeholder="+965 5000 0000" /></div>}

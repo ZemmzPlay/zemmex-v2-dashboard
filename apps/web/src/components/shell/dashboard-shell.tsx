@@ -9,6 +9,9 @@ import { kfmt } from '@/lib/format';
 import { PLAN_GRACE_DAYS, TRIAL_ATTENDEES } from '@/lib/plans';
 import { daysLeft } from '@/lib/billing';
 import { playAccess } from '@/lib/play/billing';
+import { hiddenProjectIds } from '@/lib/play/core';
+import { playAddress } from '@/lib/play/hosts';
+import { appUrl } from '@/lib/email';
 import { OrgSwitcher } from './org-switcher';
 import { Avatar } from '../avatar';
 import { Icon } from '../icon';
@@ -69,7 +72,7 @@ function playNav(p: PlayProject, role: Role, counts: { reports: number; pending:
   ];
 }
 
-const projectSwitcher = (p: PlayProject): SwitcherEvent => ({ href: `/play/${p.slug}`, slug: p.slug, name: p.name, short: p.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 3).toUpperCase(), colour: p.colour, sub: `${p.slug}.zemmz.gg` });
+const projectSwitcher = (p: PlayProject): SwitcherEvent => ({ href: `/play/${p.slug}`, slug: p.slug, name: p.name, short: p.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 3).toUpperCase(), colour: p.colour, sub: playAddress(p, appUrl()) });
 
 export async function DashboardShell({ user, event, play, product, children }: { user: CurrentUser; event?: Event; play?: PlayProject; product?: 'live' | 'play'; children: React.ReactNode }) {
   const inPlay = !!play || product === 'play';
@@ -102,7 +105,7 @@ export async function DashboardShell({ user, event, play, product, children }: {
     const [reports, pending, list] = await Promise.all([
       prisma.match.count({ where: { tournament: { projectId: play.id, status: 'LIVE' }, status: { in: ['REVIEW', 'CONFLICT'] } } }),
       prisma.playPlayer.count({ where: { projectId: play.id, verification: 'PENDING', blacklisted: false } }),
-      prisma.playProject.findMany({ where: { organisationId: user.organisationId, archivedAt: null }, orderBy: { createdAt: 'asc' } }),
+      prisma.playProject.findMany({ where: { organisationId: user.organisationId, archivedAt: null, id: { notIn: await hiddenProjectIds(user.id, user.role) } }, orderBy: { createdAt: 'asc' } }),
     ]);
     projects = list;
     groups = playNav(play, user.role, { reports, pending });

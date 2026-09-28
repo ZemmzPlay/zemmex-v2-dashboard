@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { prisma, type Match, type Tournament } from '@zemmz/db';
-import { FORMAT_LABEL, formatDate, formatMoney, playGame } from '@zemmz/shared';
+import { FORMAT_LABEL, formatDate, formatMoney, formatTime, playGame } from '@zemmz/shared';
 import { ACTIVE_ENTRY, matchLabeller, tournamentPhase, type TournamentPhase } from '@/lib/play/core';
 import { prizeList } from '@/lib/play/bracket';
 import { tName } from '@/lib/play/site';
@@ -101,7 +101,12 @@ export function PublicBracket({ t, tour, matches, names, locale }: { t: PlayText
                 const row = (id: string | null, bye: boolean, sc: number | null) => (
                   <div className={`${done && id && m.winnerId === id ? 'w' : ''} ${!id ? 'pend' : ''}`}><span>{id ? names.get(id) ?? '—' : bye ? t.bye : t.awaiting}</span><span>{done && !m.aBye && !m.bBye ? sc : ''}</span></div>
                 );
-                return <div key={m.id} className="m">{row(m.entryAId, m.aBye, m.scoreA)}{row(m.entryBId, m.bBye, m.scoreB)}</div>;
+                return (
+                  <div key={m.id} className="m">
+                    {row(m.entryAId, m.aBye, m.scoreA)}{row(m.entryBId, m.bBye, m.scoreB)}
+                    {!done && m.scheduledAt && <div className="when">{formatDate(m.scheduledAt, tour.timezone, locale)}, {formatTime(m.scheduledAt, tour.timezone, locale)}</div>}
+                  </div>
+                );
               })}
             </div>
           ))}

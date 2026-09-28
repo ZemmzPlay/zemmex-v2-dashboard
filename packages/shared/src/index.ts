@@ -12,3 +12,4 @@ export * from './site-text';
 export * from './platform-email';
 export * from './bilingual';
 export * from './play';
+export * from './play-theme';

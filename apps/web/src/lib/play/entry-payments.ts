@@ -4,6 +4,7 @@ import { sign } from '@/lib/order-tokens';
 import { appUrl } from '@/lib/email';
 import { cardProcessingMinor, checkPayment, paymentProvider, paymentsReady, PaymentError, refundPayment, startCheckout } from '@/lib/payments';
 import { entryPrice } from './entries';
+import { playSiteOrigin } from './core';
 
 /**
  * Paid entry fees: the same hosted checkout as Live tickets. The entry is
@@ -23,7 +24,8 @@ export async function startEntryPayment(opts: { project: PlayProject; tournament
     },
   });
   const token = sign('entry', order.id);
-  const base = `${appUrl()}/p/${opts.project.slug}/pay`;
+  // Back to the website's own address, where the player's session cookie lives.
+  const base = `${playSiteOrigin(opts.project)}/p/${opts.project.slug}/pay`;
   try {
     const c = await startCheckout({
       orderId: order.id, amountMinor: price.totalMinor, currency: order.currency, locale: opts.locale,

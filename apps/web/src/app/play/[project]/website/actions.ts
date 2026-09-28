@@ -2,10 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@zemmz/db';
-import { contrastRatio, hexColourSchema, mergeArabic, sanitizeRichText, stripHtml, textOn, zonedTime } from '@zemmz/shared';
+import { contrastRatio, hexColourSchema, mergeArabic, PLAY_FONTS_AR, PLAY_FONTS_EN, resolveTheme, sanitizeRichText, storedTheme, stripHtml, textOn, themeIssues, zonedTime } from '@zemmz/shared';
 import { done, failed, type ActionState } from '@/lib/action-state';
 import { logPlay, playCan, requireProjectPermission } from '@/lib/play/core';
 import { SOCIALS } from './socials';
+import { playProviderReady } from '@/lib/play/oauth';
 
 const g = (fd: FormData, k: string) => String(fd.get(k) ?? '').trim();
 async function ctx(slug: string) {
@@ -89,4 +90,40 @@ export async function saveSocials(slug: string, _p: ActionState, fd: FormData): 
   await logPlay(project.id, user.name, 'edited social links and sponsors');
   refresh(slug);
   return done('Saved.');
+}
+
+const METHODS = ['email', 'phone', 'google', 'discord'] as const;
+
+/** Which ways players can sign in. At least one has to stay on. */
+export async function saveSignIn(slug: string, _p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user, project } = await ctx(slug);
+  const methods = METHODS.filter((m) => fd.get(m) === 'on');
+  if (!methods.length) return failed('Keep at least one way to sign in, or players can’t get in.');
+  if (!methods.includes('email') && !methods.includes('phone') && !methods.some((m) => playProviderReady(m as 'google' | 'discord'))) {
+    return failed('Google and Discord aren’t set up on this server yet, so keep email or mobile codes on.');
+  }
+  await prisma.playProject.update({ where: { id: project.id }, data: { signInMethods: methods } });
+  await logPlay(project.id, user.name, `changed how players sign in (${methods.join(', ')})`);
+  refresh(slug);
+  return done('Saved.');
+}
+
+/** Typefaces and section colours. Unreadable pairs are refused, not saved with a warning. */
+export async function saveTheme(slug: string, _p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user, project } = await ctx(slug);
+  const fontEn = g(fd, 'fontEn'), fontAr = g(fd, 'fontAr');
+  if (!PLAY_FONTS_EN.some((f) => f.key === fontEn) || !PLAY_FONTS_AR.some((f) => f.key === fontAr)) return failed('Choose a typeface from the lists.');
+  let raw: unknown = {};
+  try {
+    raw = JSON.parse(g(fd, 'theme') || '{}');
+  } catch {
+    return failed('The colours didn’t come through. Reload the page and try again.');
+  }
+  const theme = storedTheme(raw);
+  const issues = themeIssues(resolveTheme(project.colour, theme));
+  if (issues.length) return failed(`${issues.length} ${issues.length === 1 ? 'colour pair is' : 'colour pairs are'} hard to read. Use Fix all contrast, then save.`);
+  await prisma.playProject.update({ where: { id: project.id }, data: { fontEn, fontAr, theme: theme as object } });
+  await logPlay(project.id, user.name, 'changed the website theme');
+  refresh(slug);
+  return done('Theme saved. It’s live on the website.');
 }

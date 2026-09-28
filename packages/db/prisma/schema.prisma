@@ -99,6 +99,7 @@ model User {
   /// Set when the 6-digit code from signup is entered. Invited people are verified by accepting.
   emailVerifiedAt DateTime?
   memberships  Membership[]
+  playRoles    PlayProjectMember[]
   sessions     AuthSession[]
   resets       PasswordReset[]
   emailCodes   EmailCode[]
@@ -952,6 +953,17 @@ model PlayProject {
   logoAssetId    String?
   /// Arabic versions of the text above (see packages/shared/src/bilingual.ts).
   ar             Json         @default("{}")
+  /// Typefaces by key from PLAY_FONTS_EN / PLAY_FONTS_AR in @zemmz/shared.
+  fontEn         String       @default("sora")
+  fontAr         String       @default("plex")
+  /// Colours per website section: { nav: { bg, text, hi }, tsec: {…}, card: {…}, sp: {…}, foot: {…} }. Empty: derived from `colour`.
+  theme          Json         @default("{}")
+  /// How players can sign in: any of "email", "phone", "google", "discord".
+  signInMethods  String[]     @default(["email", "phone"])
+  /// The organiser's own address (play.example.com), mapped to /p/<slug> once its TXT record checks out.
+  customDomain   String?      @unique
+  domainToken    String       @default("")
+  domainVerifiedAt DateTime?
   archivedAt     DateTime?
   createdAt      DateTime     @default(now())
 
@@ -959,8 +971,44 @@ model PlayProject {
   tournaments    Tournament[]
   players        PlayPlayer[]
   activity       PlayActivity[]
+  members        PlayProjectMember[]
+  standingTables StandingTable[]
 
   @@index([organisationId])
+}
+
+/// A person's role on one tournament website, overriding their organisation role there. NONE hides the website from them.
+model PlayProjectMember {
+  id        String      @id @default(cuid())
+  projectId String
+  userId    String
+  role      String
+  createdAt DateTime    @default(now())
+
+  project   PlayProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+/// A standings table an organiser writes by hand (qualifiers, groups played elsewhere), shown next to the computed ones.
+model StandingTable {
+  id           String      @id @default(cuid())
+  projectId    String
+  tournamentId String?
+  title        String
+  /// [{ name, played, won, lost, points }], in the order shown.
+  rows         Json        @default("[]")
+  /// How many rows at the top are highlighted as going through.
+  qualify      Int         @default(0)
+  published    Boolean     @default(false)
+  ar           Json        @default("{}")
+  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime    @default(now())
+
+  project      PlayProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
 }
 
 enum TournamentFormat {
@@ -1058,6 +1106,10 @@ model PlayPlayer {
   note         String       @default("")
   createdAt    DateTime     @default(now())
   lastSeenAt   DateTime?
+  /// Accounts linked for signing in with Google or Discord (their stable user IDs).
+  googleId     String?
+  discordId    String?
+  discordName  String       @default("")
 
   project      PlayProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   sessions     PlayerSession[]
@@ -1066,6 +1118,8 @@ model PlayPlayer {
 
   @@unique([projectId, email])
   @@unique([projectId, gamerTag])
+  @@unique([projectId, googleId])
+  @@unique([projectId, discordId])
   @@index([projectId, verification])
 }
 
@@ -1074,6 +1128,10 @@ model PlayerSession {
   playerId  String
   tokenHash String     @unique
   expiresAt DateTime
+  /// "mobile", "tablet" or "desktop", from the browser at sign-in, for analytics.
+  device    String     @default("")
+  /// How they signed in: "email", "phone", "google" or "discord".
+  method    String     @default("")
   createdAt DateTime   @default(now())
   player    PlayPlayer @relation(fields: [playerId], references: [id], onDelete: Cascade)
 }

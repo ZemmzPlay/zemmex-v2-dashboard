@@ -12,6 +12,7 @@ export default async function TestAuthorize({ searchParams }: { searchParams: Pr
       <form method="post" action="/auth-test/submit" className="card w-full max-w-[400px] p-6">
         <input type="hidden" name="state" value={q.state ?? ''} />
         <input type="hidden" name="nonce" value={q.nonce ?? ''} />
+        <input type="hidden" name="redirect_uri" value={q.redirect_uri ?? ''} />
         <p className="m-0 text-[12px] font-bold tracking-[.08em] text-muted">TEST IDENTITY PROVIDER</p>
         <h1 className="mb-4 mt-2 text-[22px] font-bold">Sign in as</h1>
         <div className="fld"><label htmlFor="t-email">Email address</label><input id="t-email" name="email" type="email" className="inp" required defaultValue={q.login_hint ?? ''} /></div>

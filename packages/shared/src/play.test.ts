@@ -123,3 +123,17 @@ it('names rounds', () => {
   expect(roundLabel('DOUBLE_ELIMINATION', 'F', 1, 1)).toBe('Grand final');
   expect(settle([])).toEqual(new Set());
 });
+
+import { fixTheme, resolveTheme, themeIssues, themeVars } from './play-theme';
+describe('tournament website theme', () => {
+  it('starts readable, flags bad pairs and fixes them all', () => {
+    expect(themeIssues(resolveTheme('#F5C451', {}))).toEqual([]);
+    const bad = resolveTheme('#6B4BFF', { nav: { bg: '#FFFFFF', text: '#EEEEEE' }, sp: { title: '#FAFAFA' } });
+    expect(themeIssues(bad).map((i) => `${i.section}.${i.field}`)).toEqual(['nav.text', 'sp.title']);
+    expect(themeIssues(fixTheme(bad))).toEqual([]);
+  });
+  it('only sets variables for sections the organiser changed', () => {
+    expect(themeVars('#6B4BFF', {})).toEqual({});
+    expect(Object.keys(themeVars('#6B4BFF', { card: { bg: '#111111', text: 'nope' } }))).toEqual(['--card-bg', '--card-text']);
+  });
+});
