@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: 'Email outbox' };
  * machine; every email and SMS the worker "sends" can be read here.
  */
 export default async function OutboxPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
-  if (process.env.MESSAGING_PROVIDER === 'sendgrid') notFound();
+  if ((process.env.MESSAGING_PROVIDER ?? 'log') !== 'log') notFound();
   const user = await requireUser();
   const { id } = await searchParams;
   const where = { event: { organisationId: user.organisationId } };

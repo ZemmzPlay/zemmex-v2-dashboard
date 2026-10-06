@@ -8,6 +8,15 @@
     "plugins": [{ "name": "next" }],
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts", "next.config.ts"],
+  "include": [
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts",
+    "next.config.ts",
+    "../worker/src/tick.ts",
+    "../worker/src/jobs.ts",
+    "../worker/src/providers.ts"
+  ],
   "exclude": ["node_modules"]
 }

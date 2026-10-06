@@ -17,3 +17,6 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 desktop.ini
+.vercel
+.env*
+!.env.example

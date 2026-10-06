@@ -62,7 +62,21 @@ try {
   );
   process.exit(1);
 }
-run('npx prisma generate', { cwd: join(root, 'packages/db'), env: childEnv, stdio: ['ignore', 'ignore', 'inherit'] });
+// On Windows, a leftover web/worker process often locks query_engine-windows.dll.node,
+  // so prisma generate fails with EPERM even though the client is already usable.
+  try {
+    run('npx prisma generate', { cwd: join(root, 'packages/db'), env: childEnv, stdio: ['ignore', 'ignore', 'inherit'] });
+  } catch (err) {
+    const engine = join(root, 'node_modules', '.prisma', 'client', 'query_engine-windows.dll.node');
+    if (process.platform === 'win32' && existsSync(engine)) {
+      console.warn(
+        'prisma generate skipped: the query engine is locked by another Node process.\n' +
+          'Stop any running npm run dev (Ctrl+C), then run again if you changed the schema.',
+      );
+    } else {
+      throw err;
+    }
+  }
 
 // 3. sample data on an empty development database
 if (!production && env.AUTO_SEED !== 'false') {

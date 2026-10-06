@@ -9,8 +9,8 @@
  *   npm run once -w @zemmz/worker       a single tick, then exit
  */
 import { prisma } from '@zemmz/db';
-import { dispatchOutbox, planRenewals, playRenewals, releaseHeldOrders, transitionSessions } from './jobs';
 import { providerFromEnv } from './providers';
+import { runTick } from './tick';
 
 const TICK_MS = Number(process.env.WORKER_TICK_MS ?? 20_000);
 const once = process.argv.includes('--once');
@@ -20,18 +20,14 @@ let stopping = false;
 let running: Promise<void> | null = null;
 
 async function tick() {
-  const started = Date.now();
   try {
-    const s = await transitionSessions();
-    const o = await dispatchOutbox(provider);
-    const released = await releaseHeldOrders();
-    if (released) console.log(`[tick] released ${released} unpaid ${released === 1 ? 'order' : 'orders'}`);
-    const reminded = (await planRenewals()) + (await playRenewals());
-    if (reminded) console.log(`[tick] queued ${reminded} plan ${reminded === 1 ? 'reminder' : 'reminders'}`);
-    const changed = s.live + s.ended + s.upcoming;
-    if (changed || o.claimed) {
+    const r = await runTick(provider);
+    if (r.released) console.log(`[tick] released ${r.released} unpaid ${r.released === 1 ? 'order' : 'orders'}`);
+    if (r.reminded) console.log(`[tick] queued ${r.reminded} plan ${r.reminded === 1 ? 'reminder' : 'reminders'}`);
+    const changed = r.sessions.live + r.sessions.ended + r.sessions.upcoming;
+    if (changed || r.outbox.claimed) {
       console.log(
-        `[tick] sessions: +${s.live} live, +${s.ended} ended${s.upcoming ? `, +${s.upcoming} upcoming` : ''} · outbox: ${o.sent} sent, ${o.failed} failed · ${Date.now() - started} ms`,
+        `[tick] sessions: +${r.sessions.live} live, +${r.sessions.ended} ended${r.sessions.upcoming ? `, +${r.sessions.upcoming} upcoming` : ''} · outbox: ${r.outbox.sent} sent, ${r.outbox.failed} failed · ${r.ms} ms`,
       );
     }
   } catch (err) {

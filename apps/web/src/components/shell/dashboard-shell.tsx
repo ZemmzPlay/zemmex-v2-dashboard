@@ -130,7 +130,7 @@ export async function DashboardShell({ user, event, play, product, children }: {
       ['Organisation', [
         ...(can.seeDashboard(user.role) ? [{ href: '/organisation', icon: 'users' as const, label: 'People and plan' }] : []),
         { href: '/account', icon: 'user', label: 'Your account' },
-        ...(process.env.MESSAGING_PROVIDER !== 'sendgrid' ? [{ href: '/outbox', icon: 'inbox' as const, label: 'Email outbox' }] : []),
+        ...((process.env.MESSAGING_PROVIDER ?? 'log') === 'log' ? [{ href: '/outbox', icon: 'inbox' as const, label: 'Email outbox' }] : []),
         ...(isPlatformAdmin(user.email) ? [{ href: '/admin', icon: 'lock' as const, label: 'zemmz admin' }] : []),
       ]],
     ];

@@ -1,0 +1,36 @@
+# Calls the production worker tick on Vercel so emails, session status and
+# unpaid holds keep moving without a PC left on. Hobby cron is only daily;
+# this runs every 5 minutes on GitHub's free runners.
+#
+# One secret required: CRON_SECRET (same value as on the Vercel project).
+
+name: worker-tick
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run worker tick
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          TICK_URL: https://zemmz-platform.vercel.app/api/cron/tick
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "Add repository secret CRON_SECRET (same as Vercel CRON_SECRET)."
+            exit 1
+          fi
+          curl -fsS -X GET "$TICK_URL" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json"

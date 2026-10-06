@@ -10,7 +10,10 @@ try {
 }
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // Standalone is for Docker; Vercel uses its own output format.
+  ...(process.env.VERCEL ? {} : { output: 'standalone' as const }),
+  // Allow importing the worker tick from apps/worker (cron route on Vercel).
+  experimental: { externalDir: true },
   // Trace files from the monorepo root so the standalone build includes packages/*.
   outputFileTracingRoot: path.join(__dirname, '../../'),
   transpilePackages: ['@zemmz/shared', '@zemmz/db'],
